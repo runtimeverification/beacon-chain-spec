@@ -8,7 +8,7 @@ module BEACON-CHAIN
       <genesis-time> 0 </genesis-time>
       <fork> .K </fork>
       <validator-registry> .ValidatorList </validator-registry>
-      <balances> .Uint64List </balances>
+      <balances> .Map </balances> //List[Gwei]
       <latest-randao-mixes> .Bytes32List </latest-randao-mixes>
       <latest-start-shard> 0 </latest-start-shard>
       <previous-epoch-attestations> .PendingAttestationList </previous-epoch-attestations>
@@ -65,6 +65,7 @@ module BEACON-CHAIN
   syntax Eth1DataList ::= List{Eth1Data, ""}
   syntax ValidatorList ::= List{Validator, ""}
   syntax PendingAttestationList ::= List{PendingAttestation, ""}
+  syntax IntList ::= List{Int, ""}
 
   // Python spec types
   //====================================================
@@ -385,5 +386,63 @@ class Transfer(Container):
     signature: Bytes96
   */
   syntax Transfer ::= #Transfer( Uint64, Uint64, Gwei, Gwei, Slot, Bytes48, Bytes96 )
+
+  // Python spec utility functions
+  //====================================================
+
+  syntax Bytes32 ::= xor( Bytes32, Bytes32 ) [function]
+  rule xor(A,B) => A xorInt B
+
+  syntax Int ::= blsDomain(Int, Bytes32) [function]
+  rule blsDomain(Domain_Type, Fork_Version) => Domain_Type +Int Fork_Version
+
+  syntax Epoch ::= slotToEpoch(Slot) [function]
+  rule slotToEpoch(SLOT) => SLOT /Int SLOTS_PER_EPOCH
+
+  syntax Epoch ::= getPreviousEpoch() [function]
+  rule getPreviousEpoch() =>  #if getCurrentEpoch() ==K GENESIS_EPOCH
+                                #then GENESIS_EPOCH
+                                #else {getCurrentEpoch()}:>Int -Int 1
+                              #fi
+
+  syntax Epoch ::= getCurrentEpoch() [function]
+  rule [[ getCurrentEpoch() => slotToEpoch(SLOT) ]]
+    <slot> SLOT </slot>
+
+  syntax Slot ::= getEpochStartSlot(Epoch) [function]
+  rule getEpochStartSlot(EPOCH) => EPOCH *Int SLOTS_PER_EPOCH
+
+  syntax Bool ::= isActiveValidator( Validator, Epoch ) [function]
+  rule isActiveValidator( #Validator(_,_,_, ActivationEpoch, ExitEpoch, _,_,_), EPOCH )
+    => ActivationEpoch <=Int EPOCH andBool EPOCH <Int ExitEpoch
+
+  syntax Bool ::= isSlashableValidator( Validator, Epoch ) [function]
+  rule isActiveValidator( #Validator(_,_,_, ActivationEpoch, _, WithdEpoch, Slashed, _), EPOCH )
+    => notBool Slashed andBool ActivationEpoch <=Int EPOCH andBool EPOCH <Int WithdEpoch
+
+  syntax IntList ::= getActiveValidatorIndices( Epoch ) [function]
+  rule [[ getActiveValidatorIndices(EP) => getActiveValidatorIndicesAux(.IntList, 0, VALIDATORS, EP) ]]
+    <validator-registry> VALIDATORS </validator-registry>
+
+  syntax IntList ::= getActiveValidatorIndicesAux( IntList, Int, ValidatorList, Epoch ) [function]
+  rule getActiveValidatorIndicesAux(_,          I => I +Int 1, V VList => VList, EP )
+    requires notBool isActiveValidator(V, EP)
+  rule getActiveValidatorIndicesAux(Is => I Is, I => I +Int 1, V VList => VList, EP )
+    requires         isActiveValidator(V, EP)
+  rule getActiveValidatorIndicesAux(Is, _, .ValidatorList, _) => Is
+
+  // Python state modifying functions
+  //====================================================
+
+  syntax KItem ::= "increaseBalance" "(" ValidatorIndex "," Gwei ")"
+  rule <k> increaseBalance(ValIndex, Delta) => . ...</k>
+       <balances>... ValIndex |-> (BAL => BAL +Int Delta) ...</balances>
+
+  // Decrease validator balance by ``delta`` with underflow protection.
+  syntax KItem ::= "decreaseBalance" "(" ValidatorIndex "," Gwei ")"
+  rule <k> decreaseBalance(ValIndex, Delta) => . ...</k>
+       <balances>... ValIndex |-> (BAL => #if Delta >Int BAL #then 0 #else BAL -Int Delta #fi) ...</balances>
+
+  //todo next: get_epoch_committee_count
 
 endmodule

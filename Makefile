@@ -107,9 +107,13 @@ $(llvm_kompiled): $(llvm_files)
 # Testing
 # -------
 
+TEST_CONCRETE_BACKEND:=llvm
+
 test: test-python-config
 
 test-python-config:
-	python3 build-symbolic-config.py config-with-vars.json > config-with-vars.json.out
-	kast config-with-vars.json.out --output pretty
+	python3 build-symbolic-config.py > config-with-vars.json.out
+	kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
+	     --output pretty --sort GeneratedTopCell \
+	     config-with-vars.json.out 
 	rm config-with-vars.json.out

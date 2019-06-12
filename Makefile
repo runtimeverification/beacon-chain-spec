@@ -82,7 +82,7 @@ build-llvm: $(llvm_kompiled)
 k_files=$(MAIN_DEFN_FILE).k beacon-chain.k
 llvm_files=$(patsubst %,$(DEFN_DIR)/llvm/%,$(k_files))
 
-defn: $(defn_files)
+defn: llvm-defn
 llvm-defn: $(llvm_files)
 
 $(DEFN_DIR)/llvm/%.k: %.k
@@ -92,7 +92,7 @@ $(DEFN_DIR)/llvm/%.k: %.k
 
 # LLVM Backend
 
-$(llvm_kompiled): $(ocaml_files)
+$(llvm_kompiled): $(llvm_files)
 	@echo "== kompile: $@"
 	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm \
 	                 --syntax-module $(SYNTAX_MODULE) $(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE).k \

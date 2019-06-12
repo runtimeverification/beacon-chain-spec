@@ -62,7 +62,7 @@ deps-tests: $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
 $(K_SUBMODULE)/mvn.timestamp: $(K_SUBMODULE)/submodule.timestamp
 	@echo "== building: $*"
 	cd $(K_SUBMODULE) && mvn package -DskipTests -Dhaskell.backend.skip
-	touch $(K_SUBMODULE)/make.timestamp
+	touch $(K_SUBMODULE)/mvn.timestamp
 
 # Building
 # --------

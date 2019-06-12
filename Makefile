@@ -24,6 +24,9 @@ K_LIB:=$(K_RELEASE)/lib
 PATH:=$(K_BIN):$(PATH)
 export PATH
 
+PYTHONPATH:=$(K_LIB)/py-kframework
+export PYTHONPATH
+
 TANGLER:=$(PANDOC_TANGLE_SUBMODULE)/tangle.lua
 LUA_PATH:=$(PANDOC_TANGLE_SUBMODULE)/?.lua;;
 export TANGLER
@@ -35,7 +38,8 @@ ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-specs
 .PHONY: all clean \
 	    deps deps-k deps-tangle deps-tests \
 	    defn defn-llvm \
-	    build build-llvm
+	    build build-llvm \
+	    test test-python-config
 .SECONDARY:
 
 all: build
@@ -100,3 +104,12 @@ $(llvm_kompiled): $(llvm_files)
 	                 --directory $(DEFN_DIR)/llvm -I $(DEFN_DIR)/llvm \
 	                 $(LLVM_KOMPILE_OPTS)
 
+# Testing
+# -------
+
+test: test-python-config
+
+test-python-config:
+	python3 build-symbolic-config.py config-with-vars.json > config-with-vars.json.out
+	kast config-with-vars.json.out --output pretty
+	rm config-with-vars.json.out

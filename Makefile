@@ -111,9 +111,12 @@ TEST_CONCRETE_BACKEND:=llvm
 
 test: test-python-config
 
-test-python-config:
-	python3 build-symbolic-config.py > config-with-vars.json.out
+test-python-config: $(BUILD_DIR)/tests/build-config.out
 	kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
 	     --output pretty --sort BeaconChainCell \
-	     config-with-vars.json.out
-	rm config-with-vars.json.out
+	     $<
+
+$(BUILD_DIR)/tests/build-config.out: build-config.py
+	mkdir $(dir $@)
+	python3 $< > $@
+

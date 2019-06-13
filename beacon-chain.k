@@ -6,7 +6,7 @@ module BEACON-CHAIN
     <state>                           //Type BeaconState in python spec.
       <slot> 0 </slot>
       <genesis-time> 0 </genesis-time>
-      <fork> .K </fork>
+      <fork> .Fork </fork>
       <validator-registry> .ValidatorList </validator-registry>
       <balances> .Map </balances> //List[Gwei]
       <latest-randao-mixes> .Bytes32List </latest-randao-mixes>
@@ -26,9 +26,9 @@ module BEACON-CHAIN
       <latest-state-roots> .Bytes32List </latest-state-roots>
       <latest-active-index-roots> .Bytes32List </latest-active-index-roots>
       <latest-slashed-balances> .Uint64List </latest-slashed-balances>
-      <latest-block-header> .K </latest-block-header>
+      <latest-block-header> .BlockHeader </latest-block-header>
       <historical-roots> .Bytes32List </historical-roots>
-      <latest-eth1-data> .K </latest-eth1-data>
+      <latest-eth1-data> .Eth1Data </latest-eth1-data>
       <eth1-data-votes> .Eth1DataList </eth1-data-votes>
       <deposit-index> 0 </deposit-index>
     </state>
@@ -38,7 +38,7 @@ module BEACON-CHAIN
       <state-root> -1 </state-root>
       <body>                          //Type BeaconBlockBody in python spec.
         <randao-reveal> -1 </randao-reveal>
-        <eth1-data> .K </eth1-data>
+        <eth1-data> .Eth1Data </eth1-data>
         <graffiti> -1 </graffiti>
         <proposer-slashings> .ProposerSlashingList </proposer-slashings>
         <attester-slashings> .AttesterSlashingList </attester-slashings>
@@ -50,7 +50,11 @@ module BEACON-CHAIN
       <signature> -1 </signature>
     </block>
 
+  syntax KItem ::= Pgm
   syntax Pgm ::= ".Pgm"
+  syntax Fork ::= ".Fork"
+  syntax BlockHeader ::= ".BlockHeader"
+  syntax Eth1Data ::= ".Eth1Data"
 
   syntax Bytes ::= #Bytes( Int, Int ) //DATA, LEN
   syntax Uint64 ::= Int

@@ -2,53 +2,55 @@ module BEACON-CHAIN
   imports DOMAINS
 
   configuration
-    <k> $PGM:Pgm </k>
-    <state>                           //Type BeaconState in python spec.
-      <slot> 0 </slot>
-      <genesis-time> 0 </genesis-time>
-      <fork> .Fork </fork>
-      <validator-registry> .ValidatorList </validator-registry>
-      <balances> .Map </balances> //List[Gwei]
-      <latest-randao-mixes> .Bytes32List </latest-randao-mixes>
-      <latest-start-shard> 0 </latest-start-shard>
-      <previous-epoch-attestations> .PendingAttestationList </previous-epoch-attestations>
-      <current-epoch-attestations> .PendingAttestationList </current-epoch-attestations>
-      <previous-justified-epoch> 0 </previous-justified-epoch>
-      <current-justified-epoch> 0 </current-justified-epoch>
-      <previous-justified-root> 0 </previous-justified-root>
-      <current-justified-root> 0 </current-justified-root>
-      <justification-bitfield> 0:Uint64 </justification-bitfield>
-      <finalized-epoch> 0 </finalized-epoch>
-      <finalized-root> 0 </finalized-root>
-      <current-crosslinks> .CrosslinkList </current-crosslinks>
-      <previous-crosslinks> .CrosslinkList </previous-crosslinks>
-      <latest-block-roots> .Bytes32List </latest-block-roots>
-      <latest-state-roots> .Bytes32List </latest-state-roots>
-      <latest-active-index-roots> .Bytes32List </latest-active-index-roots>
-      <latest-slashed-balances> .Uint64List </latest-slashed-balances>
-      <latest-block-header> .BlockHeader </latest-block-header>
-      <historical-roots> .Bytes32List </historical-roots>
-      <latest-eth1-data> .Eth1Data </latest-eth1-data>
-      <eth1-data-votes> .Eth1DataList </eth1-data-votes>
-      <deposit-index> 0 </deposit-index>
-    </state>
-    <block>                           //Type BeaconBlock in python spec.
-      <blockSlot> -1 </blockSlot>
-      <parent-root> -1 </parent-root>
-      <state-root> -1 </state-root>
-      <body>                          //Type BeaconBlockBody in python spec.
-        <randao-reveal> -1 </randao-reveal>
-        <eth1-data> .Eth1Data </eth1-data>
-        <graffiti> -1 </graffiti>
-        <proposer-slashings> .ProposerSlashingList </proposer-slashings>
-        <attester-slashings> .AttesterSlashingList </attester-slashings>
-        <attestations> .AttestationList </attestations>
-        <deposits> .DepositList </deposits>
-        <voluntary-exits> .VoluntaryExitList </voluntary-exits>
-        <transfers> .TransferList </transfers>
-      </body>
-      <signature> -1 </signature>
-    </block>
+    <beacon-chain>
+      <k> $PGM:Pgm </k>
+      <state>                           //Type BeaconState in python spec.
+        <slot> 0 </slot>
+        <genesis-time> 0 </genesis-time>
+        <fork> .Fork </fork>
+        <validator-registry> .ValidatorList </validator-registry>
+        <balances> .Map </balances> //List[Gwei]
+        <latest-randao-mixes> .Bytes32List </latest-randao-mixes>
+        <latest-start-shard> 0 </latest-start-shard>
+        <previous-epoch-attestations> .PendingAttestationList </previous-epoch-attestations>
+        <current-epoch-attestations> .PendingAttestationList </current-epoch-attestations>
+        <previous-justified-epoch> 0 </previous-justified-epoch>
+        <current-justified-epoch> 0 </current-justified-epoch>
+        <previous-justified-root> 0 </previous-justified-root>
+        <current-justified-root> 0 </current-justified-root>
+        <justification-bitfield> 0:Uint64 </justification-bitfield>
+        <finalized-epoch> 0 </finalized-epoch>
+        <finalized-root> 0 </finalized-root>
+        <current-crosslinks> .CrosslinkList </current-crosslinks>
+        <previous-crosslinks> .CrosslinkList </previous-crosslinks>
+        <latest-block-roots> .Bytes32List </latest-block-roots>
+        <latest-state-roots> .Bytes32List </latest-state-roots>
+        <latest-active-index-roots> .Bytes32List </latest-active-index-roots>
+        <latest-slashed-balances> .Uint64List </latest-slashed-balances>
+        <latest-block-header> .BlockHeader </latest-block-header>
+        <historical-roots> .Bytes32List </historical-roots>
+        <latest-eth1-data> .Eth1Data </latest-eth1-data>
+        <eth1-data-votes> .Eth1DataList </eth1-data-votes>
+        <deposit-index> 0 </deposit-index>
+      </state>
+      <block>                           //Type BeaconBlock in python spec.
+        <blockSlot> -1 </blockSlot>
+        <parent-root> -1 </parent-root>
+        <state-root> -1 </state-root>
+        <body>                          //Type BeaconBlockBody in python spec.
+          <randao-reveal> -1 </randao-reveal>
+          <eth1-data> .Eth1Data </eth1-data>
+          <graffiti> -1 </graffiti>
+          <proposer-slashings> .ProposerSlashingList </proposer-slashings>
+          <attester-slashings> .AttesterSlashingList </attester-slashings>
+          <attestations> .AttestationList </attestations>
+          <deposits> .DepositList </deposits>
+          <voluntary-exits> .VoluntaryExitList </voluntary-exits>
+          <transfers> .TransferList </transfers>
+        </body>
+        <signature> -1 </signature>
+      </block>
+    </beacon-chain>
 
   syntax KItem ::= Pgm
   syntax Pgm ::= ".Pgm"

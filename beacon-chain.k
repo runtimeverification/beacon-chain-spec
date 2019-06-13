@@ -2,7 +2,7 @@ module BEACON-CHAIN
   imports DOMAINS
 
   configuration
-    <k> $TODO </k>
+    <k> $PGM:Pgm </k>
     <state>                           //Type BeaconState in python spec.
       <slot> 0 </slot>
       <genesis-time> 0 </genesis-time>
@@ -49,6 +49,8 @@ module BEACON-CHAIN
       </body>
       <signature> -1 </signature>
     </block>
+
+  syntax Pgm ::= ".Pgm"
 
   syntax Bytes ::= #Bytes( Int, Int ) //DATA, LEN
   syntax Uint64 ::= Int

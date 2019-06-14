@@ -35,7 +35,7 @@ ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-specs
 .PHONY: all clean \
 	    deps deps-k deps-tangle deps-tests \
 	    defn defn-llvm \
-	    build build-llvm \
+	    build build-llvm
 .SECONDARY:
 
 all: build

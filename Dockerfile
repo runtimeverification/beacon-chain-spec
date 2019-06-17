@@ -28,3 +28,4 @@ RUN    cd /home/user/.install-rust \
     && ./install-rust
 
 ENV LD_LIBRARY_PATH=/usr/local/lib
+ENV PATH=/home/user/.local/bin:/home/user/.cargo/bin:$PATH

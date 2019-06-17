@@ -20,7 +20,6 @@ pipeline {
     stage('Dependencies') {
       steps {
         sh '''
-          export PATH=$HOME/.local/bin:$HOME/.cargo/bin:$PATH
           make deps
         '''
       }
@@ -28,7 +27,6 @@ pipeline {
     stage('Build') {
       steps {
         sh '''
-          export PATH=$HOME/.local/bin:$HOME/.cargo/bin:$PATH
           make build
         '''
       }

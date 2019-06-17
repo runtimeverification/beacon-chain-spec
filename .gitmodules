@@ -1,0 +1,12 @@
+[submodule "tests/eth2.0-specs"]
+	path = tests/eth2.0-specs
+	url = https://github.com/ethereum/eth2.0-specs
+	ignore = untracked
+[submodule "deps/k"]
+	path = deps/k
+	url = https://github.com/kframework/k
+	ignore = untracked
+[submodule "deps/pandoc-tangle"]
+	path = deps/pandoc-tangle
+	url = https://github.com/ehildenb/pandoc-tangle
+	ignore = untracked

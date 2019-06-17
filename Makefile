@@ -70,7 +70,8 @@ $(K_SUBMODULE)/mvn.timestamp: $(K_SUBMODULE)/submodule.timestamp
 MAIN_MODULE:=BEACON-CHAIN
 SYNTAX_MODULE:=$(MAIN_MODULE)
 MAIN_DEFN_FILE:=beacon-chain
-KOMPILE_OPTS:=
+KOMPILE_OPTS?=
+LLVM_KOMPILE_OPTS:=$(KOMPILE_OPTS) -ccopt -O2
 
 llvm_kompiled:=$(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE)-kompiled/interpreter
 
@@ -97,5 +98,5 @@ $(llvm_kompiled): $(llvm_files)
 	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm \
 	                 --syntax-module $(SYNTAX_MODULE) $(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE).k \
 	                 --directory $(DEFN_DIR)/llvm -I $(DEFN_DIR)/llvm \
-	                 $(KOMPILE_OPTS)
+	                 $(LLVM_KOMPILE_OPTS)
 

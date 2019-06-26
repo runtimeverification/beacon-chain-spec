@@ -24,6 +24,9 @@ K_LIB:=$(K_RELEASE)/lib
 PATH:=$(K_BIN):$(PATH)
 export PATH
 
+PYTHONPATH:=$(K_LIB)/py-kframework
+export PYTHONPATH
+
 TANGLER:=$(PANDOC_TANGLE_SUBMODULE)/tangle.lua
 LUA_PATH:=$(PANDOC_TANGLE_SUBMODULE)/?.lua;;
 export TANGLER
@@ -35,7 +38,8 @@ ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-specs
 .PHONY: all clean \
 	    deps deps-k deps-tangle deps-tests \
 	    defn defn-llvm \
-	    build build-llvm
+	    build build-llvm \
+	    test test-python-config
 .SECONDARY:
 
 all: build
@@ -62,7 +66,7 @@ deps-tests: $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
 $(K_SUBMODULE)/mvn.timestamp: $(K_SUBMODULE)/submodule.timestamp
 	@echo "== building: $*"
 	cd $(K_SUBMODULE) && mvn package -DskipTests -Dhaskell.backend.skip
-	touch $(K_SUBMODULE)/make.timestamp
+	touch $(K_SUBMODULE)/mvn.timestamp
 
 # Building
 # --------
@@ -99,4 +103,20 @@ $(llvm_kompiled): $(llvm_files)
 	                 --syntax-module $(SYNTAX_MODULE) $(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE).k \
 	                 --directory $(DEFN_DIR)/llvm -I $(DEFN_DIR)/llvm \
 	                 $(LLVM_KOMPILE_OPTS)
+
+# Testing
+# -------
+
+TEST_CONCRETE_BACKEND:=llvm
+
+test: test-python-config
+
+test-python-config: $(BUILD_DIR)/tests/build-config.out
+	kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
+	     --output pretty --sort BeaconChainCell \
+	     $<
+
+$(BUILD_DIR)/tests/build-config.out: build-config.py
+	mkdir $(dir $@)
+	python3 $< > $@
 

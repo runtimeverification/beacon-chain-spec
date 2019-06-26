@@ -60,7 +60,7 @@ deps-tests: $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
 
 %/submodule.timestamp:
 	@echo "== submodule: $*"
-	git submodule update --init -- $*
+	git submodule update --init --recursive -- $*
 	touch $@
 
 $(K_SUBMODULE)/mvn.timestamp: $(K_SUBMODULE)/submodule.timestamp

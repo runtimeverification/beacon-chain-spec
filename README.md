@@ -32,6 +32,14 @@ make build
 
 ### Testing
 
+Get YAML test vectors:
+
+```sh
+make test-split
+```
+
+Run the tests:
+
 ```sh
 make test
 ```

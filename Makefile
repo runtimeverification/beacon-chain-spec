@@ -33,13 +33,13 @@ export TANGLER
 export LUA_PATH
 
 TEST_DIR:=tests
-ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-specs
+ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-spec-tests
 
 .PHONY: all clean \
 	    deps deps-k deps-tangle deps-tests \
 	    defn defn-llvm \
 	    build build-llvm \
-	    test test-python-config
+	    test test-split test-python-config
 .SECONDARY:
 
 all: build
@@ -106,6 +106,12 @@ $(llvm_kompiled): $(llvm_files)
 
 # Testing
 # -------
+
+test-split:
+	cd $(ETH2_TESTS_SUBMODULE) \
+	    && git lfs install     \
+	    && git lfs fetch       \
+	    && git lfs checkout
 
 TEST_CONCRETE_BACKEND:=llvm
 

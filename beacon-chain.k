@@ -1,6 +1,61 @@
 module BEACON-CHAIN
   imports DOMAINS
 
+/*
+class BeaconState(Container):
+    # Misc
+    slot: uint64
+    genesis_time: uint64
+    fork: Fork  # For versioning hard forks
+    # Validator registry
+    validator_registry: List[Validator]
+    balances: List[uint64]
+    # Randomness and committees
+    latest_randao_mixes: Vector[Bytes32, LATEST_RANDAO_MIXES_LENGTH]
+    latest_start_shard: uint64
+    # Finality
+    previous_epoch_attestations: List[PendingAttestation]
+    current_epoch_attestations: List[PendingAttestation]
+    previous_justified_epoch: uint64
+    current_justified_epoch: uint64
+    previous_justified_root: Bytes32
+    current_justified_root: Bytes32
+    justification_bitfield: uint64
+    finalized_epoch: uint64
+    finalized_root: Bytes32
+    # Recent state
+    current_crosslinks: Vector[Crosslink, SHARD_COUNT]
+    previous_crosslinks: Vector[Crosslink, SHARD_COUNT]
+    latest_block_roots: Vector[Bytes32, SLOTS_PER_HISTORICAL_ROOT]
+    latest_state_roots: Vector[Bytes32, SLOTS_PER_HISTORICAL_ROOT]
+    latest_active_index_roots: Vector[Bytes32, LATEST_ACTIVE_INDEX_ROOTS_LENGTH]
+    latest_slashed_balances: Vector[uint64, LATEST_SLASHED_EXIT_LENGTH]
+    latest_block_header: BeaconBlockHeader
+    historical_roots: List[Bytes32]
+    # Ethereum 1.0 chain data
+    latest_eth1_data: Eth1Data
+    eth1_data_votes: List[Eth1Data]
+    deposit_index: uint64
+
+class BeaconBlock(Container):
+    # Header
+    slot: uint64
+    parent_root: Bytes32
+    state_root: Bytes32
+    body: BeaconBlockBody
+    signature: Bytes96
+
+class BeaconBlockBody(Container):
+    randao_reveal: Bytes96
+    eth1_data: Eth1Data
+    graffiti: Bytes32
+    proposer_slashings: List[ProposerSlashing]
+    attester_slashings: List[AttesterSlashing]
+    attestations: List[Attestation]
+    deposits: List[Deposit]
+    voluntary_exits: List[VoluntaryExit]
+    transfers: List[Transfer]
+*/
   configuration
     <beacon-chain>
       <k> $PGM:Pgm </k>
@@ -195,6 +250,31 @@ class Fork(Container):
   syntax Fork ::= #Fork( Bytes4, Bytes4, Epoch )
 
   /*
+class Crosslink(Container):
+    # Shard number
+    shard: uint64
+    # Crosslinking data from epochs [start....end-1]
+    start_epoch: uint64
+    end_epoch: uint64
+    # Root of the previous crosslink
+    parent_root: Bytes32
+    # Root of the crosslinked shard data since the previous crosslink
+    data_root: Bytes32
+  */
+  syntax Crosslink ::= #Crosslink( Shard, Epoch, Epoch, Bytes32, Bytes32 )
+
+  /*
+class VoluntaryExit(Container):
+    # Minimum epoch for processing exit
+    epoch: uint64
+    # Index of the exiting validator
+    validator_index: uint64
+    # Validator signature
+    signature: Bytes96
+  */
+  syntax VoluntaryExit ::= #VoluntaryExit( Epoch, ValidatorIndex, Bytes96 )
+
+  /*
 class Validator(Container):
     # BLS public key
     pubkey: Bytes48
@@ -214,46 +294,6 @@ class Validator(Container):
     effective_balance: uint64
   */
   syntax Validator ::= #Validator( Bytes48, Bytes32, Epoch, Epoch, Epoch, Epoch, Bool, Uint64 )
-
-
-  /*
-class Crosslink(Container):
-    # Shard number
-    shard: uint64
-    # Crosslinking data from epochs [start....end-1]
-    start_epoch: uint64
-    end_epoch: uint64
-    # Root of the previous crosslink
-    parent_root: Bytes32
-    # Root of the crosslinked shard data since the previous crosslink
-    data_root: Bytes32
-  */
-  syntax Crosslink ::= #Crosslink( Shard, Epoch, Epoch, Bytes32, Bytes32 )
-
-  /*
-class AttestationData(Container):
-    # LMD GHOST vote
-    beacon_block_root: Bytes32
-
-    # FFG vote
-    source_epoch: uint64
-    source_root: Bytes32
-    target_epoch: uint64
-    target_root: Bytes32
-
-    # Crosslink vote
-    crosslink: Crosslink
-  */
-  syntax AttestationData ::= #AttestationData( Bytes32, Epoch, Bytes32, Epoch, Bytes32, Crosslink )
-
-  /*
-class AttestationDataAndCustodyBit(Container):
-    # Attestation data
-    data: AttestationData
-    # Custody bit
-    custody_bit: bool
-  */
-  syntax AttestationDataAndCustodyBit ::= #AttestationDataAndCustodyBit( AttestationData, Bool )
 
   /*
 class IndexedAttestation(Container):
@@ -281,47 +321,13 @@ class PendingAttestation(Container):
   syntax PendingAttestation ::= #PendingAttestation( Bytes, AttestationData, Uint64, Uint64 )
 
   /*
-class Eth1Data(Container):
-    # Root of the deposit tree
-    deposit_root: Bytes32
-    # Total number of deposits
-    deposit_count: uint64
-    # Block hash
-    block_hash: Bytes32
+class Deposit(Container):
+    # Branch in the deposit tree
+    proof: Vector[Bytes32, DEPOSIT_CONTRACT_TREE_DEPTH]
+    # Data
+    data: DepositData
   */
-  syntax Eth1Data ::= #Eth1Data( Bytes32, Uint64, Bytes32 )
-
-  /*
-class HistoricalBatch(Container):
-    # Block roots
-    block_roots: Vector[Bytes32, SLOTS_PER_HISTORICAL_ROOT]
-    # State roots
-    state_roots: Vector[Bytes32, SLOTS_PER_HISTORICAL_ROOT]
-  */
-  syntax HistoricalBatch ::= #HistoricalBatch( Bytes32List, Bytes32List )
-
-  /*
-class DepositData(Container):
-    # BLS pubkey
-    pubkey: Bytes48
-    # Withdrawal credentials
-    withdrawal_credentials: Bytes32
-    # Amount in Gwei
-    amount: uint64
-    # Container self-signature
-    signature: Bytes96
-  */
-  syntax DepositData ::= #DepositData( Bytes48, Bytes32, Gwei, Bytes96 )
-
-  /*
-class BeaconBlockHeader(Container):
-    slot: uint64
-    parent_root: Bytes32
-    state_root: Bytes32
-    body_root: Bytes32
-    signature: Bytes96
-  */
-  syntax BeaconBlockHeader ::= #BeaconBlockHeader( Slot, Bytes32, Bytes32, Bytes32, Bytes96 )
+  syntax Deposit ::= #Deposit( Bytes32List, DepositData )
 
   /*
 class ProposerSlashing(Container):
@@ -333,48 +339,6 @@ class ProposerSlashing(Container):
     header_2: BeaconBlockHeader
   */
   syntax ProposerSlashing ::= #ProposerSlashing( Uint64, BeaconBlockHeader, BeaconBlockHeader )
-
-  /*
-class AttesterSlashing(Container):
-    # First attestation
-    attestation_1: IndexedAttestation
-    # Second attestation
-    attestation_2: IndexedAttestation
-  */
-  syntax AttesterSlashing ::= #AttesterSlashing( IndexedAttestation, IndexedAttestation )
-
-  /*
-class Attestation(Container):
-    # Attester aggregation bitfield
-    aggregation_bitfield: bytes
-    # Attestation data
-    data: AttestationData
-    # Custody bitfield
-    custody_bitfield: bytes
-    # BLS aggregate signature
-    signature: Bytes96
-  */
-  syntax Attestation ::= #Attestation( Bytes, AttestationData, Bytes, Bytes96 )
-
-  /*
-class Deposit(Container):
-    # Branch in the deposit tree
-    proof: Vector[Bytes32, DEPOSIT_CONTRACT_TREE_DEPTH]
-    # Data
-    data: DepositData
-  */
-  syntax Deposit ::= #Deposit( Bytes32List, DepositData )
-
-  /*
-class VoluntaryExit(Container):
-    # Minimum epoch for processing exit
-    epoch: uint64
-    # Index of the exiting validator
-    validator_index: uint64
-    # Validator signature
-    signature: Bytes96
-  */
-  syntax VoluntaryExit ::= #VoluntaryExit( Epoch, ValidatorIndex, Bytes96 )
 
   /*
 class Transfer(Container):
@@ -395,39 +359,193 @@ class Transfer(Container):
   */
   syntax Transfer ::= #Transfer( Uint64, Uint64, Gwei, Gwei, Slot, Bytes48, Bytes96 )
 
+  /*
+class AttestationDataAndCustodyBit(Container):
+    # Attestation data
+    data: AttestationData
+    # Custody bit
+    custody_bit: bool
+  */
+  syntax AttestationDataAndCustodyBit ::= #AttestationDataAndCustodyBit( AttestationData, Bool )
+
+  /*
+class DepositData(Container):
+    # BLS pubkey
+    pubkey: Bytes48
+    # Withdrawal credentials
+    withdrawal_credentials: Bytes32
+    # Amount in Gwei
+    amount: uint64
+    # Container self-signature
+    signature: Bytes96
+  */
+  syntax DepositData ::= #DepositData( Bytes48, Bytes32, Gwei, Bytes96 )
+
+  /*
+class AttestationData(Container):
+    # LMD GHOST vote
+    beacon_block_root: Bytes32
+
+    # FFG vote
+    source_epoch: uint64
+    source_root: Bytes32
+    target_epoch: uint64
+    target_root: Bytes32
+
+    # Crosslink vote
+    crosslink: Crosslink
+  */
+  syntax AttestationData ::= #AttestationData( Bytes32, Epoch, Bytes32, Epoch, Bytes32, Crosslink )
+
+  /*
+class HistoricalBatch(Container):
+    # Block roots
+    block_roots: Vector[Bytes32, SLOTS_PER_HISTORICAL_ROOT]
+    # State roots
+    state_roots: Vector[Bytes32, SLOTS_PER_HISTORICAL_ROOT]
+  */
+  syntax HistoricalBatch ::= #HistoricalBatch( Bytes32List, Bytes32List )
+
+  /*
+class Attestation(Container):
+    # Attester aggregation bitfield
+    aggregation_bitfield: bytes
+    # Attestation data
+    data: AttestationData
+    # Custody bitfield
+    custody_bitfield: bytes
+    # BLS aggregate signature
+    signature: Bytes96
+  */
+  syntax Attestation ::= #Attestation( Bytes, AttestationData, Bytes, Bytes96 )
+
+  /*
+class AttesterSlashing(Container):
+    # First attestation
+    attestation_1: IndexedAttestation
+    # Second attestation
+    attestation_2: IndexedAttestation
+  */
+  syntax AttesterSlashing ::= #AttesterSlashing( IndexedAttestation, IndexedAttestation )
+
+  /*
+class BeaconBlockHeader(Container):
+    slot: uint64
+    parent_root: Bytes32
+    state_root: Bytes32
+    body_root: Bytes32
+    signature: Bytes96
+  */
+  syntax BeaconBlockHeader ::= #BeaconBlockHeader( Slot, Bytes32, Bytes32, Bytes32, Bytes96 )
+
+  /*
+class Eth1Data(Container):
+    # Root of the deposit tree
+    deposit_root: Bytes32
+    # Total number of deposits
+    deposit_count: uint64
+    # Block hash
+    block_hash: Bytes32
+  */
+  syntax Eth1Data ::= #Eth1Data( Bytes32, Uint64, Bytes32 )
+
+
   // Python spec utility functions
   //====================================================
 
+/*
+def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
+    return Bytes32(a ^ b for a, b in zip(bytes1, bytes2))
+*/
   syntax Bytes32 ::= xor( Bytes32, Bytes32 ) [function]
   rule xor(A,B) => A xorInt B
 
+/*
+def bls_domain(domain_type: int, fork_version: bytes=b'\x00\x00\x00\x00') -> int:
+    """
+    Return the bls domain given by the ``domain_type`` and optional 4 byte ``fork_version`` (defaults to zero).
+    """
+    return bytes_to_int(int_to_bytes(domain_type, length=4) + fork_version)
+
+*/
   syntax Int ::= blsDomain(Int, Bytes32) [function]
   rule blsDomain(Domain_Type, Fork_Version) => Domain_Type +Int Fork_Version
 
+/*
+def slot_to_epoch(slot: Slot) -> Epoch:
+    """
+    Return the epoch number of the given ``slot``.
+    """
+    return slot // SLOTS_PER_EPOCH
+*/
   syntax Epoch ::= slotToEpoch(Slot) [function]
   rule slotToEpoch(SLOT) => SLOT /Int SLOTS_PER_EPOCH
 
+/*
+def get_previous_epoch(state: BeaconState) -> Epoch:
+    """`
+    Return the previous epoch of the given ``state``.
+    Return the current epoch if it's genesis epoch.
+    """
+    current_epoch = get_current_epoch(state)
+    return GENESIS_EPOCH if current_epoch == GENESIS_EPOCH else current_epoch - 1
+*/
   syntax Epoch ::= getPreviousEpoch() [function]
   rule getPreviousEpoch() =>  #if getCurrentEpoch() ==K GENESIS_EPOCH
                                 #then GENESIS_EPOCH
                                 #else {getCurrentEpoch()}:>Int -Int 1
                               #fi
 
+/*
+def get_current_epoch(state: BeaconState) -> Epoch:
+    """
+    Return the current epoch of the given ``state``.
+    """
+    return slot_to_epoch(state.slot)
+*/
   syntax Epoch ::= getCurrentEpoch() [function]
   rule [[ getCurrentEpoch() => slotToEpoch(SLOT) ]]
     <slot> SLOT </slot>
 
+/*
+def get_epoch_start_slot(epoch: Epoch) -> Slot:
+    """
+    Return the starting slot of the given ``epoch``.
+    """
+    return epoch * SLOTS_PER_EPOCH
+*/
   syntax Slot ::= getEpochStartSlot(Epoch) [function]
   rule getEpochStartSlot(EPOCH) => EPOCH *Int SLOTS_PER_EPOCH
 
+/*
+def is_active_validator(validator: Validator, epoch: Epoch) -> bool:
+    """
+    Check if ``validator`` is active.
+    """
+    return validator.activation_epoch <= epoch < validator.exit_epoch
+*/
   syntax Bool ::= isActiveValidator( Validator, Epoch ) [function]
   rule isActiveValidator( #Validator(_,_,_, ActivationEpoch, ExitEpoch, _,_,_), EPOCH )
     => ActivationEpoch <=Int EPOCH andBool EPOCH <Int ExitEpoch
 
+/*
+def is_slashable_validator(validator: Validator, epoch: Epoch) -> bool:
+    """
+    Check if ``validator`` is slashable.
+    """
+    return validator.slashed is False and (validator.activation_epoch <= epoch < validator.withdrawable_epoch)
+*/
   syntax Bool ::= isSlashableValidator( Validator, Epoch ) [function]
   rule isActiveValidator( #Validator(_,_,_, ActivationEpoch, _, WithdEpoch, Slashed, _), EPOCH )
     => notBool Slashed andBool ActivationEpoch <=Int EPOCH andBool EPOCH <Int WithdEpoch
 
+/*
+def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> List[ValidatorIndex]:
+    """
+    Get active validator indices at ``epoch``.
+    """
+    return [i for i, v in enumerate(state.validator_registry) if is_active_validator(v, epoch)]
+*/
   syntax IntList ::= getActiveValidatorIndices( Epoch ) [function]
   rule [[ getActiveValidatorIndices(EP) => getActiveValidatorIndicesAux(.IntList, 0, VALIDATORS, EP) ]]
     <validator-registry> VALIDATORS </validator-registry>
@@ -435,22 +553,33 @@ class Transfer(Container):
   syntax IntList ::= getActiveValidatorIndicesAux( IntList, Int, ValidatorList, Epoch ) [function]
   rule getActiveValidatorIndicesAux(_,          I => I +Int 1, V VList => VList, EP )
     requires notBool isActiveValidator(V, EP)
-  rule getActiveValidatorIndicesAux(Is => I Is, I => I +Int 1, V VList => VList, EP )
+  rule getActiveValidatorIndicesAux(Is => Is I, I => I +Int 1, V VList => VList, EP )
     requires         isActiveValidator(V, EP)
   rule getActiveValidatorIndicesAux(Is, _, .ValidatorList, _) => Is
 
   // Python state modifying functions
   //====================================================
 
+/*
+def increase_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> None:
+    """
+    Increase validator balance by ``delta``.
+    """
+    state.balances[index] += delta
+*/
   syntax KItem ::= "increaseBalance" "(" ValidatorIndex "," Gwei ")"
   rule <k> increaseBalance(ValIndex, Delta) => . ...</k>
        <balances>... ValIndex |-> (BAL => BAL +Int Delta) ...</balances>
 
-  // Decrease validator balance by ``delta`` with underflow protection.
+/*
+def decrease_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> None:
+    """
+    Decrease validator balance by ``delta`` with underflow protection.
+    """
+    state.balances[index] = 0 if delta > state.balances[index] else state.balances[index] - delta
+*/
   syntax KItem ::= "decreaseBalance" "(" ValidatorIndex "," Gwei ")"
   rule <k> decreaseBalance(ValIndex, Delta) => . ...</k>
        <balances>... ValIndex |-> (BAL => #if Delta >Int BAL #then 0 #else BAL -Int Delta #fi) ...</balances>
-
-  //todo next: get_epoch_committee_count
 
 endmodule

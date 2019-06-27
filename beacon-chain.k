@@ -63,7 +63,7 @@ class BeaconBlockBody(Container):
         <slot> 0 </slot>
         <genesis-time> 0 </genesis-time>
         <fork> .Fork </fork>
-        <validator-registry> .ValidatorList </validator-registry>
+        <validator-registry> .Map </validator-registry> //List[Validator]
         <balances> .Map </balances> //List[Gwei]
         <latest-randao-mixes> .Bytes32List </latest-randao-mixes>
         <latest-start-shard> 0 </latest-start-shard>
@@ -450,36 +450,65 @@ class Eth1Data(Container):
   syntax Eth1Data ::= #Eth1Data( Bytes32, Uint64, Bytes32 )
 
 
+  // Python spec main functions
+  //====================================================
+
+/*
+def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
+    """
+    Return the current beacon proposer index.
+    """
+    epoch = get_current_epoch(state)
+    committees_per_slot = get_epoch_committee_count(state, epoch) // SLOTS_PER_EPOCH
+    offset = committees_per_slot * (state.slot % SLOTS_PER_EPOCH)
+    shard = (get_epoch_start_shard(state, epoch) + offset) % SHARD_COUNT
+    first_committee = get_crosslink_committee(state, epoch, shard)
+    MAX_RANDOM_BYTE = 2**8 - 1
+    seed = generate_seed(state, epoch)
+    i = 0
+    while True:
+        candidate_index = first_committee[(epoch + i) % len(first_committee)]
+        random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
+        effective_balance = state.validator_registry[candidate_index].effective_balance
+        if effective_balance * MAX_RANDOM_BYTE >= MAX_EFFECTIVE_BALANCE * random_byte:
+            return candidate_index
+        i += 1
+*/
+//todo stopped here
+
+
   // Python spec utility functions
   //====================================================
 
 /*
-def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
-    return Bytes32(a ^ b for a, b in zip(bytes1, bytes2))
+def get_epoch_start_shard(state: BeaconState, epoch: Epoch) -> Shard:
+    assert epoch <= get_current_epoch(state) + 1
+    check_epoch = get_current_epoch(state) + 1
+    shard = (state.latest_start_shard + get_shard_delta(state, get_current_epoch(state))) % SHARD_COUNT
+    while check_epoch > epoch:
+        check_epoch -= 1
+        shard = (shard + SHARD_COUNT - get_shard_delta(state, check_epoch)) % SHARD_COUNT
+    return shard
 */
-  syntax Bytes32 ::= xor( Bytes32, Bytes32 ) [function]
-  rule xor(A,B) => A xorInt B
+  syntax Shard ::= getEpochStartShard( Epoch ) [function]
+  rule [[ getEpochStartShard(EPOCH) => getEpochStartShardAux(
+      {{getCurrentEpoch()}:>Int +Int 1}:>Epoch,
+      (LSS +Int getShardDelta(getCurrentEpoch())) %Int SHARD_COUNT,
+      EPOCH
+    ) ]]
+    <latest-start-shard> LSS </latest-start-shard>
+    requires EPOCH <=Int {getCurrentEpoch()}:>Int +Int 1
 
-/*
-def bls_domain(domain_type: int, fork_version: bytes=b'\x00\x00\x00\x00') -> int:
-    """
-    Return the bls domain given by the ``domain_type`` and optional 4 byte ``fork_version`` (defaults to zero).
-    """
-    return bytes_to_int(int_to_bytes(domain_type, length=4) + fork_version)
+  syntax Shard ::= getEpochStartShardAux( Epoch, Shard, Epoch ) [function]
+  rule getEpochStartShardAux(
+      CheckEP => CheckEP -Int 1,
+      SHARD => SHARD +Int SHARD_COUNT -Int getShardDelta(CheckEP -Int 1) %Int SHARD_COUNT,
+      EPOCH
+    )
+    requires CheckEP >Int EPOCH
 
-*/
-  syntax Int ::= blsDomain(Int, Bytes32) [function]
-  rule blsDomain(Domain_Type, Fork_Version) => Domain_Type +Int Fork_Version
-
-/*
-def slot_to_epoch(slot: Slot) -> Epoch:
-    """
-    Return the epoch number of the given ``slot``.
-    """
-    return slot // SLOTS_PER_EPOCH
-*/
-  syntax Epoch ::= slotToEpoch(Slot) [function]
-  rule slotToEpoch(SLOT) => SLOT /Int SLOTS_PER_EPOCH
+  rule getEpochStartShardAux(CheckEP, SHARD, EPOCH) => SHARD
+    requires CheckEP <=Int EPOCH
 
 /*
 def get_previous_epoch(state: BeaconState) -> Epoch:
@@ -497,25 +526,14 @@ def get_previous_epoch(state: BeaconState) -> Epoch:
                               #fi
 
 /*
-def get_current_epoch(state: BeaconState) -> Epoch:
+def bls_domain(domain_type: int, fork_version: bytes=b'\x00\x00\x00\x00') -> int:
     """
-    Return the current epoch of the given ``state``.
+    Return the bls domain given by the ``domain_type`` and optional 4 byte ``fork_version`` (defaults to zero).
     """
-    return slot_to_epoch(state.slot)
+    return bytes_to_int(int_to_bytes(domain_type, length=4) + fork_version)
 */
-  syntax Epoch ::= getCurrentEpoch() [function]
-  rule [[ getCurrentEpoch() => slotToEpoch(SLOT) ]]
-    <slot> SLOT </slot>
-
-/*
-def get_epoch_start_slot(epoch: Epoch) -> Slot:
-    """
-    Return the starting slot of the given ``epoch``.
-    """
-    return epoch * SLOTS_PER_EPOCH
-*/
-  syntax Slot ::= getEpochStartSlot(Epoch) [function]
-  rule getEpochStartSlot(EPOCH) => EPOCH *Int SLOTS_PER_EPOCH
+  syntax Int ::= blsDomain(Int, Bytes32) [function]
+  rule blsDomain(Domain_Type, Fork_Version) => Domain_Type +Int Fork_Version
 
 /*
 def is_active_validator(validator: Validator, epoch: Epoch) -> bool:
@@ -529,6 +547,59 @@ def is_active_validator(validator: Validator, epoch: Epoch) -> bool:
     => ActivationEpoch <=Int EPOCH andBool EPOCH <Int ExitEpoch
 
 /*
+def get_current_epoch(state: BeaconState) -> Epoch:
+    """
+    Return the current epoch of the given ``state``.
+    """
+    return slot_to_epoch(state.slot)
+*/
+  syntax Epoch ::= getCurrentEpoch() [function]
+  rule [[ getCurrentEpoch() => slotToEpoch(SLOT) ]]
+    <slot> SLOT </slot>
+
+/*
+def get_total_balance(state: BeaconState, indices: List[ValidatorIndex]) -> Gwei:
+    """
+    Return the combined effective balance of the ``indices``. (1 Gwei minimum to avoid divisions by zero.)
+    """
+    return max(sum([state.validator_registry[index].effective_balance for index in indices]), 1)
+*/
+  syntax Gwei ::= getTotalBalance( IntList ) [function]
+  rule getTotalBalance(INDICES) => maxInt(getTotalBalancePure(INDICES, 0), 1)
+
+  syntax Int ::= getTotalBalancePure( IntList, Int ) [function]
+  rule [[ getTotalBalancePure(I IL => IL, S => S +Int EffBalance) ]]
+    <validator-registry>... I |-> #Validator(_,_,_,_,_,_,_, EffBalance) ...</validator-registry>
+  rule getTotalBalancePure(.IntList, S) => S
+
+/*
+def get_epoch_start_slot(epoch: Epoch) -> Slot:
+    """
+    Return the starting slot of the given ``epoch``.
+    """
+    return epoch * SLOTS_PER_EPOCH
+*/
+  syntax Slot ::= getEpochStartSlot(Epoch) [function]
+  rule getEpochStartSlot(EPOCH) => EPOCH *Int SLOTS_PER_EPOCH
+
+/*
+def slot_to_epoch(slot: Slot) -> Epoch:
+    """
+    Return the epoch number of the given ``slot``.
+    """
+    return slot // SLOTS_PER_EPOCH
+*/
+  syntax Epoch ::= slotToEpoch(Slot) [function]
+  rule slotToEpoch(SLOT) => SLOT /Int SLOTS_PER_EPOCH
+
+/*
+def get_total_active_balance(state: BeaconState) -> Gwei:
+    return get_total_balance(state, get_active_validator_indices(state, get_current_epoch(state)))
+*/
+  syntax Gwei ::= getTotalActiveBalance() [function]
+  rule getTotalActiveBalance() => getTotalBalance(getActiveValidatorIndices(getCurrentEpoch()))
+
+/*
 def is_slashable_validator(validator: Validator, epoch: Epoch) -> bool:
     """
     Check if ``validator`` is slashable.
@@ -538,6 +609,19 @@ def is_slashable_validator(validator: Validator, epoch: Epoch) -> bool:
   syntax Bool ::= isSlashableValidator( Validator, Epoch ) [function]
   rule isActiveValidator( #Validator(_,_,_, ActivationEpoch, _, WithdEpoch, Slashed, _), EPOCH )
     => notBool Slashed andBool ActivationEpoch <=Int EPOCH andBool EPOCH <Int WithdEpoch
+
+/*
+def get_shard_delta(state: BeaconState, epoch: Epoch) -> int:
+    """
+    Return the number of shards to increment ``state.latest_start_shard`` during ``epoch``.
+    """
+    return min(get_epoch_committee_count(state, epoch), SHARD_COUNT - SHARD_COUNT // SLOTS_PER_EPOCH)
+*/
+  syntax Int ::= getShardDelta( Epoch ) [function]
+  rule getShardDelta( EPOCH ) => minInt(
+    getEpochCommitteeCount(EPOCH),
+    SHARD_COUNT -Int SHARD_COUNT /Int SLOTS_PER_EPOCH
+  )
 
 /*
 def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> List[ValidatorIndex]:
@@ -550,12 +634,54 @@ def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> List[Valid
   rule [[ getActiveValidatorIndices(EP) => getActiveValidatorIndicesAux(.IntList, 0, VALIDATORS, EP) ]]
     <validator-registry> VALIDATORS </validator-registry>
 
-  syntax IntList ::= getActiveValidatorIndicesAux( IntList, Int, ValidatorList, Epoch ) [function]
-  rule getActiveValidatorIndicesAux(_,          I => I +Int 1, V VList => VList, EP )
+  syntax IntList ::= getActiveValidatorIndicesAux( IntList, Int, Map, Epoch ) [function]
+  rule getActiveValidatorIndicesAux(_,          I => I +Int 1, _:Map (I |-> V => .Map), EP )
     requires notBool isActiveValidator(V, EP)
-  rule getActiveValidatorIndicesAux(Is => Is I, I => I +Int 1, V VList => VList, EP )
+  rule getActiveValidatorIndicesAux(Is => Is I, I => I +Int 1, _:Map (I |-> V => .Map), EP )
     requires         isActiveValidator(V, EP)
-  rule getActiveValidatorIndicesAux(Is, _, .ValidatorList, _) => Is
+  rule getActiveValidatorIndicesAux(Is, _, .Map, _) => Is
+
+/*
+def get_epoch_committee_count(state: BeaconState, epoch: Epoch) -> int:
+    """
+    Return the number of committees at ``epoch``.
+    """
+    active_validator_indices = get_active_validator_indices(state, epoch)
+    return max(
+        1,
+        min(
+            SHARD_COUNT // SLOTS_PER_EPOCH,
+            len(active_validator_indices) // SLOTS_PER_EPOCH // TARGET_COMMITTEE_SIZE,
+        )
+    ) * SLOTS_PER_EPOCH
+*/
+  syntax Int ::= getEpochCommitteeCount( Epoch ) [function]
+  rule getEpochCommitteeCount( EP )
+    => maxInt(1, minInt(SHARD_COUNT /Int SLOTS_PER_EPOCH,
+                        len(getActiveValidatorIndices(EP)) /Int SLOTS_PER_EPOCH /Int TARGET_COMMITTEE_SIZE
+                 )
+             ) *Int SLOTS_PER_EPOCH
+
+/*
+def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
+    return Bytes32(a ^ b for a, b in zip(bytes1, bytes2))
+*/
+  syntax Bytes32 ::= xor( Bytes32, Bytes32 ) [function]
+  rule xor(A,B) => A xorInt B
+
+  // Python framework functions
+  //====================================================
+  syntax Int ::= len( IntList ) [function]
+  rule len( _:Int L) => 1 +Int len(L)
+  rule len(.IntList) => 0
+
+  syntax Int ::= sum( IntList ) [function]
+  rule sum( IL ) => sumAux(IL, 0)
+
+  syntax Int ::= sumAux( IntList, Int ) [function]
+  rule sumAux(I:Int IL => IL, S => S +Int I)
+  rule sumAux(.IntList, S) => S
+
 
   // Python state modifying functions
   //====================================================

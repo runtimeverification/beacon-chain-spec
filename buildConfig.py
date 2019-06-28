@@ -105,6 +105,7 @@ init_cells = { 'K_CELL'                          : KToken('.Pgm', 'Pgm')
              , 'SIGNATURE_CELL'                  : KToken('-1', 'Int')
              }
 
-instantiated_configuration = substitute(symbolic_configuration, init_cells)
-
-print(prettyPrintKast(instantiated_configuration, ALL_symbols))
+if __name__ == "__main__":
+    instantiated_configuration = substitute(symbolic_configuration, init_cells)
+    print(prettyPrintKast(instantiated_configuration, ALL_symbols))
+    sys.exit(0)

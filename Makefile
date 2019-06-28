@@ -117,12 +117,12 @@ TEST_CONCRETE_BACKEND:=llvm
 
 test: test-python-config
 
-test-python-config: $(BUILD_DIR)/tests/build-config.out
+test-python-config: $(BUILD_DIR)/tests/buildConfig.out
 	kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
 	     --output pretty --sort BeaconChainCell \
 	     $<
 
-$(BUILD_DIR)/tests/build-config.out: build-config.py
+$(BUILD_DIR)/tests/buildConfig.out: buildConfig.py
 	mkdir $(dir $@)
 	python3 $< > $@
 

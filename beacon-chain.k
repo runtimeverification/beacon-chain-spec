@@ -127,7 +127,6 @@ class BeaconBlockBody(Container):
   syntax TransferList ::= List{Transfer, ""}
   syntax CrosslinkList ::= List{Crosslink, ""}
   syntax Eth1DataList ::= List{Eth1Data, ""}
-  syntax ValidatorList ::= List{Validator, ""}
   syntax PendingAttestationList ::= List{PendingAttestation, ""}
   syntax IntList ::= List{Int, ""}
 
@@ -451,6 +450,226 @@ class Eth1Data(Container):
   syntax Eth1Data ::= #Eth1Data( Bytes32, Uint64, Bytes32 )
 
 
+  // Python state modifying functions
+  //====================================================
+
+/*
+def increase_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> None:
+    """
+    Increase validator balance by ``delta``.
+    """
+    state.balances[index] += delta
+*/
+  syntax KItem ::= "increaseBalance" "(" ValidatorIndex "," Gwei ")"
+  rule <k> increaseBalance(ValIndex, Delta) => . ...</k>
+       <balances>... ValIndex |-> (BAL => BAL +Int Delta) ...</balances>
+
+/*
+def decrease_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> None:
+    """
+    Decrease validator balance by ``delta`` with underflow protection.
+    """
+    state.balances[index] = 0 if delta > state.balances[index] else state.balances[index] - delta
+*/
+  syntax KItem ::= "decreaseBalance" "(" ValidatorIndex "," Gwei ")"
+  rule <k> decreaseBalance(ValIndex, Delta) => . ...</k>
+       <balances>... ValIndex |-> (BAL => #if Delta >Int BAL #then 0 #else BAL -Int Delta #fi) ...</balances>
+
+/*
+def process_registry_updates(state: BeaconState) -> None:
+    # Process activation eligibility and ejections
+    for index, validator in enumerate(state.validator_registry):
+        if (
+            validator.activation_eligibility_epoch == FAR_FUTURE_EPOCH and
+            validator.effective_balance >= MAX_EFFECTIVE_BALANCE
+        ):
+            validator.activation_eligibility_epoch = get_current_epoch(state)
+
+        if is_active_validator(validator, get_current_epoch(state)) and validator.effective_balance <= EJECTION_BALANCE:
+            initiate_validator_exit(state, index)
+
+    # Queue validators eligible for activation and not dequeued for activation prior to finalized epoch
+    activation_queue = sorted([
+        index for index, validator in enumerate(state.validator_registry) if
+        validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH and
+        validator.activation_epoch >= get_delayed_activation_exit_epoch(state.finalized_epoch)
+    ], key=lambda index: state.validator_registry[index].activation_eligibility_epoch)
+    # Dequeued validators for activation up to churn limit (without resetting activation epoch)
+    for index in activation_queue[:get_churn_limit(state)]:
+        validator = state.validator_registry[index]
+        if validator.activation_epoch == FAR_FUTURE_EPOCH:
+            validator.activation_epoch = get_delayed_activation_exit_epoch(get_current_epoch(state))
+*/
+  syntax KItem ::= "processRegistryUpdates"
+  rule <k> processRegistryUpdates
+           => processRegistryUpdatesLoop1(VALIDATORS)
+           ~> processActivationQueue()
+         ...
+       </k>
+       <validator-registry> VALIDATORS </validator-registry>
+
+  //we will process validators in any order, not strictly increasing index like in python
+  syntax KItem ::= "processRegistryUpdatesLoop1" "(" Map ")" //validators
+  rule <k> (. => #if isActiveValidator(VAL, getCurrentEpoch())
+                      andBool EffBalance <=Int EJECTION_BALANCE
+                    #then initiateValidatorExit(INDEX)
+                    #else .K
+                 #fi
+           ) ~>
+           processRegistryUpdatesLoop1(_:Map
+                                       (INDEX |-> VAL => .Map) ) ...</k>
+       <validator-registry>... INDEX |-> #Validator(_,_,
+          ActEligibilityEpoch
+          => #if ActEligibilityEpoch ==Int FAR_FUTURE_EPOCH
+                 andBool EffBalance >=Int MAX_EFFECTIVE_BALANCE
+                #then getCurrentEpoch()
+                #else ActEligibilityEpoch
+             #fi,
+          _,_,_,_, EffBalance) ...</validator-registry>
+
+  rule processRegistryUpdatesLoop1(.Map) => .K
+
+  syntax KItem ::= "processActivationQueue" "("")"
+                 | "processActivationQueue" "(" IntList /*activation queue*/ "," Int /*churn limit*/ ")"
+
+  //must be done here instead of main rule, basause it must state updated by Loop1
+  rule <k> processActivationQueue() => processActivationQueue(
+          sortActivationQueue(getActivationQueueUnsorted(VALIDATORS, .IntList)),
+          getChurnLimit() )
+          ...
+       </k>
+       <validator-registry> VALIDATORS </validator-registry>
+
+  rule <k> processActivationQueue(INDEX:Int IL => IL, I => I -Int 1) ... </k>
+       <validator-registry>... INDEX |-> #Validator(_,_,_,
+          FAR_FUTURE_EPOCH => getDelayedActivationExitEpoch(getCurrentEpoch()), _,_,_,_)
+          ...</validator-registry>
+    requires I >Int 0
+
+  rule <k> processActivationQueue(INDEX:Int IL => IL, I => I -Int 1) ... </k>
+       <validator-registry>... INDEX |-> #Validator(_,_,_, ActEpoch, _,_,_,_) ...</validator-registry>
+    requires I >Int 0
+             andBool ActEpoch =/=K FAR_FUTURE_EPOCH
+
+  rule processActivationQueue(.IntList, _) => .K
+  rule processActivationQueue(       _, 0) => .K
+
+  /*
+  index for index, validator in enumerate(state.validator_registry) if
+        validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH and
+        validator.activation_epoch >= get_delayed_activation_exit_epoch(state.finalized_epoch) */
+  syntax IntList ::= getActivationQueueUnsorted( Map /*state.validator_registry*/, IntList /*result*/ ) [function]
+  rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> #Validator(_,_, ActEligibilityEpoch, ActEpoch, _,_,_,_) => .Map),
+                                     IL => IL INDEX) ]]
+       <finalized-epoch> FinalizedEpoch </finalized-epoch>
+    when ActEligibilityEpoch =/=K FAR_FUTURE_EPOCH
+         andBool ActEpoch >=Int getDelayedActivationExitEpoch(FinalizedEpoch)
+
+  rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> #Validator(_,_, ActEligibilityEpoch, ActEpoch, _,_,_,_) => .Map),
+                                     IL /*unchanged*/ ) ]]
+       <finalized-epoch> FinalizedEpoch </finalized-epoch>
+    when notBool ( ActEligibilityEpoch =/=K FAR_FUTURE_EPOCH
+                   andBool ActEpoch >=Int getDelayedActivationExitEpoch(FinalizedEpoch) )
+
+  rule getActivationQueueUnsorted(.Map, IL ) => IL
+
+  /*activation_queue = sorted([ index for ...
+    ], key=lambda index: state.validator_registry[index].activation_eligibility_epoch)*/
+  syntax IntList ::= sortActivationQueue( IntList ) [function]
+  rule sortActivationQueue(IL) => indexForMinEligEpoch(IL) listExcept(IL, indexForMinEligEpoch(IL))
+    when IL =/=K .IntList
+  rule sortActivationQueue(.IntList) => .IntList
+
+  // min of index: state.validator_registry[index].activation_eligibility_epoch)
+  syntax Int ::= indexForMinEligEpoch ( IntList )      [function]
+               | indexForMinEligEpoch ( Int, IntList ) [function]
+  rule indexForMinEligEpoch(I:Int IL) => indexForMinEligEpoch(I, IL)
+  rule [[ indexForMinEligEpoch( MIN => #if MINActEligibilityEpoch <Int IActEligibilityEpoch #then MIN #else I #fi,
+                                (I:Int IL) => IL ) ]]
+    <validator-registry>
+      MIN |-> #Validator(_,_, MINActEligibilityEpoch, _,_,_,_,_)
+      I   |-> #Validator(_,_,   IActEligibilityEpoch, _,_,_,_,_)
+      ...
+    </validator-registry>
+  rule indexForMinEligEpoch(MIN, .IntList) => MIN
+
+  //returns the list except the 2nd argument. Used in sorting.
+  syntax IntList ::= listExcept( IntList , Int ) [function]
+                   | listExcept( IntList , Int , IntList /*result*/ ) [function]
+  rule listExcept(IL, EXCEPT) => listExcept(IL, EXCEPT, .IntList)
+  rule listExcept( (I:Int IL) => IL, EXCEPT, REZ => REZ I     )
+    when I =/=Int EXCEPT
+  rule listExcept((EXCEPT IL) => IL, EXCEPT, REZ /*unchanged*/)
+  rule listExcept(         .IntList,      _, REZ) => REZ
+
+/*
+def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
+    """
+    Initiate the exit of the validator of the given ``index``.
+    """
+    # Return if validator already initiated exit
+    validator = state.validator_registry[index]
+    if validator.exit_epoch != FAR_FUTURE_EPOCH:
+        return
+
+    # Compute exit queue epoch
+    exit_epochs = [v.exit_epoch for v in state.validator_registry if v.exit_epoch != FAR_FUTURE_EPOCH]
+    exit_queue_epoch = max(exit_epochs + [get_delayed_activation_exit_epoch(get_current_epoch(state))])
+    exit_queue_churn = len([v for v in state.validator_registry if v.exit_epoch == exit_queue_epoch])
+    if exit_queue_churn >= get_churn_limit(state):
+        exit_queue_epoch += 1
+
+    # Set validator exit epoch and withdrawable epoch
+    validator.exit_epoch = exit_queue_epoch
+    validator.withdrawable_epoch = validator.exit_epoch + MIN_VALIDATOR_WITHDRAWABILITY_DELAY
+*/
+  syntax KItem ::= initiateValidatorExit( Int )
+                 | initiateValidatorExitAux( Int /*index*/ , Epoch /*exit_queue_epoch*/ )
+
+  rule <k> initiateValidatorExit(INDEX) => .K ...</k>
+       <validator-registry>... INDEX |-> #Validator(_,_,_,_, ExitEPOCH, _,_,_) ...</validator-registry>
+    when ExitEPOCH =/=K FAR_FUTURE_EPOCH
+
+  rule <k> initiateValidatorExit(INDEX) => initiateValidatorExitAux(INDEX, exitQueueEpochAux(INDEX)) ...</k>
+       <validator-registry>... INDEX |-> #Validator(_,_,_,_, ExitEPOCH, _,_,_) ...</validator-registry>
+
+  rule <k> initiateValidatorExitAux(INDEX, ExitQEpoch) => .K ...</k>
+       <validator-registry>
+          (INDEX |-> #Validator(_,_,_,_,
+            ExitEPOCH => #if exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int getChurnLimit()
+                            #then ExitQEpoch +Int 1
+                            #else ExitQEpoch
+                         #fi ,
+            WithdrEpoch => #if exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int getChurnLimit()
+                            #then ExitQEpoch +Int 1
+                            #else ExitQEpoch
+                         #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY ,
+           _,_) _) #as VALIDATORS
+       </validator-registry>
+
+  syntax Epoch ::= exitQueueEpochAux ( Int ) [function]
+  rule [[ exitQueueEpochAux(INDEX)
+          => maxAux({getDelayedActivationExitEpoch(getCurrentEpoch())}:>Int
+                    exitEpochsAux(VALIDATORS, .IntList) ) ]]
+    <validator-registry>... VALIDATORS ...</validator-registry>
+
+  syntax IntList ::= exitEpochsAux( Map /*validators*/ , IntList /*result*/ )
+  rule exitEpochsAux(_:Map (_ |-> #Validator(_,_,_, ExitEPOCH, _,_,_,_) => .Map),
+                     RES => ExitEPOCH RES )
+    requires ExitEPOCH =/=K FAR_FUTURE_EPOCH
+
+  rule exitEpochsAux(_:Map (_ |-> #Validator(_,_,_, FAR_FUTURE_EPOCH, _,_,_,_) => .Map),
+                     RES /*unchanged*/ )
+
+  rule exitEpochsAux(.Map, RES) => RES
+
+  // exit_queue_churn = len([v for v in state.validator_registry if v.exit_epoch == exit_queue_epoch])
+  syntax Int ::= exitQueueChurnAux ( Epoch /*exit_queue_epoch*/ , Map /*validator_registry*/ , Int /*result*/ ) [function]
+  rule exitQueueChurnAux( ExitQEpoch, _:Map (_ |-> #Validator(_,_,_,_, ExitQEpoch, _,_,_) => .Map), RES => RES +Int 1 )
+  rule exitQueueChurnAux( ExitQEpoch, _:Map (_ |-> #Validator(_,_,_,_, ExitEP, _,_,_) => .Map), _ )
+    requires ExitEP =/=K ExitQEpoch
+  rule exitQueueChurnAux( _, .Map, RES ) => RES
+
   // Python spec main functions
   //====================================================
 
@@ -477,16 +696,27 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
 */
   syntax ValidatorIndex ::= getBeaconProposerIndex() [function]
   rule [[ getBeaconProposerIndex()
-       => getBeaconProposerIndexLoop(
-            getCurrentEpoch() #as EPOCH,
-            getEpochCommitteeCount(EPOCH) #as CommitteesPerSlot,
-            CommitteesPerSlot *Int (SLOT %Int SLOTS_PER_EPOCH) #as OFFSET,
-            ({getEpochStartShard(EPOCH)}:>Int +Int OFFSET) %Int SHARD_COUNT #as SHARD,
-            getCrosslinkCommittee(EPOCH, SHARD) #as FirstCommittee,
-            2 ^Int 8 -Int 1 #as MaxRandomByte,
-            generateSeed(EPOCH) #as SEED,
-            0 #as I
-         ) ]]
+       //=> #fun(EPOCH
+       //=> #fun(CommitteesPerSlot
+       //=> #fun(OFFSET
+       //=> #fun(SHARD
+       //=> #fun(FirstCommittee
+       //=> #fun(MaxRandomByte
+       //=> #fun(SEED
+       //=> #fun(I
+       /*=> getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD,
+                                     FirstCommittee, MaxRandomByte, SEED, I)*/
+       //todo commented code should work but crashes with ClassCastException, even with one #fun.
+       => getBeaconProposerIndexLoop(0, 0, 0, 0, .IntList, 0, 0, 0)
+          //)(0)
+          //)(0/*generateSeed(EPOCH)*/)
+          //)(2 ^Int 8 -Int 1)
+          //)(getCrosslinkCommittee(EPOCH, SHARD))
+          //)({({getEpochStartShard(EPOCH)}:>Int +Int OFFSET) %Int SHARD_COUNT}:>Shard)
+          //)(CommitteesPerSlot *Int (SLOT %Int SLOTS_PER_EPOCH))
+          //)(getEpochCommitteeCount(EPOCH))
+          //)(getCurrentEpoch())
+       ]]
     <slot> SLOT </slot>
 
   syntax ValidatorIndex ::= getBeaconProposerIndexLoop(
@@ -494,7 +724,7 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
   rule [[ getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I)
     =>    getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                   get(FirstCommittee, (EPOCH +Int I) %Int len(FirstCommittee)) #as CandidateIndex,
-                  getByte(hash(SEED +Int I /Int 32), I %Int 32) #as RandomByte,
+                  getByte(hash(SEED +Int I /Int 32), I %Int 32) /*#as RandomByte*/,
                   EffectiveBalance
           ) ]]
     <validator-registry>... CandidateIndex |-> #Validator(_,_,_,_,_,_,_, EffectiveBalance) ...</validator-registry>
@@ -505,16 +735,29 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
   rule getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                                      CandidateIndex, RandomByte, EffectiveBalance)
     => getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I +Int 1)
-    requires EffectiveBalance *Int MAX_RANDOM_BYTE <Int MAX_EFFECTIVE_BALANCE *Int RandomByte
+    requires EffectiveBalance *Int MaxRandomByte <Int MAX_EFFECTIVE_BALANCE *Int RandomByte
 
   rule getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                                      CandidateIndex, RandomByte, EffectiveBalance)
     => CandidateIndex
-    requires EffectiveBalance *Int MAX_RANDOM_BYTE >=Int MAX_EFFECTIVE_BALANCE *Int RandomByte
+    requires EffectiveBalance *Int MaxRandomByte >=Int MAX_EFFECTIVE_BALANCE *Int RandomByte
 
 
   // Python spec utility functions
   //====================================================
+
+/*
+def get_base_reward(state: BeaconState, index: ValidatorIndex) -> Gwei:
+    total_balance = get_total_active_balance(state)
+    effective_balance = state.validator_registry[index].effective_balance
+    return effective_balance * BASE_REWARD_FACTOR // integer_squareroot(total_balance) // BASE_REWARDS_PER_EPOCH
+*/
+  syntax Gwei ::= getBaseReward( Int ) [function]
+  rule [[ getBaseReward(INDEX)
+          => EffectiveBalance *Int BASE_REWARD_FACTOR
+             /Int integerSquareroot({getTotalActiveBalance()}:>Int)
+             /Int BASE_REWARDS_PER_EPOCH ]]
+    <validator-registry> INDEX |-> #Validator(_,_,_,_,_,_,_, EffectiveBalance) </validator-registry>
 
 /*
 def get_epoch_start_shard(state: BeaconState, epoch: Epoch) -> Shard:
@@ -677,6 +920,27 @@ def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> List[Valid
     requires         isActiveValidator(V, EP)
   rule getActiveValidatorIndicesAux(Is, _, .Map, _) => Is
 
+/*def get_delayed_activation_exit_epoch(epoch: Epoch) -> Epoch:
+    """
+    Return the epoch at which an activation or exit triggered in ``epoch`` takes effect.
+    """
+    return epoch + 1 + ACTIVATION_EXIT_DELAY*/
+  syntax Int ::= getDelayedActivationExitEpoch ( Epoch ) [function]
+  rule getDelayedActivationExitEpoch(EP) => EP +Int 1 +Int ACTIVATION_EXIT_DELAY
+
+/*def get_churn_limit(state: BeaconState) -> int:
+    """
+    Return the churn limit based on the active validator count.
+    """
+    return max(
+        MIN_PER_EPOCH_CHURN_LIMIT,
+        len(get_active_validator_indices(state, get_current_epoch(state))) // CHURN_LIMIT_QUOTIENT
+    )*/
+  syntax Int ::= getChurnLimit( ) [function]
+  rule getChurnLimit() => maxInt(
+          MIN_PER_EPOCH_CHURN_LIMIT,
+          len(getActiveValidatorIndices(getCurrentEpoch())) /Int CHURN_LIMIT_QUOTIENT )
+
 /*
 def get_epoch_committee_count(state: BeaconState, epoch: Epoch) -> int:
     """
@@ -777,37 +1041,19 @@ def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
   rule sumAux(I:Int IL => IL, S => S +Int I)
   rule sumAux(.IntList, S) => S
 
+  syntax Int ::= maxAux ( IntList ) [function]
+               | maxAux ( IntList , Int ) [function]
+  rule maxAux( I:Int IL ) => maxAux(IL, I)
+  rule maxAux(I IL => IL, MAX => #if I <Int MAX #then MAX #else I #fi )
+  rule maxAux(.IntList, MAX) => MAX
+
   //first argument is a result of hash(), e.g. a 256-bit number.
   syntax Int ::= getByte(Bytes, Int) [function]
-  rule getByte(BYTES, I) => Bytes2Int(substrBytes(BYTES, I, I), BE, Unsigned) //todo hope arguments are right - bytes, start, end
+  rule getByte(BYTES, I) => Bytes2Int(substrBytes(BYTES, I, I), BE, Unsigned)
   //todo question: what endianness should we use above?
 
   syntax Bytes ::= hash( Int ) [function] //todo implement
 
-
-  // Python state modifying functions
-  //====================================================
-
-/*
-def increase_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> None:
-    """
-    Increase validator balance by ``delta``.
-    """
-    state.balances[index] += delta
-*/
-  syntax KItem ::= "increaseBalance" "(" ValidatorIndex "," Gwei ")"
-  rule <k> increaseBalance(ValIndex, Delta) => . ...</k>
-       <balances>... ValIndex |-> (BAL => BAL +Int Delta) ...</balances>
-
-/*
-def decrease_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> None:
-    """
-    Decrease validator balance by ``delta`` with underflow protection.
-    """
-    state.balances[index] = 0 if delta > state.balances[index] else state.balances[index] - delta
-*/
-  syntax KItem ::= "decreaseBalance" "(" ValidatorIndex "," Gwei ")"
-  rule <k> decreaseBalance(ValIndex, Delta) => . ...</k>
-       <balances>... ValIndex |-> (BAL => #if Delta >Int BAL #then 0 #else BAL -Int Delta #fi) ...</balances>
+  syntax Int ::= integerSquareroot( Int ) [function] //todo implement
 
 endmodule

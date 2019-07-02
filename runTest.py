@@ -39,6 +39,7 @@ def labelWithKeyPairs(label, keyConverters):
         return KApply(label, args)
     return _labelWithKeyPairs
 
+
 forkTerm = labelWithKeyPairs("#Fork" , [ ('previous_version' , hexIntToken)
                                        , ('current_version'  , hexIntToken)
                                        , ('epoch'            , intToken)
@@ -78,6 +79,22 @@ eth1dataTerm = labelWithKeyPairs("#Eth1Data" , [ ('deposit_root'  , hexIntToken)
                                                ]
                                 )
 
+attestationDataTerm = labelWithKeyPairs("#AttestationData" , [ ('beacon_block_root' , hexIntToken)
+                                                             , ('source_epoch'      , intToken)
+                                                             , ('source_root'       , hexIntToken)
+                                                             , ('target_epoch'      , intToken)
+                                                             , ('target_root'       , hexIntToken)
+                                                             , ('crosslink'         , crosslinkTerm)
+                                                             ]
+                                       )
+
+pendingAttestationTerm = labelWithKeyPairs("#PendingAttestation" , [ ('aggregation_bitfield' , hexIntToken)
+                                                                   , ('data'                 , attestationDataTerm)
+                                                                   , ('inclusion_delay'      , intToken)
+                                                                   , ('proposer_index'       , intToken)
+                                                                   ]
+                                          )
+
 pre_keys = { "slot"                        : ('SLOT_CELL'                       , intToken)
            , "genesis_time"                : ('GENESIS_TIME_CELL'               , intToken)
            , "fork"                        : ('FORK_CELL'                       , forkTerm)
@@ -85,8 +102,8 @@ pre_keys = { "slot"                        : ('SLOT_CELL'                       
            , "balances"                    : ('BALANCES_CELL'                   , indexedMapOf(intToken))
            , "latest_randao_mixes"         : ('LATEST_RANDAO_MIXES_CELL'        , listOf("Bytes32", converter = hexIntToken))
            , "latest_start_shard"          : ('LATEST_START_SHARD_CELL'         , intToken)
-           , "previous_epoch_attestations" : ('PREVIOUS_EPOCH_ATTESTATION_CELL' , listOf("PendingAttestation", converter = unimplemented))
-           , "current_epoch_attestations"  : ('CURRENT_EPOCH_ATTESTATIONS_CELL' , listOf("PendingAttestation", converter = unimplemented))
+           , "previous_epoch_attestations" : ('PREVIOUS_EPOCH_ATTESTATION_CELL' , listOf("PendingAttestation", converter = pendingAttestationTerm))
+           , "current_epoch_attestations"  : ('CURRENT_EPOCH_ATTESTATIONS_CELL' , listOf("PendingAttestation", converter = pendingAttestationTerm))
            , "previous_justified_epoch"    : ('PREVIOUS_JUSTIFIED_EPOCH_CELL'   , intToken)
            , "current_justified_epoch"     : ('CURRENT_JUSTIFIED_EPOCH_CELL'    , intToken)
            , "previous_justified_root"     : ('PREVIOUS_JUSTIFIED_ROOT_CELL'    , hexIntToken)

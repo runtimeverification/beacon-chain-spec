@@ -14,6 +14,8 @@ BEACON_CHAIN_appliedLabels = [ "#Fork"
                              , "#Crosslink"
                              , "#BeaconBlockHeader"
                              , "#Eth1Data"
+                             , "#AttestationData"
+                             , "#PendingAttestation"
                              ]
 
 for appliedLabel in BEACON_CHAIN_appliedLabels:

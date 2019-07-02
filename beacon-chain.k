@@ -318,7 +318,7 @@ class PendingAttestation(Container):
     # Proposer index
     proposer_index: uint64
   */
-  syntax PendingAttestation ::= #PendingAttestation( Bytes, AttestationData, Uint64, Uint64 )
+  syntax PendingAttestation ::= #PendingAttestation( Bytes, AttestationData, Uint64, Uint64 ) [klabel(#PendingAttestation), symbol]
 
   /*
 class Deposit(Container):
@@ -395,7 +395,7 @@ class AttestationData(Container):
     # Crosslink vote
     crosslink: Crosslink
   */
-  syntax AttestationData ::= #AttestationData( Bytes32, Epoch, Bytes32, Epoch, Bytes32, Crosslink )
+  syntax AttestationData ::= #AttestationData( Bytes32, Epoch, Bytes32, Epoch, Bytes32, Crosslink ) [klabel(#AttestationData), symbol]
 
   /*
 class HistoricalBatch(Container):

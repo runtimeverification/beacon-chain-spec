@@ -651,7 +651,7 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
   rule [[ exitQueueEpochAux(INDEX)
           => maxAux({getDelayedActivationExitEpoch(getCurrentEpoch())}:>Int
                     exitEpochsAux(VALIDATORS, .IntList) ) ]]
-    <validator-registry>... VALIDATORS ...</validator-registry>
+    <validator-registry> VALIDATORS </validator-registry>
 
   syntax IntList ::= exitEpochsAux( Map /*validators*/ , IntList /*result*/ )
   rule exitEpochsAux(_:Map (_ |-> #Validator(_,_,_, ExitEPOCH, _,_,_,_) => .Map),

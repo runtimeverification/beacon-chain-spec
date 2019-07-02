@@ -118,7 +118,7 @@ TEST_CONCRETE_BACKEND:=llvm
 test: test-python-config test-operations-transfer
 
 test-python-config: $(BUILD_DIR)/tests/buildConfig.out $(llvm_kompiled)
-	kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
+	$(K_BIN)/kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
 	     --output pretty --sort BeaconChainCell \
 	     $<
 
@@ -130,5 +130,10 @@ operations_transfer_tests:=tests/eth2.0-spec-tests/tests/operations/transfer/tra
 
 test-operations-transfer: $(operations_transfer_tests:=.test)
 
-%.yaml.test: runTest.py
-	python3 runTest.py $*.yaml
+%.yaml.test: %.yaml.out $(llvm_kompiled)
+	$(K_BIN)/krun --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
+	    --output pretty --term \
+	    $<
+
+%.yaml.out: runTest.py %.yaml
+	python3 $^ > $@

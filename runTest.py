@@ -7,6 +7,9 @@ from functools import reduce
 
 from buildConfig import *
 
+def printerr(msg):
+    sys.stderr.write(msg + "\n")
+
 intToken    = lambda x: KToken(str(x), 'Int')
 boolToken   = lambda x: KToken(str(x).lower(), 'Bool')
 stringToken = lambda x: KToken('"' + str(x) + '"', 'String')
@@ -143,10 +146,7 @@ if __name__ == "__main__":
     # for test_case in yaml_test['test_cases']:
     test_case = yaml_test['test_cases'][0]
 
-    print()
-    print()
-    print()
-    print("test description: " + test_case['description'])
+    printerr("test description: " + test_case['description'])
 
     for pre_key in test_case['pre'].keys():
         test_pre = test_case['pre'][pre_key]
@@ -155,17 +155,17 @@ if __name__ == "__main__":
             if cell_var in keytable:
                 keytable[cell_var] = converter(test_pre)
             else:
-                print("unimplemented pre-key: " + str(pre_key) + " -> " + str(test_pre))
+                printerr("unimplemented pre-key: " + str(pre_key) + " -> " + str(test_pre))
         elif len(str(test_pre)) < 3:
-            print("unused pre-key: " + pre_key)
+            printerr("unused pre-key: " + pre_key)
 
     if 'transfer' in test_case:
-        print("Skipping transfer block!")
+        printerr("Skipping transfer block!")
 
     if test_case['post'] is None:
-        print("No post condition!")
+        printerr("No post condition!")
     else:
-        print("Skipping post block!")
+        printerr("Skipping post block!")
 
     init_config = emptyKLabelsToEmptyTokens(substitute(symbolic_configuration, keytable))
     print(prettyPrintKast(init_config, ALL_symbols))

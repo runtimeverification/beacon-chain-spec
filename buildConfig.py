@@ -11,6 +11,8 @@ BEACON_CHAIN_symbols = { }
 
 BEACON_CHAIN_appliedLabels = [ "#Fork"
                              , "#Validator"
+                             , "#Crosslink"
+                             , "#BeaconBlockHeader"
                              ]
 
 for appliedLabel in BEACON_CHAIN_appliedLabels:
@@ -20,6 +22,7 @@ BEACON_CHAIN_lists = [ "PendingAttestation"
                      , "Bytes32"
                      , "Uint64"
                      , "Eth1Data"
+                     , "Crosslink"
                      ]
 
 for list_sort in BEACON_CHAIN_lists:

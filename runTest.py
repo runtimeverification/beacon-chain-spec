@@ -8,11 +8,12 @@ from functools import reduce
 from buildConfig import *
 
 intToken    = lambda x: KToken(str(x), 'Int')
+boolToken   = lambda x: KToken(str(x).lower(), 'Bool')
 stringToken = lambda x: KToken('"' + str(x) + '"', 'String')
 
 hexIntToken = lambda x: intToken(int(x, 16))
 
-unimplemented = lambda input: KToken("UNIMPLEMENTED { " + str(input) + "}", "K")
+unimplemented = lambda input: KToken("UNIMPLEMENTED << " + str(input) + " >>", "K")
 
 foldr = lambda func, init: lambda xs: reduce(lambda x, y: func(y, x), xs[::-1], init)
 
@@ -32,10 +33,33 @@ def listOf(sort, converter = lambda x: x):
     listUnit = "." + listSort
     return assocWithUnitAST(listSort, listUnit, converter = converter)
 
+def labelWithKeyPairs(label, keyConverters):
+    def _labelWithKeyPairs(input):
+        args = [ converter(input[key]) for (key, converter) in keyConverters ]
+        return KApply(label, args)
+    return _labelWithKeyPairs
+
+forkTerm = labelWithKeyPairs("#Fork" , [ ('previous_version' , hexIntToken)
+                                       , ('current_version'  , hexIntToken)
+                                       , ('epoch'            , intToken)
+                                       ]
+                            )
+
+validatorTerm = labelWithKeyPairs("#Validator" , [ ('pubkey', hexIntToken)
+                                                 , ('withdrawal_credentials', hexIntToken)
+                                                 , ('activation_eligibility_epoch', intToken)
+                                                 , ('activation_epoch', intToken)
+                                                 , ('exit_epoch', intToken)
+                                                 , ('withdrawable_epoch', intToken)
+                                                 , ('slashed', boolToken)
+                                                 , ('effective_balance', intToken)
+                                                 ]
+                                 )
+
 pre_keys = { "slot"                        : ('SLOT_CELL'                       , intToken)
            , "genesis_time"                : ('GENESIS_TIME_CELL'               , intToken)
-           , "fork"                        : ('FORK_CELL'                       , unimplemented)
-           , "validator_registry"          : ('VALIDATOR_REGISTRY_CELL'         , indexedMapOf(unimplemented))
+           , "fork"                        : ('FORK_CELL'                       , forkTerm)
+           , "validator_registry"          : ('VALIDATOR_REGISTRY_CELL'         , indexedMapOf(validatorTerm))
            , "balances"                    : ('BALANCES_CELL'                   , indexedMapOf(intToken))
            , "latest_randao_mixes"         : ('LATEST_RANDAO_MIXES_CELL'        , listOf("Bytes32", converter = hexIntToken))
            , "latest_start_shard"          : ('LATEST_START_SHARD_CELL'         , intToken)

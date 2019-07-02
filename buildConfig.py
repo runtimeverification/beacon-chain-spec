@@ -7,15 +7,22 @@ from util import *
 from kast import *
 from pyk  import *
 
-BEACON_CHAIN_LISTS = [ "PendingAttestation"
+BEACON_CHAIN_symbols = { }
+
+BEACON_CHAIN_appliedLabels = [ "#Fork"
+                             , "#Validator"
+                             ]
+
+for appliedLabel in BEACON_CHAIN_appliedLabels:
+    BEACON_CHAIN_symbols[appliedLabel] = appliedLabelStr(appliedLabel)
+
+BEACON_CHAIN_lists = [ "PendingAttestation"
                      , "Bytes32"
                      , "Uint64"
                      , "Eth1Data"
                      ]
 
-BEACON_CHAIN_symbols = { }
-
-for list_sort in BEACON_CHAIN_LISTS:
+for list_sort in BEACON_CHAIN_lists:
     BEACON_CHAIN_symbols["." + list_sort + "List"] = constLabel("")
     BEACON_CHAIN_symbols[      list_sort + "List"] = underbarUnparsing("__")
 

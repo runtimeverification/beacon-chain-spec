@@ -247,7 +247,7 @@ class Fork(Container):
     # Fork epoch number
     epoch: uint64
   */
-  syntax Fork ::= #Fork( Bytes4, Bytes4, Epoch )
+  syntax Fork ::= #Fork( Bytes4, Bytes4, Epoch ) [klabel(#Fork), symbol]
 
   /*
 class Crosslink(Container):
@@ -293,7 +293,7 @@ class Validator(Container):
     # Effective balance
     effective_balance: uint64
   */
-  syntax Validator ::= #Validator( Bytes48, Bytes32, Epoch, Epoch, Epoch, Epoch, Bool, Uint64 )
+  syntax Validator ::= #Validator( Bytes48, Bytes32, Epoch, Epoch, Epoch, Epoch, Bool, Uint64 ) [klabel(#Validator), symbol]
 
   /*
 class IndexedAttestation(Container):

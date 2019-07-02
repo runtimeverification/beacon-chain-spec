@@ -131,8 +131,8 @@ operations_transfer_tests:=tests/eth2.0-spec-tests/tests/operations/transfer/tra
 test-operations-transfer: $(operations_transfer_tests:=.test)
 
 %.yaml.test: %.yaml.out $(llvm_kompiled)
-	$(K_BIN)/krun --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
-	    --output pretty --term \
+	$(K_BIN)/kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
+	    --output pretty --sort BeaconChainCell \
 	    $<
 
 %.yaml.out: runTest.py %.yaml

@@ -72,6 +72,12 @@ blockheaderTerm = labelWithKeyPairs("#BeaconBlockHeader" , [ ('slot'        , in
                                                            ]
                                    )
 
+eth1dataTerm = labelWithKeyPairs("#Eth1Data" , [ ('deposit_root'  , hexIntToken)
+                                               , ('deposit_count' , intToken)
+                                               , ('block_hash'    , hexIntToken)
+                                               ]
+                                )
+
 pre_keys = { "slot"                        : ('SLOT_CELL'                       , intToken)
            , "genesis_time"                : ('GENESIS_TIME_CELL'               , intToken)
            , "fork"                        : ('FORK_CELL'                       , forkTerm)
@@ -96,8 +102,8 @@ pre_keys = { "slot"                        : ('SLOT_CELL'                       
            , "latest_slashed_balances"     : ('LATEST_SLASHED_BALANCE_CELL'     , listOf("Uint64", converter = intToken))
            , "latest_block_header"         : ('LATEST_BLOCK_HEADER_CELL'        , blockheaderTerm)
            , "historical_roots"            : ('HISTORICAL_ROOTS_CELL'           , listOf("Bytes32", converter = intToken))
-           , "latest_eth1_data"            : ('LATEST_ETH1_DATA_CELL'           , unimplemented)
-           , "eth1_data_votes"             : ('ETH1_DATA_VOTES_CELL'            , listOf("Eth1Data", converter = unimplemented))
+           , "latest_eth1_data"            : ('LATEST_ETH1_DATA_CELL'           , eth1dataTerm)
+           , "eth1_data_votes"             : ('ETH1_DATA_VOTES_CELL'            , listOf("Eth1Data", converter = eth1dataTerm))
            , "deposit_index"               : ('DEPOSIT_INDEX_CELL'              , intToken)
            }
 

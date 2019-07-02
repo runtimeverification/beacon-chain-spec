@@ -542,9 +542,10 @@ def process_registry_updates(state: BeaconState) -> None:
 
   rule <k> processActivationQueue(INDEX:Int IL => IL, I => I -Int 1) ... </k>
        <validator-registry>... INDEX |-> #Validator(_,_,_,
-          FAR_FUTURE_EPOCH => getDelayedActivationExitEpoch(getCurrentEpoch()), _,_,_,_)
+          ActEpoch => getDelayedActivationExitEpoch(getCurrentEpoch()), _,_,_,_)
           ...</validator-registry>
     requires I >Int 0
+             andBool ActEpoch ==K FAR_FUTURE_EPOCH
 
   rule <k> processActivationQueue(INDEX:Int IL => IL, I => I -Int 1) ... </k>
        <validator-registry>... INDEX |-> #Validator(_,_,_, ActEpoch, _,_,_,_) ...</validator-registry>
@@ -658,8 +659,9 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
                      RES => ExitEPOCH RES )
     requires ExitEPOCH =/=K FAR_FUTURE_EPOCH
 
-  rule exitEpochsAux(_:Map (_ |-> #Validator(_,_,_, FAR_FUTURE_EPOCH, _,_,_,_) => .Map),
+  rule exitEpochsAux(_:Map (_ |-> #Validator(_,_,_, ExitEPOCH, _,_,_,_) => .Map),
                      RES /*unchanged*/ )
+    requires ExitEPOCH ==K FAR_FUTURE_EPOCH
 
   rule exitEpochsAux(.Map, RES) => RES
 

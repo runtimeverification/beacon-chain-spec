@@ -5,7 +5,35 @@ import yaml
 
 from buildConfig import *
 
-pre_keys = { "slot" : ('SLOT_CELL', lambda x: KToken(str(x), "Int"))
+intToken = lambda x: KToken(str(x), 'Int')
+
+pre_keys = { "slot"                        : ('SLOT_CELL'         , intToken)
+           , "genesis_time"                : ('GENESIS_TIME_CELL' , intToken)
+           # , "fork"                        : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "validator_registry"          : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "balances"                    : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "latest_randao_mixes"         : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "latest_start_shard"          : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "previous_epoch_attestations" : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "current_epoch_attestations"  : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "previous_justified_epoch"    : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "current_justified_epoch"     : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "previous_justified_root"     : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "current_justified_root"      : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "justification_bitfield"      : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "finalized_epoch"             : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "finalized_root"              : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "current_crosslinks"          : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "previous_crosslinks"         : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "latest_block_roots"          : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "latest_state_roots"          : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "latest_active_index_roots"   : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "latest_slashed_balances"     : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "latest_block_header"         : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "historical_roots"            : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "latest_eth1_data"            : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "eth1_data_votes"             : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           # , "deposit_index"               : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
            }
 
 if __name__ == "__main__":

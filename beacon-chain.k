@@ -261,7 +261,7 @@ class Crosslink(Container):
     # Root of the crosslinked shard data since the previous crosslink
     data_root: Bytes32
   */
-  syntax Crosslink ::= #Crosslink( Shard, Epoch, Epoch, Bytes32, Bytes32 )
+  syntax Crosslink ::= #Crosslink( Shard, Epoch, Epoch, Bytes32, Bytes32 ) [klabel(#Crosslink), symbol]
 
   /*
 class VoluntaryExit(Container):
@@ -436,7 +436,7 @@ class BeaconBlockHeader(Container):
     body_root: Bytes32
     signature: Bytes96
   */
-  syntax BeaconBlockHeader ::= #BeaconBlockHeader( Slot, Bytes32, Bytes32, Bytes32, Bytes96 )
+  syntax BeaconBlockHeader ::= #BeaconBlockHeader( Slot, Bytes32, Bytes32, Bytes32, Bytes96 ) [klabel(#BeaconBlockHeader), symbol]
 
   /*
 class Eth1Data(Container):
@@ -447,7 +447,7 @@ class Eth1Data(Container):
     # Block hash
     block_hash: Bytes32
   */
-  syntax Eth1Data ::= #Eth1Data( Bytes32, Uint64, Bytes32 )
+  syntax Eth1Data ::= #Eth1Data( Bytes32, Uint64, Bytes32 ) [klabel(#Eth1Data), symbol]
 
 
   // Python state modifying functions

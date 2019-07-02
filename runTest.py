@@ -7,21 +7,29 @@ from buildConfig import *
 
 intToken = lambda x: KToken(str(x), 'Int')
 
+def consList(join, empty = ""):
+    def _consList(input):
+        if len(input) == 0:
+            return KToken(empty, "K")
+        else:
+            return KToken(str(input), "NOT_IMPLEMENTED")
+    return _consList
+
 pre_keys = { "slot"                        : ('SLOT_CELL'         , intToken)
            , "genesis_time"                : ('GENESIS_TIME_CELL' , intToken)
            # , "fork"                        : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
            # , "validator_registry"          : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
            # , "balances"                    : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
            # , "latest_randao_mixes"         : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
-           # , "latest_start_shard"          : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
-           # , "previous_epoch_attestations" : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
-           # , "current_epoch_attestations"  : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
-           # , "previous_justified_epoch"    : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
-           # , "current_justified_epoch"     : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           , "latest_start_shard"          : ('LATEST_START_SHARD_CELL' , intToken)
+           , "previous_epoch_attestations" : ('PREVIOUS_EPOCH_ATTESTATION_CELL' , consList('???'))
+           , "current_epoch_attestations"  : ('CURRENT_EPOCH_ATTESTATIONS_CELL' , consList('???'))
+           , "previous_justified_epoch"    : ('PREVIOUS_JUSTIFIED_EPOCH_CELL' , intToken)
+           , "current_justified_epoch"     : ('CURRENT_JUSTIFIED_EPOCH_CELL' , intToken)
            # , "previous_justified_root"     : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
            # , "current_justified_root"      : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
-           # , "justification_bitfield"      : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
-           # , "finalized_epoch"             : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           , "justification_bitfield"      : ('JUSTIFICATION_BITFIELD_CELL' , intToken)
+           , "finalized_epoch"             : ('FINALIZED_EPOCH_CELL' , intToken)
            # , "finalized_root"              : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
            # , "current_crosslinks"          : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
            # , "previous_crosslinks"         : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
@@ -30,10 +38,10 @@ pre_keys = { "slot"                        : ('SLOT_CELL'         , intToken)
            # , "latest_active_index_roots"   : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
            # , "latest_slashed_balances"     : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
            # , "latest_block_header"         : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
-           # , "historical_roots"            : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           , "historical_roots"            : ('HISTORICAL_ROOTS_CELL' , consList('???'))
            # , "latest_eth1_data"            : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
-           # , "eth1_data_votes"             : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
-           # , "deposit_index"               : ('NOT_IMPLEMENTED' , lambda x: KVariable('NOT_IMPLEMENTED'))
+           , "eth1_data_votes"             : ('ETH1_DATA_VOTES_CELL' , consList('???'))
+           , "deposit_index"               : ('DEPOSIT_INDEX_CELL' , intToken)
            }
 
 if __name__ == "__main__":
@@ -53,10 +61,14 @@ if __name__ == "__main__":
     print("test description: " + test_case['description'])
 
     for pre_key in test_case['pre'].keys():
+        test_pre = test_case['pre'][pre_key]
         if pre_key in pre_keys:
             (cell_var, converter) = pre_keys[pre_key]
-            keytable[cell_var] = converter(test_case['pre'][pre_key])
-        else:
+            if cell_var in keytable:
+                keytable[cell_var] = converter(test_pre)
+            else:
+                print("unimplemented pre-key: " + str(pre_key) + " -> " + str(test_pre))
+        elif len(str(test_pre)) < 3:
             print("unused pre-key: " + pre_key)
 
     if test_case['post'] is None:

@@ -153,17 +153,19 @@ if __name__ == "__main__":
         if pre_key in pre_keys:
             (cell_var, converter) = pre_keys[pre_key]
             if cell_var in keytable:
-                print(pre_key)
                 keytable[cell_var] = converter(test_pre)
             else:
                 print("unimplemented pre-key: " + str(pre_key) + " -> " + str(test_pre))
         elif len(str(test_pre)) < 3:
             print("unused pre-key: " + pre_key)
 
+    if 'transfer' in test_case:
+        print("Skipping transfer block!")
+
     if test_case['post'] is None:
         print("No post condition!")
     else:
-        print("post keys: " + str(test_case['post'].keys()))
+        print("Skipping post block!")
 
     init_config = emptyKLabelsToEmptyTokens(substitute(symbolic_configuration, keytable))
     print(prettyPrintKast(init_config, ALL_symbols))

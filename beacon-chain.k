@@ -124,6 +124,7 @@ class BeaconBlockBody(Container):
   syntax Fork ::= ".Fork"
   syntax BlockHeader ::= ".BlockHeader"
   syntax Eth1Data ::= ".Eth1Data"
+  syntax Checkpoint ::= ".Checkpoint"
 
   // Basic Python (SSZ) types
   //====================================================
@@ -513,12 +514,12 @@ def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
 /*
 def hash(data: bytes) -> Hash is SHA256.
 */
-  syntax Hash ::= hash( Bytes ) [function] //todo implement (??)
+  syntax Bytes ::= hash( Bytes ) [function] //todo implement (??)
 
 /*
 def hash_tree_root(object: SSZSerializable) -> Hash
 */
-  syntax Hash ::= hashTreeRoot( Bytes ) [function] //todo implement (??)
+  syntax Bytes ::= hashTreeRoot( Bytes ) [function] //todo implement (??)
 
 /*
 def signing_root(object: Container) -> Hash
@@ -546,7 +547,7 @@ def is_active_validator(validator: Validator, epoch: Epoch) -> bool:
     return validator.activation_epoch <= epoch < validator.exit_epoch
 */
   syntax Bool ::= isActiveValidator( Validator, Epoch ) [function]
-  rule isActiveValidator( #Validator(_,_,_, ActivationEpoch, ExitEpoch, _,_,_), EPOCH )
+  rule isActiveValidator( #Validator(_,_,_,_,_, ActivationEpoch, ExitEpoch, _), EPOCH )
     => ActivationEpoch <=Int EPOCH andBool EPOCH <Int ExitEpoch
 
 /*
@@ -962,7 +963,7 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
   rule [[ getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I)
     =>    getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                   get(FirstCommittee, (EPOCH +Int I) %Int len(FirstCommittee)) #as CandidateIndex,
-                  getByte(hash(SEED +Int I /Int 32), I %Int 32) /*#as RandomByte*/,
+                  getByte( hash( toBytes({SEED}:>Int +Int I /Int 32) ), I %Int 32) /*#as RandomByte*/,
                   EffectiveBalance
           ) ]]
     <validators>... CandidateIndex |-> #Validator(_,_,_,_,_,_,_, EffectiveBalance) ...</validators>
@@ -1156,11 +1157,11 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
     <validators> VALIDATORS </validators>
 
   syntax IntList ::= exitEpochsAux( Map /*validators*/ , IntList /*result*/ )
-  rule exitEpochsAux(_:Map (_ |-> #Validator(_,_,_, ExitEPOCH, _,_,_,_) => .Map),
+  rule exitEpochsAux(_:Map (_ |-> #Validator(_,_,_,_,_,_, ExitEPOCH, _) => .Map),
                      RES => ExitEPOCH RES )
     requires ExitEPOCH =/=K FAR_FUTURE_EPOCH
 
-  rule exitEpochsAux(_:Map (_ |-> #Validator(_,_,_, ExitEPOCH, _,_,_,_) => .Map),
+  rule exitEpochsAux(_:Map (_ |-> #Validator(_,_,_,_,_,_, ExitEPOCH, _) => .Map),
                      RES /*unchanged*/ )
     requires ExitEPOCH ==K FAR_FUTURE_EPOCH
 
@@ -1566,14 +1567,14 @@ def process_registry_updates(state: BeaconState) -> None:
            ) ~>
            processRegistryUpdatesLoop1(_:Map
                                        (INDEX |-> VAL => .Map) ) ...</k>
-       <validators>... INDEX |-> #Validator(_,_,
+       <validators>... INDEX |-> #Validator(_,_, EffBalance, _,
           ActEligibilityEpoch
           => #if ActEligibilityEpoch ==Int FAR_FUTURE_EPOCH
                  andBool EffBalance >=Int MAX_EFFECTIVE_BALANCE
                 #then getCurrentEpoch()
                 #else ActEligibilityEpoch
              #fi,
-          _,_,_,_, EffBalance) ...</validators>
+          _,_,_) ...</validators>
 
   rule processRegistryUpdatesLoop1(.Map) => .K
 
@@ -1589,8 +1590,8 @@ def process_registry_updates(state: BeaconState) -> None:
        <validators> VALIDATORS </validators>
 
   rule <k> processActivationQueue(INDEX:Int IL => IL, I => I -Int 1) ... </k>
-       <validators>... INDEX |-> #Validator(_,_,_,
-          ActEpoch => computeActivationExitEpoch(getCurrentEpoch()), _,_,_,_)
+       <validators>... INDEX |-> #Validator(_,_,_,_,_,
+          ActEpoch => computeActivationExitEpoch(getCurrentEpoch()), _,_)
           ...</validators>
     requires I >Int 0
              andBool ActEpoch ==K FAR_FUTURE_EPOCH
@@ -1961,6 +1962,8 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
   rule maxAux( I:Int IL ) => maxAux(IL, I)
   rule maxAux(I IL => IL, MAX => #if I <Int MAX #then MAX #else I #fi )
   rule maxAux(.IntList, MAX) => MAX
+
+  syntax Bytes ::= toBytes( Int ) [function]
 
   //first argument is a result of hash(), e.g. a 256-bit number.
   syntax Int ::= getByte(Bytes, Int) [function]

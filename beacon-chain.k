@@ -111,7 +111,7 @@ class BeaconBlockBody(Container):
   syntax KItem ::= Pgm
   syntax Pgm ::= ".Pgm"
   syntax Fork ::= ".Fork"
-  syntax BlockHeader ::= ".BlockHeader"
+  syntax BlockHeader ::= ".BlockHeader" | BeaconBlockHeader
   syntax Eth1Data ::= ".Eth1Data"
 
   syntax Bytes ::= #Bytes( Int, Int ) //DATA, LEN

@@ -126,7 +126,7 @@ $(BUILD_DIR)/tests/buildConfig.out: buildConfig.py
 	mkdir -p $(dir $@)
 	python3 $< > $@
 
-operations_transfer_tests:=tests/eth2.0-spec-tests/tests/operations/transfer/transfer_minimal.yaml
+operations_transfer_tests:=$(wildcard tests/eth2.0-spec-tests/tests/operations/*/*_minimal.yaml)
 
 test-operations-transfer: $(operations_transfer_tests:=.test)
 

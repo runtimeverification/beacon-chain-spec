@@ -39,7 +39,7 @@ ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-spec-tests
 	    deps deps-k deps-tangle deps-tests \
 	    defn defn-llvm \
 	    build build-llvm \
-	    test test-split test-python-config test-operations-transfer
+	    test test-split test-python-config test-operations-minimal
 .SECONDARY:
 
 all: build
@@ -115,7 +115,7 @@ test-split:
 
 TEST_CONCRETE_BACKEND:=llvm
 
-test: test-python-config test-operations-transfer
+test: test-python-config test-operations-minimal
 
 test-python-config: $(BUILD_DIR)/tests/buildConfig.out $(llvm_kompiled)
 	$(K_BIN)/kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
@@ -126,9 +126,9 @@ $(BUILD_DIR)/tests/buildConfig.out: buildConfig.py
 	mkdir -p $(dir $@)
 	python3 $< > $@
 
-operations_transfer_tests:=$(wildcard tests/eth2.0-spec-tests/tests/operations/*/*_minimal.yaml)
+operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/operations/*/*_minimal.yaml)
 
-test-operations-transfer: $(operations_transfer_tests:=.test)
+test-operations-minimal: $(operations_minimal_tests:=.test)
 
 %.yaml.test: %.yaml.json $(llvm_kompiled)
 	$(K_BIN)/kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \

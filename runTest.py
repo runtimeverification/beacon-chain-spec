@@ -136,7 +136,8 @@ def emptyKLabelsToEmptyTokens(k):
     return newK
 
 if __name__ == "__main__":
-    test_file = sys.argv[1]
+    test_file   = sys.argv[1]
+    output_json = sys.argv[2]
 
     with open(test_file, "r") as yaml_file:
         yaml_test = yaml.load(yaml_file, Loader = yaml.FullLoader)
@@ -167,5 +168,10 @@ if __name__ == "__main__":
     else:
         printerr("Skipping post block!")
 
-    init_config = emptyKLabelsToEmptyTokens(substitute(symbolic_configuration, keytable))
-    print(prettyPrintKast(init_config, ALL_symbols))
+    kast_json = { "format"  : "KAST"
+                , "version" : 1.0
+                , "term"    : substitute(symbolic_configuration, keytable)
+                }
+    with open(output_json, "w") as output_json_file:
+        json.dump(kast_json, output_json_file)
+        printerr("Wrote output file: " + output_json)

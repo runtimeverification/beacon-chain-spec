@@ -130,10 +130,10 @@ operations_transfer_tests:=tests/eth2.0-spec-tests/tests/operations/transfer/tra
 
 test-operations-transfer: $(operations_transfer_tests:=.test)
 
-%.yaml.test: %.yaml.out $(llvm_kompiled)
+%.yaml.test: %.yaml.json $(llvm_kompiled)
 	$(K_BIN)/kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
-	    --output pretty --sort BeaconChainCell \
-	    $<
+	    --input json --output pretty --sort BeaconChainCell \
+	    $< --debug --no-sort-collections
 
-%.yaml.out: runTest.py %.yaml
-	python3 $^ > $@
+%.yaml.json: runTest.py %.yaml
+	python3 $^ $@

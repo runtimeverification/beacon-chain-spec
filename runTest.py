@@ -144,6 +144,7 @@ if __name__ == "__main__":
 
     keytable = init_cells
 
+    # **TODO**: We need to run all the tests:
     # for test_case in yaml_test['test_cases']:
     test_case = yaml_test['test_cases'][0]
 

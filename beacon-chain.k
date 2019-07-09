@@ -558,8 +558,8 @@ def is_slashable_validator(validator: Validator, epoch: Epoch) -> bool:
     return (not validator.slashed) and (validator.activation_epoch <= epoch < validator.withdrawable_epoch)
 */
   syntax Bool ::= isSlashableValidator( Validator, Epoch ) [function]
-  rule isActiveValidator( #Validator(_,_,_, ActivationEpoch, _, WithdEpoch, Slashed, _), EPOCH )
-    => notBool Slashed>Bool andBool ActivationEpoch <=Int EPOCH andBool EPOCH <Int WithdEpoch
+  rule isActiveValidator( #Validator(_,_,_, Slashed, _, ActivationEpoch, _, WithdEpoch), EPOCH )
+    => notBool Slashed andBool ActivationEpoch <=Int EPOCH andBool EPOCH <Int WithdEpoch
 
 /*
 def is_slashable_attestation_data(data_1: AttestationData, data_2: AttestationData) -> bool:
@@ -885,7 +885,7 @@ def get_start_shard(state: BeaconState, epoch: Epoch) -> Shard:
       (LSS +Int getShardDelta(getCurrentEpoch())) %Int SHARD_COUNT,
       EPOCH
     ) ]]
-    <latest-start-shard> LSS </latest-start-shard>
+    <start-shard> LSS </start-shard>
     requires EPOCH <=Int {getCurrentEpoch()}:>Int +Int 1
 
   syntax Shard ::= getStartShardAux( Epoch, Shard, Epoch ) [function]
@@ -1609,13 +1609,13 @@ def process_registry_updates(state: BeaconState) -> None:
         validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH and
         validator.activation_epoch >= get_delayed_activation_exit_epoch(state.finalized_epoch) */
   syntax IntList ::= getActivationQueueUnsorted( Map /*state.validator_registry*/, IntList /*result*/ ) [function]
-  rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> #Validator(_,_, ActEligibilityEpoch, ActEpoch, _,_,_,_) => .Map),
+  rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> #Validator(_,_,_,_, ActEligibilityEpoch, ActEpoch, _,_) => .Map),
                                      IL => IL INDEX) ]]
        <finalized-epoch> FinalizedEpoch </finalized-epoch>
     when ActEligibilityEpoch =/=K FAR_FUTURE_EPOCH
          andBool ActEpoch >=Int computeActivationExitEpoch(FinalizedEpoch)
 
-  rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> #Validator(_,_, ActEligibilityEpoch, ActEpoch, _,_,_,_) => .Map),
+  rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> #Validator(_,_,_,_, ActEligibilityEpoch, ActEpoch, _,_) => .Map),
                                      IL /*unchanged*/ ) ]]
        <finalized-epoch> FinalizedEpoch </finalized-epoch>
     when notBool ( ActEligibilityEpoch =/=K FAR_FUTURE_EPOCH
@@ -1637,8 +1637,8 @@ def process_registry_updates(state: BeaconState) -> None:
   rule [[ indexForMinEligEpoch( MIN => #if MINActEligibilityEpoch <Int IActEligibilityEpoch #then MIN #else I #fi,
                                 (I:Int IL) => IL ) ]]
     <validators>
-      MIN |-> #Validator(_,_, MINActEligibilityEpoch, _,_,_,_,_)
-      I   |-> #Validator(_,_,   IActEligibilityEpoch, _,_,_,_,_)
+      MIN |-> #Validator(_,_,_,_, MINActEligibilityEpoch, _,_,_)
+      I   |-> #Validator(_,_,_,_, IActEligibilityEpoch,   _,_,_)
       ...
     </validators>
   rule indexForMinEligEpoch(MIN, .IntList) => MIN

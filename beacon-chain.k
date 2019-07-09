@@ -489,7 +489,7 @@ def int_to_bytes(n: uint64, length: uint64) -> bytes:
     """
     return n.to_bytes(length, ENDIANNESS)
 */
-  syntax Bytes ::= intToBytes( Int ) [function] //todo implement (??)
+  syntax Bytes ::= intToBytes( Int ) [function] 
 
 /*
 def bytes_to_int(data: bytes) -> uint64:
@@ -498,9 +498,9 @@ def bytes_to_int(data: bytes) -> uint64:
     """
     return int.from_bytes(data, ENDIANNESS)
 */
-  syntax Int ::= bytesToInt( Bytes ) [function] //todo implement (??)
+  syntax Int ::= bytesToInt( Bytes ) [function] 
 
-  syntax Int ::= integerSquareroot( Int ) [function] //todo implement
+  syntax Int ::= integerSquareroot( Int ) [function] 
 
 /*
 def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
@@ -514,12 +514,12 @@ def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
 /*
 def hash(data: bytes) -> Hash is SHA256.
 */
-  syntax Bytes ::= hash( Bytes ) [function] //todo implement (??)
+  syntax Bytes ::= hash( Bytes ) [function] 
 
 /*
 def hash_tree_root(object: SSZSerializable) -> Hash
 */
-  syntax Bytes ::= hashTreeRoot( Bytes ) [function] //todo implement (??)
+  syntax Bytes ::= hashTreeRoot( Bytes ) [function] 
 
 /*
 def signing_root(object: Container) -> Hash
@@ -573,7 +573,7 @@ def is_slashable_attestation_data(data_1: AttestationData, data_2: AttestationDa
         (data_1.source.epoch < data_2.source.epoch and data_2.target.epoch < data_1.target.epoch)
     )
 */
-// TODO define is_slashable_attestation_data
+// 
 
 /*
 def is_valid_indexed_attestation(state: BeaconState, indexed_attestation: IndexedAttestation) -> bool:
@@ -611,7 +611,7 @@ def is_valid_indexed_attestation(state: BeaconState, indexed_attestation: Indexe
         return False
     return True
 */
-// TODO define is_valid_indexed_attestation
+// 
 
 /*
 def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, index: uint64, root: Hash) -> bool:
@@ -626,7 +626,7 @@ def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, in
             value = hash(value + branch[i])
     return value == root
 */
-// TODO define is_valid_merkle_branch
+// 
 
   // Helper functions -- Misc
   //====================================================
@@ -651,7 +651,7 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
 
     return ValidatorIndex(index)
 */
-// TODO define compute_shuffled_index
+// 
   syntax Int ::= computeShuffledIndex( Int, Int, Bytes32 ) [function]
   rule computeShuffledIndex(INDEX, COUNT, SEED) => INDEX %Int COUNT //NOTEH mock implementation
 
@@ -761,7 +761,7 @@ def get_block_root(state: BeaconState, epoch: Epoch) -> Hash:
     """
     return get_block_root_at_slot(state, compute_start_slot_of_epoch(epoch))
 */
-// TODO define get_block_root
+// 
 
 /*
 def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
@@ -771,7 +771,7 @@ def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
     assert slot < state.slot <= slot + SLOTS_PER_HISTORICAL_ROOT
     return state.block_roots[slot % SLOTS_PER_HISTORICAL_ROOT]
 */
-// TODO define get_block_root_at_slot
+// 
 
 /*
 def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
@@ -781,7 +781,7 @@ def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
     return state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
 get_active_validator_indices
 */
-// TODO define get_randao_mix
+// 
 
 /*
 def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[ValidatorIndex]:
@@ -990,7 +990,7 @@ def get_attestation_data_slot(state: BeaconState, data: AttestationData) -> Slot
     offset = (data.crosslink.shard + SHARD_COUNT - get_start_shard(state, data.target.epoch)) % SHARD_COUNT
     return Slot(compute_start_slot_of_epoch(data.target.epoch) + offset // (committee_count // SLOTS_PER_EPOCH))
 */
-// TODO define get_attestation_data_slot
+// 
 
 /*
 def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
@@ -1010,7 +1010,7 @@ def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
             committees[shard].compact_validators.append(compact_validator)
     return hash_tree_root(Vector[CompactCommittee, SHARD_COUNT](committees))
 */
-// TODO define get_compact_committees_root
+// 
 
 /*
 def get_total_balance(state: BeaconState, indices: Set[ValidatorIndex]) -> Gwei:
@@ -1046,7 +1046,7 @@ def get_domain(state: BeaconState, domain_type: DomainType, message_epoch: Epoch
     fork_version = state.fork.previous_version if epoch < state.fork.epoch else state.fork.current_version
     return compute_domain(domain_type, fork_version)
 */
-// TODO define get_domain
+// 
 
 /*
 def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> IndexedAttestation:
@@ -1065,7 +1065,7 @@ def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> Ind
         signature=attestation.signature,
     )
 */
-// TODO define get_indexed_attestation
+// 
 
 /*
 def get_attesting_indices(state: BeaconState,
@@ -1077,7 +1077,7 @@ def get_attesting_indices(state: BeaconState,
     committee = get_crosslink_committee(state, data.target.epoch, data.crosslink.shard)
     return set(index for i, index in enumerate(committee) if bits[i])
 */
-// TODO define get_attesting_indices
+// 
 
   // Helper functions -- Beacon state mutators
   //====================================================
@@ -1198,7 +1198,7 @@ def slash_validator(state: BeaconState,
     increase_balance(state, proposer_index, proposer_reward)
     increase_balance(state, whistleblower_index, whistleblower_reward - proposer_reward)
 */
-// TODO define slash_validator
+//
 
   // Genesis state
   //====================================================
@@ -1237,7 +1237,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
         state.compact_committees_roots[index] = committee_root
     return state
 */
-// TODO define initialize_beacon_state_from_eth1 (??)
+//
 
 /*
 def is_valid_genesis_state(state: BeaconState) -> bool:
@@ -1247,7 +1247,7 @@ def is_valid_genesis_state(state: BeaconState) -> bool:
         return False
     return True
 */
-// TODO define is_valid_genesis_state (??)
+//
 
 
   // Beacon chain state transition function
@@ -1265,7 +1265,7 @@ def state_transition(state: BeaconState, block: BeaconBlock, validate_state_root
     # Return post-state
     return state
 */
-// TODO define state_transition (??)
+//
 
 /*
 def process_slots(state: BeaconState, slot: Slot) -> None:
@@ -1277,7 +1277,7 @@ def process_slots(state: BeaconState, slot: Slot) -> None:
             process_epoch(state)
         state.slot += Slot(1)
 */
-// TODO define process_slots
+//
 
 /*
 def process_slot(state: BeaconState) -> None:
@@ -1291,7 +1291,7 @@ def process_slot(state: BeaconState) -> None:
     previous_block_root = signing_root(state.latest_block_header)
     state.block_roots[state.slot % SLOTS_PER_HISTORICAL_ROOT] = previous_block_root
 */
-// TODO define process_slot
+//
 
   // State transition function -- Epoch processing
   //====================================================
@@ -1307,14 +1307,14 @@ def process_epoch(state: BeaconState) -> None:
     process_final_updates(state)
     # @after_process_final_updates
 */
-// TODO define process_epoch
+//
 
 /*
 def get_matching_source_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
     assert epoch in (get_previous_epoch(state), get_current_epoch(state))
     return state.current_epoch_attestations if epoch == get_current_epoch(state) else state.previous_epoch_attestations
 */
-// TODO define get_matching_source_attestations
+//
 
 /*
 def get_matching_target_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
@@ -1323,7 +1323,7 @@ def get_matching_target_attestations(state: BeaconState, epoch: Epoch) -> Sequen
         if a.data.target.root == get_block_root(state, epoch)
     ]
 */
-// TODO define get_matching_target_attestations
+//
 
 /*
 def get_matching_head_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
@@ -1332,7 +1332,7 @@ def get_matching_head_attestations(state: BeaconState, epoch: Epoch) -> Sequence
         if a.data.beacon_block_root == get_block_root_at_slot(state, get_attestation_data_slot(state, a.data))
     ]
 */
-// TODO define get_matching_head_attestations
+//
 
 /*
 def get_unslashed_attesting_indices(state: BeaconState,
@@ -1342,13 +1342,13 @@ def get_unslashed_attesting_indices(state: BeaconState,
         output = output.union(get_attesting_indices(state, a.data, a.aggregation_bits))
     return set(filter(lambda index: not state.validators[index].slashed, list(output)))
 */
-// TODO define get_unslashed_attesting_indices
+//
 
 /*
 def get_attesting_balance(state: BeaconState, attestations: Sequence[PendingAttestation]) -> Gwei:
     return get_total_balance(state, get_unslashed_attesting_indices(state, attestations))
 */
-// TODO define get_attesting_balance
+//
 
 /*
 def get_winning_crosslink_and_attesting_indices(state: BeaconState,
@@ -1366,7 +1366,7 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
     winning_attestations = [a for a in attestations if a.data.crosslink == winning_crosslink]
     return winning_crosslink, get_unslashed_attesting_indices(state, winning_attestations)
 */
-// TODO define get_winning_crosslink_and_attesting_indices
+//
 
 /*
 def process_justification_and_finalization(state: BeaconState) -> None:
@@ -1408,7 +1408,7 @@ def process_justification_and_finalization(state: BeaconState) -> None:
     if all(bits[0:2]) and old_current_justified_checkpoint.epoch + 1 == current_epoch:
         state.finalized_checkpoint = old_current_justified_checkpoint
 */
-// TODO define process_justification_and_finalization
+//
 
 /*
 def process_crosslinks(state: BeaconState) -> None:
@@ -1421,7 +1421,7 @@ def process_crosslinks(state: BeaconState) -> None:
             if 3 * get_total_balance(state, attesting_indices) >= 2 * get_total_balance(state, crosslink_committee):
                 state.current_crosslinks[shard] = winning_crosslink
 */
-// TODO define process_crosslinks
+//
 
 /*
 def get_base_reward(state: BeaconState, index: ValidatorIndex) -> Gwei:
@@ -1488,7 +1488,7 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
 
     return rewards, penalties
 */
-// TODO define get_attestation_deltas
+//
 
 /*
 def get_crosslink_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence[Gwei]]:
@@ -1509,7 +1509,7 @@ def get_crosslink_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence[G
                 penalties[index] += base_reward
     return rewards, penalties
 */
-// TODO define get_crosslink_deltas
+//
 
 /*
 def process_rewards_and_penalties(state: BeaconState) -> None:
@@ -1522,7 +1522,7 @@ def process_rewards_and_penalties(state: BeaconState) -> None:
         increase_balance(state, ValidatorIndex(index), rewards1[index] + rewards2[index])
         decrease_balance(state, ValidatorIndex(index), penalties1[index] + penalties2[index])
 */
-// TODO define process_rewards_and_penalties
+//
 
 /*
 def process_registry_updates(state: BeaconState) -> None:
@@ -1661,7 +1661,7 @@ def process_slashings(state: BeaconState) -> None:
             penalty = validator.effective_balance * min(sum(state.slashings) * 3, total_balance) // total_balance
             decrease_balance(state, ValidatorIndex(index), penalty)
 */
-// TODO define process_slashings
+//
 
 /*
 def process_final_updates(state: BeaconState) -> None:
@@ -1698,7 +1698,7 @@ def process_final_updates(state: BeaconState) -> None:
     state.previous_epoch_attestations = state.current_epoch_attestations
     state.current_epoch_attestations = []
 */
-// TODO define process_final_updates
+//
 
   // State transition function -- Block processing
   //====================================================
@@ -1710,7 +1710,7 @@ def process_block(state: BeaconState, block: BeaconBlock) -> None:
     process_eth1_data(state, block.body)
     process_operations(state, block.body)
 */
-// TODO define process_block
+//
 
 /*
 def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
@@ -1731,7 +1731,7 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
     # Verify proposer signature
     assert bls_verify(proposer.pubkey, signing_root(block), block.signature, get_domain(state, DOMAIN_BEACON_PROPOSER))
 */
-// TODO define process_block_header
+//
 
 /*
 def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
@@ -1743,7 +1743,7 @@ def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
     mix = xor(get_randao_mix(state, epoch), hash(body.randao_reveal))
     state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR] = mix
 */
-// TODO define process_randao
+//
 
 /*
 def process_eth1_data(state: BeaconState, body: BeaconBlockBody) -> None:
@@ -1751,7 +1751,7 @@ def process_eth1_data(state: BeaconState, body: BeaconBlockBody) -> None:
     if state.eth1_data_votes.count(body.eth1_data) * 2 > SLOTS_PER_ETH1_VOTING_PERIOD:
         state.eth1_data = body.eth1_data
 */
-// TODO define process_eth1_data
+//
 
 /*
 def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
@@ -1771,7 +1771,7 @@ def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
         for operation in operations:
             function(state, operation)
 */
-// TODO define process_operations
+//
 
 /*
 def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSlashing) -> None:
@@ -1790,7 +1790,7 @@ def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSla
 
     slash_validator(state, proposer_slashing.proposer_index)
 */
-// TODO define process_proposer_slashing
+//
 
 /*
 def process_attester_slashing(state: BeaconState, attester_slashing: AttesterSlashing) -> None:
@@ -1809,7 +1809,7 @@ def process_attester_slashing(state: BeaconState, attester_slashing: AttesterSla
             slashed_any = True
     assert slashed_any
 */
-// TODO define process_attester_slashing
+//
 
 /*
 def process_attestation(state: BeaconState, attestation: Attestation) -> None:
@@ -1845,7 +1845,7 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
     # Check signature
     assert is_valid_indexed_attestation(state, get_indexed_attestation(state, attestation))
 */
-// TODO define process_attestation
+//
 
 /*
 def process_deposit(state: BeaconState, deposit: Deposit) -> None:
@@ -1888,7 +1888,7 @@ def process_deposit(state: BeaconState, deposit: Deposit) -> None:
         index = ValidatorIndex(validator_pubkeys.index(pubkey))
         increase_balance(state, index, amount)
 */
-// TODO define process_deposit
+//
 
 /*
 def process_voluntary_exit(state: BeaconState, exit: VoluntaryExit) -> None:
@@ -1907,7 +1907,7 @@ def process_voluntary_exit(state: BeaconState, exit: VoluntaryExit) -> None:
     # Initiate exit
     initiate_validator_exit(state, exit.validator_index)
 */
-// TODO define process_voluntary_exit
+//
 
 /*
 def process_transfer(state: BeaconState, transfer: Transfer) -> None:
@@ -1936,7 +1936,7 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
     assert not (0 < state.balances[transfer.sender] < MIN_DEPOSIT_AMOUNT)
     assert not (0 < state.balances[transfer.recipient] < MIN_DEPOSIT_AMOUNT)
 */
-// TODO define process_transfer
+//
 
   // Python framework functions
   //====================================================

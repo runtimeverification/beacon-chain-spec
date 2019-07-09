@@ -1631,8 +1631,8 @@ def process_registry_updates(state: BeaconState) -> None:
   rule sortActivationQueue(.IntList) => .IntList
 
   // min of index: state.validator_registry[index].activation_eligibility_epoch)
-  syntax Int ::= indexForMinEligEpoch ( IntList )      [function]
-               | indexForMinEligEpoch ( Int, IntList ) [function]
+  syntax Int ::= indexForMinEligEpoch ( IntList )      [function, klabel(#indexForMinEligEpoch1)]
+               | indexForMinEligEpoch ( Int, IntList ) [function, klabel(#indexForMinEligEpoch2)]
   rule indexForMinEligEpoch(I:Int IL) => indexForMinEligEpoch(I, IL)
   rule [[ indexForMinEligEpoch( MIN => #if MINActEligibilityEpoch <Int IActEligibilityEpoch #then MIN #else I #fi,
                                 (I:Int IL) => IL ) ]]
@@ -1644,8 +1644,8 @@ def process_registry_updates(state: BeaconState) -> None:
   rule indexForMinEligEpoch(MIN, .IntList) => MIN
 
   //returns the list except the 2nd argument. Used in sorting.
-  syntax IntList ::= listExcept( IntList , Int ) [function]
-                   | listExcept( IntList , Int , IntList /*result*/ ) [function]
+  syntax IntList ::= listExcept( IntList , Int ) [function, klabel(#listExcept1)]
+                   | listExcept( IntList , Int , IntList /*result*/ ) [function, klabel(#listExcept2)]
   rule listExcept(IL, EXCEPT) => listExcept(IL, EXCEPT, .IntList)
   rule listExcept( (I:Int IL) => IL, EXCEPT, REZ => REZ I     )
     when I =/=Int EXCEPT
@@ -1957,8 +1957,8 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
   rule sumAux(I:Int IL => IL, S => S +Int I)
   rule sumAux(.IntList, S) => S
 
-  syntax Int ::= maxAux ( IntList ) [function]
-               | maxAux ( IntList , Int ) [function]
+  syntax Int ::= maxAux ( IntList ) [function, klabel(#maxAux1)]
+               | maxAux ( IntList , Int ) [function, klabel(#maxAux2)]
   rule maxAux( I:Int IL ) => maxAux(IL, I)
   rule maxAux(I IL => IL, MAX => #if I <Int MAX #then MAX #else I #fi )
   rule maxAux(.IntList, MAX) => MAX

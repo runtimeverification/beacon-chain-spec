@@ -56,6 +56,11 @@ class BeaconBlockBody(Container):
     deposits: List[Deposit]
     voluntary_exits: List[VoluntaryExit]
     transfers: List[Transfer]
+
+class ProposerSlashing(Container):
+    proposer_index: ValidatorIndex
+    header_1: BeaconBlockHeader
+    header_2: BeaconBlockHeader
 */
   configuration
     <beacon-chain>
@@ -88,6 +93,7 @@ class BeaconBlockBody(Container):
         <latest-eth1-data> .Eth1Data </latest-eth1-data>
         <eth1-data-votes> .Eth1DataList </eth1-data-votes>
         <deposit-index> 0 </deposit-index>
+        <slashings> .Map </slashings>
       </state>
       <block>                           //Type BeaconBlock in python spec.
         <blockSlot> -1 </blockSlot>
@@ -97,7 +103,13 @@ class BeaconBlockBody(Container):
           <randao-reveal> -1 </randao-reveal>
           <eth1-data> .Eth1Data </eth1-data>
           <graffiti> -1 </graffiti>
-          <proposer-slashings> .ProposerSlashingList </proposer-slashings>
+          <proposer-slashings>
+            <proposer-slashing>
+              <proposer-index> -1 </proposer-index>
+              <header1> .BlockHeader </header1>
+              <header2> .BlockHeader </header2>
+            </proposer-slashing>
+          </proposer-slashings>
           <attester-slashings> .AttesterSlashingList </attester-slashings>
           <attestations> .AttestationList </attestations>
           <deposits> .DepositList </deposits>
@@ -119,7 +131,6 @@ class BeaconBlockBody(Container):
 
   syntax Uint64List ::= List{Uint64, ""}
   syntax Bytes32List ::= List{Bytes32, ""}
-  syntax ProposerSlashingList ::= List{ProposerSlashing, ""}
   syntax AttesterSlashingList ::= List{AttesterSlashing, ""}
   syntax AttestationList ::= List{Attestation, ""}
   syntax DepositList ::= List{Deposit, ""}
@@ -135,7 +146,7 @@ class BeaconBlockBody(Container):
   syntax Slot ::= Int
   syntax Epoch ::= Int
   syntax Shard ::= Int
-  syntax ValidatorIndex ::= Int
+  syntax ValidatorIndex ::= Int | ".ValidatorIndex"
   syntax Gwei ::= Int
 
   syntax Bytes4  ::= Int
@@ -197,6 +208,8 @@ class BeaconBlockBody(Container):
   rule MAX_EPOCHS_PER_CROSSLINK => 2 ^Int 6                   [macro]
   syntax Int ::= "MIN_EPOCHS_TO_INACTIVITY_PENALTY"
   rule MIN_EPOCHS_TO_INACTIVITY_PENALTY => 2 ^Int 2           [macro]
+  syntax Int ::= "EPOCHS_PER_SLASHINGS_VECTOR"
+  rule EPOCHS_PER_SLASHINGS_VECTOR => 2 ^Int 13               [macro]
   syntax Int ::= "LATEST_RANDAO_MIXES_LENGTH"
   rule LATEST_RANDAO_MIXES_LENGTH => 2 ^Int 13                [macro]
   syntax Int ::= "LATEST_ACTIVE_INDEX_ROOTS_LENGTH"
@@ -205,8 +218,8 @@ class BeaconBlockBody(Container):
   rule LATEST_SLASHED_EXIT_LENGTH => 2 ^Int 13                [macro]
   syntax Int ::= "BASE_REWARD_FACTOR"
   rule BASE_REWARD_FACTOR => 2 ^Int 5                         [macro]
-  syntax Int ::= "WHISTLEBLOWING_REWARD_QUOTIENT"
-  rule WHISTLEBLOWING_REWARD_QUOTIENT => 2 ^Int 9             [macro]
+  syntax Int ::= "WHISTLEBLOWER_REWARD_QUOTIENT"
+  rule WHISTLEBLOWER_REWARD_QUOTIENT => 2 ^Int 9              [macro]
   syntax Int ::= "PROPOSER_REWARD_QUOTIENT"
   rule PROPOSER_REWARD_QUOTIENT => 2 ^Int 3                   [macro]
   syntax Int ::= "INACTIVITY_PENALTY_QUOTIENT"
@@ -328,17 +341,6 @@ class Deposit(Container):
     data: DepositData
   */
   syntax Deposit ::= #Deposit( Bytes32List, DepositData )
-
-  /*
-class ProposerSlashing(Container):
-    # Proposer index
-    proposer_index: uint64
-    # First block header
-    header_1: BeaconBlockHeader
-    # Second block header
-    header_2: BeaconBlockHeader
-  */
-  syntax ProposerSlashing ::= #ProposerSlashing( Uint64, BeaconBlockHeader, BeaconBlockHeader )
 
   /*
 class Transfer(Container):
@@ -671,6 +673,63 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
   rule exitQueueChurnAux( ExitQEpoch, _:Map (_ |-> #Validator(_,_,_,_, ExitEP, _,_,_) => .Map), _ )
     requires ExitEP =/=K ExitQEpoch
   rule exitQueueChurnAux( _, .Map, RES ) => RES
+
+
+/* def slash_validator(state: BeaconState,
+                    slashed_index: ValidatorIndex,
+                    whistleblower_index: ValidatorIndex=None) -> None:
+    """
+    Slash the validator with index ``slashed_index``.
+    """
+    epoch = get_current_epoch(state)
+    initiate_validator_exit(state, slashed_index)
+    validator = state.validators[slashed_index]
+    validator.slashed = True
+    validator.withdrawable_epoch = max(validator.withdrawable_epoch, Epoch(epoch + EPOCHS_PER_SLASHINGS_VECTOR))
+    state.slashings[epoch % EPOCHS_PER_SLASHINGS_VECTOR] += validator.effective_balance
+    decrease_balance(state, slashed_index, validator.effective_balance // MIN_SLASHING_PENALTY_QUOTIENT)
+
+    # Apply proposer and whistleblower rewards
+    proposer_index = get_beacon_proposer_index(state)
+    if whistleblower_index is None:
+        whistleblower_index = proposer_index
+    whistleblower_reward = Gwei(validator.effective_balance // WHISTLEBLOWER_REWARD_QUOTIENT)
+    proposer_reward = Gwei(whistleblower_reward // PROPOSER_REWARD_QUOTIENT)
+    increase_balance(state, proposer_index, proposer_reward)
+    increase_balance(state, whistleblower_index, whistleblower_reward - proposer_reward)
+*/
+  syntax KItem ::= "slashValidator" "(" ValidatorIndex "," /*slashed_index*/
+                                        K                  /*whistleblower_index or .K if none*/ ")"
+
+  rule <k> slashValidator(SlashedINDEX, WhistleblINDEX)
+           => initiateValidatorExit(SlashedINDEX)
+           ~> slashValidatorAux(SlashedINDEX,
+                                WhistleblINDEX,
+                                getBeaconProposerIndex(),
+                                EffBALANCE /Int WHISTLEBLOWER_REWARD_QUOTIENT, //whistleblower_reward
+                                EffBALANCE /Int WHISTLEBLOWER_REWARD_QUOTIENT /Int PROPOSER_REWARD_QUOTIENT, //proposer_reward
+                                {getCurrentEpoch()}:>Int +Int EPOCHS_PER_SLASHINGS_VECTOR) //SlashEPOCH
+        ...</k>
+       <validator-registry> SlashedINDEX |-> #Validator(_,_,_,_,_,_,_, EffBALANCE) ...</validator-registry>
+
+  syntax KItem ::= "slashValidatorAux" "(" ValidatorIndex "," ValidatorIndex "," ValidatorIndex "," Int "," Int "," Int ")"
+  rule <k> slashValidatorAux(SlashedINDEX, WhistleblINDEX, ProposerINDEX, WhistleREWARD, ProposerREWARD, SlashEPOCH)
+       => decreaseBalance(SlashedINDEX, EffBALANCE /Int MIN_SLASHING_PENALTY_QUOTIENT)
+       ~> increaseBalance(ProposerINDEX, ProposerREWARD)
+       ~> increaseBalance(#if WhistleblINDEX ==K .ValidatorIndex #then ProposerINDEX #else WhistleblINDEX #fi,
+                          WhistleREWARD -Int ProposerREWARD)
+       ...</k>
+    <validator-registry>
+      SlashedINDEX |-> #Validator(
+        _,_,_,_,_,
+        WithdEPOCH => maxInt(WithdEPOCH, SlashEPOCH), //withdrawable epoch
+        _ => true, //slashed
+        EffBALANCE
+      )
+      ...
+    </validator-registry>
+    <slashings> SlashEPOCH |-> (SL => SL +Int EffBALANCE)  ...</slashings>
+
 
   // Python spec main functions
   //====================================================

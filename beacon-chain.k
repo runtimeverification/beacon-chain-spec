@@ -106,7 +106,7 @@ class BeaconBlockBody(Container):
         <state-root> -1 </state-root>
         <body>                          //Type BeaconBlockBody in python spec.
           <randao-reveal> -1 </randao-reveal>
-          <eth1-data> .Eth1Data </eth1-data>
+          <block-eth1-data> .Eth1Data </block-eth1-data> // added "block-" prefix to name to resolve conflicting cell names
           <graffiti> -1 </graffiti>
           <proposer-slashings> .ProposerSlashingList </proposer-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
           <attester-slashings> .AttesterSlashingList </attester-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
@@ -1611,13 +1611,13 @@ def process_registry_updates(state: BeaconState) -> None:
   syntax IntList ::= getActivationQueueUnsorted( Map /*state.validator_registry*/, IntList /*result*/ ) [function]
   rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> #Validator(_,_,_,_, ActEligibilityEpoch, ActEpoch, _,_) => .Map),
                                      IL => IL INDEX) ]]
-       <finalized-epoch> FinalizedEpoch </finalized-epoch>
+       <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
     when ActEligibilityEpoch =/=K FAR_FUTURE_EPOCH
          andBool ActEpoch >=Int computeActivationExitEpoch(FinalizedEpoch)
 
   rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> #Validator(_,_,_,_, ActEligibilityEpoch, ActEpoch, _,_) => .Map),
                                      IL /*unchanged*/ ) ]]
-       <finalized-epoch> FinalizedEpoch </finalized-epoch>
+       <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
     when notBool ( ActEligibilityEpoch =/=K FAR_FUTURE_EPOCH
                    andBool ActEpoch >=Int computeActivationExitEpoch(FinalizedEpoch) )
 

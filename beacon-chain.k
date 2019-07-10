@@ -57,6 +57,11 @@ class BeaconBlockBody(Container):
     deposits: List[Deposit, MAX_DEPOSITS]
     voluntary_exits: List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
     transfers: List[Transfer, MAX_TRANSFERS]
+
+class ProposerSlashing(Container):
+    proposer_index: ValidatorIndex
+    header_1: BeaconBlockHeader
+    header_2: BeaconBlockHeader
 */
     // TODO: Add appropriate constraints on lists below
   configuration
@@ -85,7 +90,7 @@ class BeaconBlockBody(Container):
         <active-index-roots> .HashList </active-index-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
         <compact-committees-roots> .HashList </compact-committees-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
         // Slashings
-        <slashings> .GweiList </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
+        <slashings> .Map </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
         // Attestations
         <previous-epoch-attestations> .PendingAttestationList </previous-epoch-attestations>
                                                        //List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
@@ -108,7 +113,14 @@ class BeaconBlockBody(Container):
           <randao-reveal> -1 </randao-reveal>
           <block-eth1-data> .Eth1Data </block-eth1-data> // added "block-" prefix to name to resolve conflicting cell names
           <graffiti> -1 </graffiti>
-          <proposer-slashings> .ProposerSlashingList </proposer-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
+          <proposer-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
+          	            <proposer-slashing multiplicity="*" type="Map">
+          	              <proposer-slashing-index> -1 </proposer-slashing-index>
+          	              <proposer-index> -1 </proposer-index>
+          	              <header1> .BlockHeader </header1>
+          	              <header2> .BlockHeader </header2>
+          	            </proposer-slashing>
+          	          </proposer-slashings>
           <attester-slashings> .AttesterSlashingList </attester-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
           <attestations> .AttestationList </attestations> //List[Attestation, MAX_ATTESTATIONS]
           <deposits> .DepositList </deposits> //List[Deposit, MAX_DEPOSITS]
@@ -139,11 +151,11 @@ class BeaconBlockBody(Container):
 
   // Custom types
   //====================================================
-  syntax Slot           ::= Uint64      //a slot number
-  syntax Epoch          ::= Uint64      //an epoch number
-  syntax Shard          ::= Uint64      //a shard number
-  syntax ValidatorIndex ::= Uint64      //a validator registry index
-  syntax Gwei           ::= Uint64      //an amount in Gwei
+  syntax Slot           ::= Int      //a slot number
+  syntax Epoch          ::= Int      //an epoch number
+  syntax Shard          ::= Int      //a shard number
+  syntax ValidatorIndex ::= Int | ".ValidatorIndex"     //a validator registry index
+  syntax Gwei           ::= Int      //an amount in Gwei
   syntax Hash           ::= Bytes32     //a hash
   syntax Version        ::= Bytes4      //a fork version number
   syntax DomainType     ::= Bytes4      //a signature domain type
@@ -156,7 +168,6 @@ class BeaconBlockBody(Container):
   syntax Uint64List ::= List{Uint64, ""}
   syntax Bytes32List ::= List{Bytes32, ""}
   syntax Bytes48List ::= List{Bytes48, ""}
-  syntax ProposerSlashingList ::= List{ProposerSlashing, ""}
   syntax AttesterSlashingList ::= List{AttesterSlashing, ""}
   syntax AttestationList ::= List{Attestation, ""}
   syntax DepositList ::= List{Deposit, ""}
@@ -426,14 +437,6 @@ class BeaconBlockHeader(Container):
     signature: BLSSignature
   */
   syntax BeaconBlockHeader ::= #BeaconBlockHeader( Slot, Hash, Hash, Hash, BLSSignature )
-
-  /*
-class ProposerSlashing(Container):
-    proposer_index: ValidatorIndex
-    header_1: BeaconBlockHeader
-    header_2: BeaconBlockHeader
-  */
-  syntax ProposerSlashing ::= #ProposerSlashing( ValidatorIndex, BeaconBlockHeader, BeaconBlockHeader )
 
   /*
 class AttesterSlashing(Container):
@@ -1198,7 +1201,38 @@ def slash_validator(state: BeaconState,
     increase_balance(state, proposer_index, proposer_reward)
     increase_balance(state, whistleblower_index, whistleblower_reward - proposer_reward)
 */
-//
+  syntax KItem ::= "slashValidator" "(" ValidatorIndex "," /*slashed_index*/
+	                                        K                  /*whistleblower_index or .K if none*/ ")"
+
+	  rule <k> slashValidator(SlashedINDEX, WhistleblINDEX)
+	           => initiateValidatorExit(SlashedINDEX)
+	           ~> slashValidatorAux(SlashedINDEX,
+	                                WhistleblINDEX,
+	                                getBeaconProposerIndex(),
+	                                EffBALANCE /Int WHISTLEBLOWER_REWARD_QUOTIENT, //whistleblower_reward
+	                                EffBALANCE /Int WHISTLEBLOWER_REWARD_QUOTIENT /Int PROPOSER_REWARD_QUOTIENT, //proposer_reward
+	                                {getCurrentEpoch()}:>Int +Int EPOCHS_PER_SLASHINGS_VECTOR) //SlashEPOCH
+	        ...</k>
+	       <validators> SlashedINDEX |-> #Validator(_,_, EffBALANCE ,_,_,_,_,_ ) ...</validators>
+
+	  syntax KItem ::= "slashValidatorAux" "(" ValidatorIndex "," ValidatorIndex "," ValidatorIndex "," Int "," Int "," Int ")"
+	  rule <k> slashValidatorAux(SlashedINDEX, WhistleblINDEX, ProposerINDEX, WhistleREWARD, ProposerREWARD, SlashEPOCH)
+	       => decreaseBalance(SlashedINDEX, EffBALANCE /Int MIN_SLASHING_PENALTY_QUOTIENT)
+	       ~> increaseBalance(ProposerINDEX, ProposerREWARD)
+	       ~> increaseBalance(#if WhistleblINDEX ==K .ValidatorIndex #then ProposerINDEX #else WhistleblINDEX #fi,
+	                          WhistleREWARD -Int ProposerREWARD)
+	       ...</k>
+	    <validators>
+	      SlashedINDEX |-> #Validator(
+	        _,_,
+	        EffBALANCE,
+	        _ => true, //slashed
+	        _,_,_,
+	        WithdEPOCH => maxInt(WithdEPOCH, SlashEPOCH) //withdrawable epoch
+	      )
+	      ...
+	    </validators>
+	    <slashings> SlashEPOCH |-> (SL => SL +Int EffBALANCE)  ...</slashings>
 
   // Genesis state
   //====================================================
@@ -1631,8 +1665,8 @@ def process_registry_updates(state: BeaconState) -> None:
   rule sortActivationQueue(.IntList) => .IntList
 
   // min of index: state.validator_registry[index].activation_eligibility_epoch)
-  syntax Int ::= indexForMinEligEpoch ( IntList )      [function, klabel(#indexForMinEligEpoch1)]
-               | indexForMinEligEpoch ( Int, IntList ) [function, klabel(#indexForMinEligEpoch2)]
+  syntax Int ::= indexForMinEligEpoch ( IntList )      [function, klabel(indexForMinEligEpoch)]
+               | indexForMinEligEpoch ( Int, IntList ) [function, klabel(indexForMinEligEpoch2)]
   rule indexForMinEligEpoch(I:Int IL) => indexForMinEligEpoch(I, IL)
   rule [[ indexForMinEligEpoch( MIN => #if MINActEligibilityEpoch <Int IActEligibilityEpoch #then MIN #else I #fi,
                                 (I:Int IL) => IL ) ]]
@@ -1644,8 +1678,8 @@ def process_registry_updates(state: BeaconState) -> None:
   rule indexForMinEligEpoch(MIN, .IntList) => MIN
 
   //returns the list except the 2nd argument. Used in sorting.
-  syntax IntList ::= listExcept( IntList , Int ) [function, klabel(#listExcept1)]
-                   | listExcept( IntList , Int , IntList /*result*/ ) [function, klabel(#listExcept2)]
+  syntax IntList ::= listExcept( IntList , Int )                      [function, klabel(listExcept)]
+                   | listExcept( IntList , Int , IntList /*result*/ ) [function, klabel(listExcept3)]
   rule listExcept(IL, EXCEPT) => listExcept(IL, EXCEPT, .IntList)
   rule listExcept( (I:Int IL) => IL, EXCEPT, REZ => REZ I     )
     when I =/=Int EXCEPT
@@ -1957,8 +1991,8 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
   rule sumAux(I:Int IL => IL, S => S +Int I)
   rule sumAux(.IntList, S) => S
 
-  syntax Int ::= maxAux ( IntList ) [function, klabel(#maxAux1)]
-               | maxAux ( IntList , Int ) [function, klabel(#maxAux2)]
+  syntax Int ::= maxAux ( IntList )       [function, klabel(maxAux)]
+               | maxAux ( IntList , Int ) [function, klabel(maxAux2)]
   rule maxAux( I:Int IL ) => maxAux(IL, I)
   rule maxAux(I IL => IL, MAX => #if I <Int MAX #then MAX #else I #fi )
   rule maxAux(.IntList, MAX) => MAX

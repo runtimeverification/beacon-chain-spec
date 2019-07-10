@@ -104,7 +104,7 @@ class ProposerSlashing(Container):
           <eth1-data> .Eth1Data </eth1-data>
           <graffiti> -1 </graffiti>
           <proposer-slashings>
-            <proposer-slashing>
+            <proposer-slashing multiplicity="*">
               <proposer-index> -1 </proposer-index>
               <header1> .BlockHeader </header1>
               <header2> .BlockHeader </header2>
@@ -584,8 +584,8 @@ def process_registry_updates(state: BeaconState) -> None:
   rule sortActivationQueue(.IntList) => .IntList
 
   // min of index: state.validator_registry[index].activation_eligibility_epoch)
-  syntax Int ::= indexForMinEligEpoch ( IntList )      [function]
-               | indexForMinEligEpoch ( Int, IntList ) [function]
+  syntax Int ::= indexForMinEligEpoch ( IntList )      [function, klabel(indexForMinEligEpoch)]
+               | indexForMinEligEpoch ( Int, IntList ) [function, klabel(indexForMinEligEpoch2)]
   rule indexForMinEligEpoch(I:Int IL) => indexForMinEligEpoch(I, IL)
   rule [[ indexForMinEligEpoch( MIN => #if MINActEligibilityEpoch <Int IActEligibilityEpoch #then MIN #else I #fi,
                                 (I:Int IL) => IL ) ]]
@@ -1102,8 +1102,8 @@ def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
   rule sumAux(I:Int IL => IL, S => S +Int I)
   rule sumAux(.IntList, S) => S
 
-  syntax Int ::= maxAux ( IntList ) [function]
-               | maxAux ( IntList , Int ) [function]
+  syntax Int ::= maxAux ( IntList )       [function, klabel(maxAux)]
+               | maxAux ( IntList , Int ) [function, klabel(maxAux2)]
   rule maxAux( I:Int IL ) => maxAux(IL, I)
   rule maxAux(I IL => IL, MAX => #if I <Int MAX #then MAX #else I #fi )
   rule maxAux(.IntList, MAX) => MAX

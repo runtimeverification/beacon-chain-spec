@@ -597,8 +597,8 @@ def process_registry_updates(state: BeaconState) -> None:
   rule indexForMinEligEpoch(MIN, .IntList) => MIN
 
   //returns the list except the 2nd argument. Used in sorting.
-  syntax IntList ::= listExcept( IntList , Int ) [function]
-                   | listExcept( IntList , Int , IntList /*result*/ ) [function]
+  syntax IntList ::= listExcept( IntList , Int )                      [function, klabel(listExcept)]
+                   | listExcept( IntList , Int , IntList /*result*/ ) [function, klabel(listExcept3)]
   rule listExcept(IL, EXCEPT) => listExcept(IL, EXCEPT, .IntList)
   rule listExcept( (I:Int IL) => IL, EXCEPT, REZ => REZ I     )
     when I =/=Int EXCEPT

@@ -104,7 +104,8 @@ class ProposerSlashing(Container):
           <eth1-data> .Eth1Data </eth1-data>
           <graffiti> -1 </graffiti>
           <proposer-slashings>
-            <proposer-slashing multiplicity="*">
+            <proposer-slashing multiplicity="*" type="Map">
+              <proposer-slashing-index> -1 </proposer-slashing-index>
               <proposer-index> -1 </proposer-index>
               <header1> .BlockHeader </header1>
               <header2> .BlockHeader </header2>

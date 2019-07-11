@@ -969,7 +969,7 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
                   getByte( hash( toBytes({SEED}:>Int +Int I /Int 32) ), I %Int 32) /*#as RandomByte*/,
                   EffectiveBalance
           ) ]]
-    <validators>... CandidateIndex |-> #Validator(_,_,_,_,_,_,_, EffectiveBalance) ...</validators>
+    <validators>... CandidateIndex |-> #Validator(_,_, EffectiveBalance ,_,_,_,_,_ ) ...</validators>
 
   syntax ValidatorIndex ::= getBeaconProposerIndexLoopAux(
                               Epoch, Int, Int, Shard, IntList, Int, Bytes32, Int,
@@ -1027,7 +1027,7 @@ def get_total_balance(state: BeaconState, indices: Set[ValidatorIndex]) -> Gwei:
 
   syntax Int ::= getTotalBalancePure( IntList, Int ) [function]
   rule [[ getTotalBalancePure(I IL => IL, S => S +Int EffBalance) ]]
-    <validators>... I |-> #Validator(_,_,_,_,_,_,_, EffBalance) ...</validators>
+    <validators>... I |-> #Validator(_,_, EffBalance ,_,_,_,_,_ ) ...</validators>
   rule getTotalBalancePure(.IntList, S) => S
 
 /*
@@ -1133,15 +1133,15 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
                  | initiateValidatorExitAux( Int /*index*/ , Epoch /*exit_queue_epoch*/ )
 
   rule <k> initiateValidatorExit(INDEX) => .K ...</k>
-       <validators>... INDEX |-> #Validator(_,_,_,_, ExitEPOCH, _,_,_) ...</validators>
+       <validators>... INDEX |-> #Validator(_,_,_,_,_,_, ExitEPOCH, _) ...</validators>
     when ExitEPOCH =/=K FAR_FUTURE_EPOCH
 
   rule <k> initiateValidatorExit(INDEX) => initiateValidatorExitAux(INDEX, exitQueueEpochAux(INDEX)) ...</k>
-       <validators>... INDEX |-> #Validator(_,_,_,_, ExitEPOCH, _,_,_) ...</validators>
+       <validators>... INDEX |-> #Validator(_,_,_,_,_,_, ExitEPOCH, _) ...</validators>
 
   rule <k> initiateValidatorExitAux(INDEX, ExitQEpoch) => .K ...</k>
        <validators>
-          (INDEX |-> #Validator(_,_,_,_,
+          (INDEX |-> #Validator(_,_,_,_,_,_,
             ExitEPOCH => #if exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int getValidatorChurnLimit()
                             #then ExitQEpoch +Int 1
                             #else ExitQEpoch
@@ -1149,8 +1149,7 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
             WithdrEpoch => #if exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int getValidatorChurnLimit()
                             #then ExitQEpoch +Int 1
                             #else ExitQEpoch
-                         #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY ,
-           _,_) _) #as VALIDATORS
+                         #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY) _) #as VALIDATORS
        </validators>
 
   syntax Epoch ::= exitQueueEpochAux ( Int ) [function]
@@ -1172,8 +1171,8 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
 
   // exit_queue_churn = len([v for v in state.validator_registry if v.exit_epoch == exit_queue_epoch])
   syntax Int ::= exitQueueChurnAux ( Epoch /*exit_queue_epoch*/ , Map /*validator_registry*/ , Int /*result*/ ) [function]
-  rule exitQueueChurnAux( ExitQEpoch, _:Map (_ |-> #Validator(_,_,_,_, ExitQEpoch, _,_,_) => .Map), RES => RES +Int 1 )
-  rule exitQueueChurnAux( ExitQEpoch, _:Map (_ |-> #Validator(_,_,_,_, ExitEP, _,_,_) => .Map), _ )
+  rule exitQueueChurnAux( ExitQEpoch, _:Map (_ |-> #Validator(_,_,_,_,_,_, ExitQEpoch, _) => .Map), RES => RES +Int 1 )
+  rule exitQueueChurnAux( ExitQEpoch, _:Map (_ |-> #Validator(_,_,_,_,_,_, ExitEP, _) => .Map), _ )
     requires ExitEP =/=K ExitQEpoch
   rule exitQueueChurnAux( _, .Map, RES ) => RES
 
@@ -1468,7 +1467,7 @@ def get_base_reward(state: BeaconState, index: ValidatorIndex) -> Gwei:
           => EffectiveBalance *Int BASE_REWARD_FACTOR
              /Int integerSquareroot({getTotalActiveBalance()}:>Int)
              /Int BASE_REWARDS_PER_EPOCH ]]
-    <validators> INDEX |-> #Validator(_,_,_,_,_,_,_, EffectiveBalance) </validators>
+    <validators> INDEX |-> #Validator(_,_, EffectiveBalance ,_,_,_,_,_) </validators>
 
 /*
 def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence[Gwei]]:
@@ -1631,7 +1630,7 @@ def process_registry_updates(state: BeaconState) -> None:
              andBool ActEpoch ==K FAR_FUTURE_EPOCH
 
   rule <k> processActivationQueue(INDEX:Int IL => IL, I => I -Int 1) ... </k>
-       <validators>... INDEX |-> #Validator(_,_,_, ActEpoch, _,_,_,_) ...</validators>
+       <validators>... INDEX |-> #Validator(_,_,_,_,_, ActEpoch, _,_) ...</validators>
     requires I >Int 0
              andBool ActEpoch =/=K FAR_FUTURE_EPOCH
 

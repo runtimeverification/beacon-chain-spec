@@ -914,66 +914,6 @@ def get_shard_delta(state: BeaconState, epoch: Epoch) -> uint64:
     getCommitteeCount(EPOCH),
     SHARD_COUNT -Int SHARD_COUNT /Int SLOTS_PER_EPOCH
   )
-=======
-
-/* def slash_validator(state: BeaconState,
-                    slashed_index: ValidatorIndex,
-                    whistleblower_index: ValidatorIndex=None) -> None:
-    """
-    Slash the validator with index ``slashed_index``.
-    """
-    epoch = get_current_epoch(state)
-    initiate_validator_exit(state, slashed_index)
-    validator = state.validators[slashed_index]
-    validator.slashed = True
-    validator.withdrawable_epoch = max(validator.withdrawable_epoch, Epoch(epoch + EPOCHS_PER_SLASHINGS_VECTOR))
-    state.slashings[epoch % EPOCHS_PER_SLASHINGS_VECTOR] += validator.effective_balance
-    decrease_balance(state, slashed_index, validator.effective_balance // MIN_SLASHING_PENALTY_QUOTIENT)
-
-    # Apply proposer and whistleblower rewards
-    proposer_index = get_beacon_proposer_index(state)
-    if whistleblower_index is None:
-        whistleblower_index = proposer_index
-    whistleblower_reward = Gwei(validator.effective_balance // WHISTLEBLOWER_REWARD_QUOTIENT)
-    proposer_reward = Gwei(whistleblower_reward // PROPOSER_REWARD_QUOTIENT)
-    increase_balance(state, proposer_index, proposer_reward)
-    increase_balance(state, whistleblower_index, whistleblower_reward - proposer_reward)
-*/
-  syntax KItem ::= "slashValidator" "(" ValidatorIndex "," /*slashed_index*/
-                                        K                  /*whistleblower_index or .K if none*/ ")"
-
-  rule <k> slashValidator(SlashedINDEX, WhistleblINDEX)
-           => initiateValidatorExit(SlashedINDEX)
-           ~> slashValidatorAux(SlashedINDEX,
-                                WhistleblINDEX,
-                                getBeaconProposerIndex(),
-                                EffBALANCE /Int WHISTLEBLOWER_REWARD_QUOTIENT, //whistleblower_reward
-                                EffBALANCE /Int WHISTLEBLOWER_REWARD_QUOTIENT /Int PROPOSER_REWARD_QUOTIENT, //proposer_reward
-                                {getCurrentEpoch()}:>Int +Int EPOCHS_PER_SLASHINGS_VECTOR) //SlashEPOCH
-        ...</k>
-       <validator-registry> SlashedINDEX |-> #Validator(_,_,_,_,_,_,_, EffBALANCE) ...</validator-registry>
-
-  syntax KItem ::= "slashValidatorAux" "(" ValidatorIndex "," ValidatorIndex "," ValidatorIndex "," Int "," Int "," Int ")"
-  rule <k> slashValidatorAux(SlashedINDEX, WhistleblINDEX, ProposerINDEX, WhistleREWARD, ProposerREWARD, SlashEPOCH)
-       => decreaseBalance(SlashedINDEX, EffBALANCE /Int MIN_SLASHING_PENALTY_QUOTIENT)
-       ~> increaseBalance(ProposerINDEX, ProposerREWARD)
-       ~> increaseBalance(#if WhistleblINDEX ==K .ValidatorIndex #then ProposerINDEX #else WhistleblINDEX #fi,
-                          WhistleREWARD -Int ProposerREWARD)
-       ...</k>
-    <validator-registry>
-      SlashedINDEX |-> #Validator(
-        _,_,_,_,_,
-        WithdEPOCH => maxInt(WithdEPOCH, SlashEPOCH), //withdrawable epoch
-        _ => true, //slashed
-        EffBALANCE
-      )
-      ...
-    </validator-registry>
-    <slashings> SlashEPOCH |-> (SL => SL +Int EffBALANCE)  ...</slashings>
-
-
-  // Python spec main functions
-  //====================================================
 
 /*
 def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:

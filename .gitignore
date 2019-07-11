@@ -1,2 +1,5 @@
 /.build
+.idea
 /rustc*
+
+__pycache__

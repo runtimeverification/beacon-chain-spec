@@ -33,13 +33,13 @@ export TANGLER
 export LUA_PATH
 
 TEST_DIR:=tests
-ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-specs
+ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-spec-tests
 
 .PHONY: all clean \
 	    deps deps-k deps-tangle deps-tests \
 	    defn defn-llvm \
 	    build build-llvm \
-	    test test-python-config
+	    test test-split test-python-config test-operations-minimal
 .SECONDARY:
 
 all: build
@@ -107,16 +107,33 @@ $(llvm_kompiled): $(llvm_files)
 # Testing
 # -------
 
+test-split:
+	cd $(ETH2_TESTS_SUBMODULE) \
+	    && git lfs install     \
+	    && git lfs fetch       \
+	    && git lfs checkout
+
 TEST_CONCRETE_BACKEND:=llvm
 
-test: test-python-config
+test: test-python-config test-operations-minimal
 
-test-python-config: $(BUILD_DIR)/tests/build-config.out
-	kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
+test-python-config: $(BUILD_DIR)/tests/buildConfig.out $(llvm_kompiled)
+	$(K_BIN)/kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
 	     --output pretty --sort BeaconChainCell \
 	     $<
 
-$(BUILD_DIR)/tests/build-config.out: build-config.py
-	mkdir $(dir $@)
+$(BUILD_DIR)/tests/buildConfig.out: buildConfig.py
+	mkdir -p $(dir $@)
 	python3 $< > $@
 
+operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/operations/*/*_minimal.yaml)
+
+test-operations-minimal: $(operations_minimal_tests:=.test)
+
+%.yaml.test: %.yaml.json $(llvm_kompiled)
+	$(K_BIN)/kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
+	    --input json --output pretty --sort BeaconChainCell \
+	    $< --debug --no-sort-collections
+
+%.yaml.json: runTest.py %.yaml
+	python3 $^ $@

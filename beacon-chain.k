@@ -328,7 +328,7 @@ class Checkpoint(Container):
     epoch: Epoch
     root: Hash
   */
-  syntax Checkpoint ::= #Checkpoint( Epoch, Hash ) [klabel(#Crosslink), symbol]
+  syntax Checkpoint ::= #Checkpoint( Epoch, Hash ) [klabel(#Checkpoint), symbol]
 
   /*
 class Validator(Container):
@@ -342,7 +342,7 @@ class Validator(Container):
     exit_epoch: Epoch
     withdrawable_epoch: Epoch  # When validator can withdraw or transfer funds
   */
-  syntax Validator ::= #Validator( BLSPubkey, Hash, Gwei, Bool, Epoch, Epoch, Epoch, Epoch )
+  syntax Validator ::= #Validator( BLSPubkey, Hash, Gwei, Bool, Epoch, Epoch, Epoch, Epoch ) [klabel(#Validator), symbol]
 
   /*
 class Crosslink(Container):
@@ -353,7 +353,7 @@ class Crosslink(Container):
     end_epoch: Epoch
     data_root: Hash
   */
-  syntax Crosslink ::= #Crosslink( Shard, Hash, Epoch, Epoch, Hash )
+  syntax Crosslink ::= #Crosslink( Shard, Hash, Epoch, Epoch, Hash ) [klabel(#Crosslink), symbol]
 
   /*
 class AttestationData(Container):
@@ -392,7 +392,7 @@ class PendingAttestation(Container):
     proposer_index: ValidatorIndex
   */
   // TODO: Add constraint on length of BitList (MAX_VALIDATORS_PER_COMMITTEE)
-  syntax PendingAttestation ::= #PendingAttestation( BitList, AttestationData, Slot, ValidatorIndex )
+  syntax PendingAttestation ::= #PendingAttestation( BitList, AttestationData, Slot, ValidatorIndex ) [klabel(#PendingAttestation), symbol]
 
   /*
 class Eth1Data(Container):
@@ -492,7 +492,7 @@ def int_to_bytes(n: uint64, length: uint64) -> bytes:
     """
     return n.to_bytes(length, ENDIANNESS)
 */
-  syntax Bytes ::= intToBytes( Int ) [function] 
+  syntax Bytes ::= intToBytes( Int ) [function]
 
 /*
 def bytes_to_int(data: bytes) -> uint64:
@@ -501,9 +501,9 @@ def bytes_to_int(data: bytes) -> uint64:
     """
     return int.from_bytes(data, ENDIANNESS)
 */
-  syntax Int ::= bytesToInt( Bytes ) [function] 
+  syntax Int ::= bytesToInt( Bytes ) [function]
 
-  syntax Int ::= integerSquareroot( Int ) [function] 
+  syntax Int ::= integerSquareroot( Int ) [function]
 
 /*
 def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
@@ -517,12 +517,12 @@ def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
 /*
 def hash(data: bytes) -> Hash is SHA256.
 */
-  syntax Bytes ::= hash( Bytes ) [function] 
+  syntax Bytes ::= hash( Bytes ) [function]
 
 /*
 def hash_tree_root(object: SSZSerializable) -> Hash
 */
-  syntax Bytes ::= hashTreeRoot( Bytes ) [function] 
+  syntax Bytes ::= hashTreeRoot( Bytes ) [function]
 
 /*
 def signing_root(object: Container) -> Hash
@@ -576,7 +576,7 @@ def is_slashable_attestation_data(data_1: AttestationData, data_2: AttestationDa
         (data_1.source.epoch < data_2.source.epoch and data_2.target.epoch < data_1.target.epoch)
     )
 */
-// 
+//
 
 /*
 def is_valid_indexed_attestation(state: BeaconState, indexed_attestation: IndexedAttestation) -> bool:
@@ -614,7 +614,7 @@ def is_valid_indexed_attestation(state: BeaconState, indexed_attestation: Indexe
         return False
     return True
 */
-// 
+//
 
 /*
 def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, index: uint64, root: Hash) -> bool:
@@ -629,11 +629,11 @@ def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, in
             value = hash(value + branch[i])
     return value == root
 */
-// 
+//
 
   // Helper functions -- Misc
   //====================================================
-  
+
 /*
 def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Hash) -> ValidatorIndex:
     """
@@ -654,7 +654,7 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
 
     return ValidatorIndex(index)
 */
-// 
+//
   syntax Int ::= computeShuffledIndex( Int, Int, Bytes32 ) [function]
   rule computeShuffledIndex(INDEX, COUNT, SEED) => INDEX %Int COUNT //NOTEH mock implementation
 
@@ -764,7 +764,7 @@ def get_block_root(state: BeaconState, epoch: Epoch) -> Hash:
     """
     return get_block_root_at_slot(state, compute_start_slot_of_epoch(epoch))
 */
-// 
+//
 
 /*
 def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
@@ -774,7 +774,7 @@ def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
     assert slot < state.slot <= slot + SLOTS_PER_HISTORICAL_ROOT
     return state.block_roots[slot % SLOTS_PER_HISTORICAL_ROOT]
 */
-// 
+//
 
 /*
 def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
@@ -784,7 +784,7 @@ def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
     return state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
 get_active_validator_indices
 */
-// 
+//
 
 /*
 def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[ValidatorIndex]:
@@ -993,7 +993,7 @@ def get_attestation_data_slot(state: BeaconState, data: AttestationData) -> Slot
     offset = (data.crosslink.shard + SHARD_COUNT - get_start_shard(state, data.target.epoch)) % SHARD_COUNT
     return Slot(compute_start_slot_of_epoch(data.target.epoch) + offset // (committee_count // SLOTS_PER_EPOCH))
 */
-// 
+//
 
 /*
 def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
@@ -1013,7 +1013,7 @@ def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
             committees[shard].compact_validators.append(compact_validator)
     return hash_tree_root(Vector[CompactCommittee, SHARD_COUNT](committees))
 */
-// 
+//
 
 /*
 def get_total_balance(state: BeaconState, indices: Set[ValidatorIndex]) -> Gwei:
@@ -1049,7 +1049,7 @@ def get_domain(state: BeaconState, domain_type: DomainType, message_epoch: Epoch
     fork_version = state.fork.previous_version if epoch < state.fork.epoch else state.fork.current_version
     return compute_domain(domain_type, fork_version)
 */
-// 
+//
 
 /*
 def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> IndexedAttestation:
@@ -1068,7 +1068,7 @@ def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> Ind
         signature=attestation.signature,
     )
 */
-// 
+//
 
 /*
 def get_attesting_indices(state: BeaconState,
@@ -1080,7 +1080,7 @@ def get_attesting_indices(state: BeaconState,
     committee = get_crosslink_committee(state, data.target.epoch, data.crosslink.shard)
     return set(index for i, index in enumerate(committee) if bits[i])
 */
-// 
+//
 
   // Helper functions -- Beacon state mutators
   //====================================================

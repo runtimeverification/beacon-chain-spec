@@ -764,7 +764,8 @@ def get_block_root(state: BeaconState, epoch: Epoch) -> Hash:
     """
     return get_block_root_at_slot(state, compute_start_slot_of_epoch(epoch))
 */
-//
+  syntax Hash ::= getBlockRoot( Epoch ) [function]
+  rule getBlockRoot(EP) => getBlockRootAtSlot(computeStartSlotOfEpoch(EP))
 
 /*
 def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
@@ -774,7 +775,16 @@ def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
     assert slot < state.slot <= slot + SLOTS_PER_HISTORICAL_ROOT
     return state.block_roots[slot % SLOTS_PER_HISTORICAL_ROOT]
 */
-//
+  syntax Hash ::= getBlockRootAtSlot( Slot ) [function]
+  rule [[ getBlockRootAtSlot(SLOT) => getBlockRootAtSlotAux(BRS, SLOT %Int SLOTS_PER_HISTORICAL_ROOT)]]
+    <slot> SSLOT </slot>
+    <block-roots> BRS </block-roots>
+    requires SLOT <Int SSLOT andBool SSLOT <=Int (SLOT +Int SLOTS_PER_HISTORICAL_ROOT)
+
+  syntax Hash ::= getBlockRootAtSlotAux( HashList, Int ) [function]
+  rule getBlockRootAtSlotAux(BR BRS, 0) => BR
+  rule getBlockRootAtSlotAux(BR BRS, I) => getBlockRootAtSlotAux(BRS, I -Int 1)
+    requires I >Int 0
 
 /*
 def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
@@ -782,9 +792,15 @@ def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
     Return the randao mix at a recent ``epoch``.
     """
     return state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
-get_active_validator_indices
 */
-//
+  syntax Hash ::= getRandaoMix( Epoch ) [function]
+  rule [[ getRandaoMix( EPOCH ) => getRandaoMixAux( RMS, EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR )]]
+    <randao-mixes> RMS </randao-mixes>
+
+  syntax Hash ::= getRandaoMixAux( HashList, Epoch ) [function]
+  rule getRandaoMixAux(RM RMS, 0) => RM
+  rule getRandaoMixAux(RM RMS, I) => getRandaoMixAux(RMS, I -Int 1)
+    requires I >Int 0
 
 /*
 def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[ValidatorIndex]:
@@ -812,7 +828,6 @@ def get_validator_churn_limit(state: BeaconState) -> uint64:
     active_validator_indices = get_active_validator_indices(state, get_current_epoch(state))
     return max(MIN_PER_EPOCH_CHURN_LIMIT, len(active_validator_indices) // CHURN_LIMIT_QUOTIENT)
 */
-// TODO fix get_validator_churn_limit
   syntax Int ::= getValidatorChurnLimit( ) [function]
   rule getValidatorChurnLimit() => maxInt(
           MIN_PER_EPOCH_CHURN_LIMIT,

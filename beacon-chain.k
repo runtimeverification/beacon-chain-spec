@@ -764,7 +764,8 @@ def get_block_root(state: BeaconState, epoch: Epoch) -> Hash:
     """
     return get_block_root_at_slot(state, compute_start_slot_of_epoch(epoch))
 */
-//
+  syntax Hash ::= getBlockRoot( Epoch ) [function]
+  rule getBlockRoot(EP) => getBlockRootAtSlot(computeStartSlotOfEpoch(EP))
 
 /*
 def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
@@ -774,7 +775,16 @@ def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
     assert slot < state.slot <= slot + SLOTS_PER_HISTORICAL_ROOT
     return state.block_roots[slot % SLOTS_PER_HISTORICAL_ROOT]
 */
-//
+  syntax Hash ::= getBlockRootAtSlot( Slot ) [function]
+  rule [[ getBlockRootAtSlot(SLOT) => getBlockRootAtSlotAux(BRS, SLOT %Int SLOTS_PER_HISTORICAL_ROOT)]]
+    <slot> SSLOT </slot>
+    <block-roots> BRS </block-roots>
+    requires SLOT <Int SSLOT andBool SSLOT <=Int (SLOT +Int SLOTS_PER_HISTORICAL_ROOT)
+
+  syntax Hash ::= getBlockRootAtSlotAux( HashList, Int ) [function]
+  rule getBlockRootAtSlotAux(BR BRS, 0) => BR
+  rule getBlockRootAtSlotAux(BR BRS, I) => getBlockRootAtSlotAux(BRS, I -Int 1)
+    requires I >Int 0
 
 /*
 def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:

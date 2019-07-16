@@ -1143,13 +1143,12 @@ def get_attesting_indices(state: BeaconState,
 */
   syntax IntList ::= getAttestingIndices(AttestationData, BitList) [function]
   rule getAttestingIndices(#AttestationData(_,_, #Checkpoint(EP,_), #Crosslink(SHARD,_,_,_,_)), BL) =>
-    extractAttestingIndicies(getCrosslinkCommittee(EP, SHARD), BL, .IntList)
+    extractAttestingIndices(getCrosslinkCommittee(EP, SHARD), BL, .IntList)
 
-  syntax IntList ::= extractAttestingIndicies(IntList, BitList, IntList) [function]
-  rule extractAttestingIndicies(I IL => IL, 1 BL => BL, AL => AL I)
-  rule extractAttestingIndicies(I IL => IL, 0 BL => BL, AL)
-  rule extractAttestingIndicies(.IntList,_, AL) => AL
-
+  syntax IntList ::= extractAttestingIndices(IntList, BitList, IntList) [function]
+  rule extractAttestingIndices(I IL => IL, 1 BL => BL, AL => AL I)
+  rule extractAttestingIndices(I IL => IL, 0 BL => BL, AL)
+  rule extractAttestingIndices(.IntList,_, AL) => AL
 
   // Helper functions -- Beacon state mutators
   //====================================================

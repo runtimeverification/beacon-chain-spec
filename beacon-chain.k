@@ -152,7 +152,6 @@ class ProposerSlashing(Container):
   // Custom types
   //====================================================
   syntax Slot           ::= Int      //a slot number
-  syntax Epoch          ::= Int      //an epoch number
   syntax Shard          ::= Int      //a shard number
   syntax ValidatorIndex ::= Int | ".ValidatorIndex"     //a validator registry index
   syntax Gwei           ::= Int      //an amount in Gwei
@@ -321,14 +320,14 @@ class Fork(Container):
     current_version: Version
     epoch: Epoch  # Epoch of latest fork
   */
-  syntax Fork ::= #Fork( Version, Version, Epoch ) [klabel(#Fork), symbol]
+  syntax Fork ::= #Fork( Version, Version, Int ) [klabel(#Fork), symbol]
 
   /*
 class Checkpoint(Container):
     epoch: Epoch
     root: Hash
   */
-  syntax Checkpoint ::= #Checkpoint( Epoch, Hash ) [klabel(#Checkpoint), symbol]
+  syntax Checkpoint ::= #Checkpoint( Int, Hash ) [klabel(#Checkpoint), symbol]
 
   /*
 class Validator(Container):
@@ -342,7 +341,7 @@ class Validator(Container):
     exit_epoch: Epoch
     withdrawable_epoch: Epoch  # When validator can withdraw or transfer funds
   */
-  syntax Validator ::= #Validator( BLSPubkey, Hash, Gwei, Bool, Epoch, Epoch, Epoch, Epoch ) [klabel(#Validator), symbol]
+  syntax Validator ::= #Validator( BLSPubkey, Hash, Gwei, Bool, Int, Int, Int, Int ) [klabel(#Validator), symbol]
 
   /*
 class Crosslink(Container):
@@ -353,7 +352,7 @@ class Crosslink(Container):
     end_epoch: Epoch
     data_root: Hash
   */
-  syntax Crosslink ::= #Crosslink( Shard, Hash, Epoch, Epoch, Hash ) [klabel(#Crosslink), symbol]
+  syntax Crosslink ::= #Crosslink( Shard, Hash, Int, Int, Hash ) [klabel(#Crosslink), symbol]
 
   /*
 class AttestationData(Container):
@@ -469,7 +468,7 @@ class VoluntaryExit(Container):
     validator_index: ValidatorIndex
     signature: BLSSignature
   */
-  syntax VoluntaryExit ::= #VoluntaryExit( Epoch, ValidatorIndex, BLSSignature )
+  syntax VoluntaryExit ::= #VoluntaryExit( Int, ValidatorIndex, BLSSignature )
 
   /*
 class Transfer(Container):
@@ -549,7 +548,7 @@ def is_active_validator(validator: Validator, epoch: Epoch) -> bool:
     """
     return validator.activation_epoch <= epoch < validator.exit_epoch
 */
-  syntax Bool ::= isActiveValidator( Validator, Epoch ) [function]
+  syntax Bool ::= isActiveValidator( Validator, Int ) [function]
   rule isActiveValidator( #Validator(_,_,_,_,_, ActivationEpoch, ExitEpoch, _), EPOCH )
     => ActivationEpoch <=Int EPOCH andBool EPOCH <Int ExitEpoch
 
@@ -560,7 +559,7 @@ def is_slashable_validator(validator: Validator, epoch: Epoch) -> bool:
     """
     return (not validator.slashed) and (validator.activation_epoch <= epoch < validator.withdrawable_epoch)
 */
-  syntax Bool ::= isSlashableValidator( Validator, Epoch ) [function]
+  syntax Bool ::= isSlashableValidator( Validator, Int ) [function]
   rule isActiveValidator( #Validator(_,_,_, Slashed, _, ActivationEpoch, _, WithdEpoch), EPOCH )
     => notBool Slashed andBool ActivationEpoch <=Int EPOCH andBool EPOCH <Int WithdEpoch
 
@@ -707,7 +706,7 @@ def compute_epoch_of_slot(slot: Slot) -> Epoch:
     """
     return Epoch(slot // SLOTS_PER_EPOCH)
 */
-  syntax Epoch ::= computeEpochOfSlot(Slot) [function]
+  syntax Int ::= computeEpochOfSlot(Slot) [function]
   rule computeEpochOfSlot(SLOT) => SLOT /Int SLOTS_PER_EPOCH
 
 /*
@@ -717,7 +716,7 @@ def compute_start_slot_of_epoch(epoch: Epoch) -> Slot:
     """
     return Slot(epoch * SLOTS_PER_EPOCH)
 */
-  syntax Slot ::= computeStartSlotOfEpoch(Epoch) [function]
+  syntax Slot ::= computeStartSlotOfEpoch(Int) [function]
   rule computeStartSlotOfEpoch(EPOCH) => EPOCH *Int SLOTS_PER_EPOCH
 
 /*
@@ -727,7 +726,7 @@ def compute_activation_exit_epoch(epoch: Epoch) -> Epoch:
     """
     return Epoch(epoch + 1 + ACTIVATION_EXIT_DELAY)
 */
-  syntax Int ::= computeActivationExitEpoch ( Epoch ) [function]
+  syntax Int ::= computeActivationExitEpoch ( Int ) [function]
   rule computeActivationExitEpoch(EP) => EP +Int 1 +Int ACTIVATION_EXIT_DELAY
 
 /*
@@ -751,7 +750,7 @@ def get_current_epoch(state: BeaconState) -> Epoch:
     """
     return compute_epoch_of_slot(state.slot)
 */
-  syntax Epoch ::= getCurrentEpoch() [function]
+  syntax Int ::= getCurrentEpoch() [function]
   rule [[ getCurrentEpoch() => computeEpochOfSlot(SLOT) ]]
     <slot> SLOT </slot>
 
@@ -763,10 +762,10 @@ def get_previous_epoch(state: BeaconState) -> Epoch:
     current_epoch = get_current_epoch(state)
     return GENESIS_EPOCH if current_epoch == GENESIS_EPOCH else Epoch(current_epoch - 1)
 */
-  syntax Epoch ::= getPreviousEpoch() [function]
+  syntax Int ::= getPreviousEpoch() [function]
   rule getPreviousEpoch() =>  #if getCurrentEpoch() ==K GENESIS_EPOCH
                                 #then GENESIS_EPOCH
-                                #else {getCurrentEpoch()}:>Int -Int 1
+                                #else getCurrentEpoch() -Int 1
                               #fi
 
 /*
@@ -776,7 +775,7 @@ def get_block_root(state: BeaconState, epoch: Epoch) -> Hash:
     """
     return get_block_root_at_slot(state, compute_start_slot_of_epoch(epoch))
 */
-  syntax Hash ::= getBlockRoot( Epoch ) [function]
+  syntax Hash ::= getBlockRoot( Int ) [function]
   rule getBlockRoot(EP) => getBlockRootAtSlot(computeStartSlotOfEpoch(EP))
 
 /*
@@ -805,11 +804,11 @@ def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
     """
     return state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
 */
-  syntax Hash ::= getRandaoMix( Epoch ) [function]
+  syntax Hash ::= getRandaoMix( Int ) [function]
   rule [[ getRandaoMix( EPOCH ) => getRandaoMixAux( RMS, EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR )]]
     <randao-mixes> RMS </randao-mixes>
 
-  syntax Hash ::= getRandaoMixAux( HashList, Epoch ) [function]
+  syntax Hash ::= getRandaoMixAux( HashList, Int ) [function]
   rule getRandaoMixAux(RM RMS, 0) => RM
   rule getRandaoMixAux(RM RMS, I) => getRandaoMixAux(RMS, I -Int 1)
     requires I >Int 0
@@ -821,11 +820,11 @@ def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[V
     """
     return [ValidatorIndex(i) for i, v in enumerate(state.validators) if is_active_validator(v, epoch)]
 */
-  syntax IntList ::= getActiveValidatorIndices( Epoch ) [function]
+  syntax IntList ::= getActiveValidatorIndices( Int ) [function]
   rule [[ getActiveValidatorIndices(EP) => getActiveValidatorIndicesAux(.IntList, 0, VALIDATORS, EP) ]]
     <validators> VALIDATORS </validators>
 
-  syntax IntList ::= getActiveValidatorIndicesAux( IntList, Int, Map, Epoch ) [function]
+  syntax IntList ::= getActiveValidatorIndicesAux( IntList, Int, Map, Int ) [function]
   rule getActiveValidatorIndicesAux(_,          I => I +Int 1, _:Map (I |-> V => .Map), EP )
     requires notBool isActiveValidator(V, EP)
   rule getActiveValidatorIndicesAux(Is => Is I, I => I +Int 1, _:Map (I |-> V => .Map), EP )
@@ -854,7 +853,7 @@ def get_seed(state: BeaconState, epoch: Epoch) -> Hash:
     active_index_root = state.active_index_roots[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
     return hash(mix + active_index_root + int_to_bytes(epoch, length=32))
 */
-  syntax Bytes32 ::= getSeed( Epoch ) [function]
+  syntax Bytes32 ::= getSeed( Int ) [function]
   rule getSeed(_) => 0 //NOTEH mock implementation for now
 
 /*
@@ -868,7 +867,7 @@ def get_committee_count(state: BeaconState, epoch: Epoch) -> uint64:
     ))
     return committees_per_slot * SLOTS_PER_EPOCH
 */
-  syntax Int ::= getCommitteeCount( Epoch ) [function]
+  syntax Int ::= getCommitteeCount( Int ) [function]
   rule getCommitteeCount( EP )
     => maxInt(1, minInt(SHARD_COUNT /Int SLOTS_PER_EPOCH,
                         len(getActiveValidatorIndices(EP)) /Int SLOTS_PER_EPOCH /Int TARGET_COMMITTEE_SIZE
@@ -887,7 +886,7 @@ def get_crosslink_committee(state: BeaconState, epoch: Epoch, shard: Shard) -> S
         count=get_committee_count(state, epoch),
     )
 */
-  syntax IntList ::= getCrosslinkCommittee( Epoch, Shard ) [function]
+  syntax IntList ::= getCrosslinkCommittee( Int, Shard ) [function]
   rule getCrosslinkCommittee(EPOCH, SHARD)
     => computeCommittee(
           getActiveValidatorIndices(EPOCH),
@@ -909,16 +908,16 @@ def get_start_shard(state: BeaconState, epoch: Epoch) -> Shard:
         shard = Shard((shard + SHARD_COUNT - get_shard_delta(state, check_epoch)) % SHARD_COUNT)
     return shard
 */
-  syntax Shard ::= getStartShard( Epoch ) [function]
+  syntax Shard ::= getStartShard( Int ) [function]
   rule [[ getStartShard(EPOCH) => getStartShardAux(
-      {{getCurrentEpoch()}:>Int +Int 1}:>Epoch,
+      getCurrentEpoch() +Int 1,
       (LSS +Int getShardDelta(getCurrentEpoch())) %Int SHARD_COUNT,
       EPOCH
     ) ]]
     <start-shard> LSS </start-shard>
-    requires EPOCH <=Int {getCurrentEpoch()}:>Int +Int 1
+    requires EPOCH <=Int getCurrentEpoch() +Int 1
 
-  syntax Shard ::= getStartShardAux( Epoch, Shard, Epoch ) [function]
+  syntax Shard ::= getStartShardAux( Int, Shard, Int ) [function]
   rule getStartShardAux(
       CheckEP => CheckEP -Int 1,
       SHARD => SHARD +Int SHARD_COUNT -Int getShardDelta(CheckEP -Int 1) %Int SHARD_COUNT,
@@ -936,7 +935,7 @@ def get_shard_delta(state: BeaconState, epoch: Epoch) -> uint64:
     """
     return min(get_committee_count(state, epoch), SHARD_COUNT - SHARD_COUNT // SLOTS_PER_EPOCH)
 */
-  syntax Int ::= getShardDelta( Epoch ) [function]
+  syntax Int ::= getShardDelta( Int ) [function]
   rule getShardDelta( EPOCH ) => minInt(
     getCommitteeCount(EPOCH),
     SHARD_COUNT -Int SHARD_COUNT /Int SLOTS_PER_EPOCH
@@ -989,7 +988,7 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
     <slot> SLOT </slot>
 
   syntax ValidatorIndex ::= getBeaconProposerIndexLoop(
-                              Epoch, Int, Int, Shard, IntList, Int, Bytes32, Int) [function]
+                              Int, Int, Int, Shard, IntList, Int, Bytes32, Int) [function]
   rule [[ getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I)
     =>    getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                   get(FirstCommittee, (EPOCH +Int I) %Int len(FirstCommittee)) #as CandidateIndex,
@@ -999,7 +998,7 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
     <validators>... CandidateIndex |-> #Validator(_,_, EffectiveBalance ,_,_,_,_,_ ) ...</validators>
 
   syntax ValidatorIndex ::= getBeaconProposerIndexLoopAux(
-                              Epoch, Int, Int, Shard, IntList, Int, Bytes32, Int,
+                              Int, Int, Int, Shard, IntList, Int, Bytes32, Int,
                               Int, Int, Gwei) [function]
   rule getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                                      CandidateIndex, RandomByte, EffectiveBalance)
@@ -1046,7 +1045,7 @@ def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
             committees[shard].compact_validators.append(compact_validator)
     return hash_tree_root(Vector[CompactCommittee, SHARD_COUNT](committees))
 */
-  syntax Hash ::= getCompactCommitteesRoot(Epoch)
+  syntax Hash ::= getCompactCommitteesRoot(Int)
   rule getCompactCommitteesRoot(EPOCH) => 0 // Dummy implementation
 
 
@@ -1085,7 +1084,7 @@ def get_domain(state: BeaconState, domain_type: DomainType, message_epoch: Epoch
     return compute_domain(domain_type, fork_version)
 */
 // TODO: add the case when EPOCH is None
-  syntax Domain ::= getDomain( DomainType, Epoch ) [function]
+  syntax Domain ::= getDomain( DomainType, Int ) [function]
   rule [[ getDomain(DTYPE, EPOCH) => computeDomain(DTYPE,
     #if EPOCH <Int FEPOCH #then FPREV #else FCURR #fi
   ) ]]
@@ -1198,7 +1197,7 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
     validator.withdrawable_epoch = Epoch(validator.exit_epoch + MIN_VALIDATOR_WITHDRAWABILITY_DELAY)
 */
   syntax KItem ::= initiateValidatorExit( Int )
-                 | initiateValidatorExitAux( Int /*index*/ , Epoch /*exit_queue_epoch*/ )
+                 | initiateValidatorExitAux( Int /*index*/ , Int /*exit_queue_epoch*/ )
 
   rule <k> initiateValidatorExit(INDEX) => .K ...</k>
        <validators>... INDEX |-> #Validator(_,_,_,_,_,_, ExitEPOCH, _) ...</validators>
@@ -1220,9 +1219,9 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
                          #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY) _) #as VALIDATORS
        </validators>
 
-  syntax Epoch ::= exitQueueEpochAux ( Int ) [function]
+  syntax Int ::= exitQueueEpochAux ( Int ) [function]
   rule [[ exitQueueEpochAux(INDEX)
-          => maxAux({computeActivationExitEpoch(getCurrentEpoch())}:>Int
+          => maxAux(computeActivationExitEpoch(getCurrentEpoch())
                     exitEpochsAux(VALIDATORS, .IntList) ) ]]
     <validators> VALIDATORS </validators>
 
@@ -1238,7 +1237,7 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
   rule exitEpochsAux(.Map, RES) => RES
 
   // exit_queue_churn = len([v for v in state.validator_registry if v.exit_epoch == exit_queue_epoch])
-  syntax Int ::= exitQueueChurnAux ( Epoch /*exit_queue_epoch*/ , Map /*validator_registry*/ , Int /*result*/ ) [function]
+  syntax Int ::= exitQueueChurnAux ( Int /*exit_queue_epoch*/ , Map /*validator_registry*/ , Int /*result*/ ) [function]
   rule exitQueueChurnAux( ExitQEpoch, _:Map (_ |-> #Validator(_,_,_,_,_,_, ExitQEpoch, _) => .Map), RES => RES +Int 1 )
   rule exitQueueChurnAux( ExitQEpoch, _:Map (_ |-> #Validator(_,_,_,_,_,_, ExitEP, _) => .Map), _ )
     requires ExitEP =/=K ExitQEpoch
@@ -1269,7 +1268,7 @@ def slash_validator(state: BeaconState,
     increase_balance(state, whistleblower_index, whistleblower_reward - proposer_reward)
 */
   syntax KItem ::= "slashValidator" "(" ValidatorIndex "," /*slashed_index*/
-	                                        K                  /*whistleblower_index or .K if none*/ ")"
+	                                      K                  /*whistleblower_index or .K if none*/ ")"
 
 	  rule <k> slashValidator(SlashedINDEX, WhistleblINDEX)
 	           => initiateValidatorExit(SlashedINDEX)
@@ -1278,7 +1277,7 @@ def slash_validator(state: BeaconState,
 	                                getBeaconProposerIndex(),
 	                                EffBALANCE /Int WHISTLEBLOWER_REWARD_QUOTIENT, //whistleblower_reward
 	                                EffBALANCE /Int WHISTLEBLOWER_REWARD_QUOTIENT /Int PROPOSER_REWARD_QUOTIENT, //proposer_reward
-	                                {getCurrentEpoch()}:>Int +Int EPOCHS_PER_SLASHINGS_VECTOR) //SlashEPOCH
+	                                getCurrentEpoch() +Int EPOCHS_PER_SLASHINGS_VECTOR) //SlashEPOCH
 	        ...</k>
 	       <validators> SlashedINDEX |-> #Validator(_,_, EffBALANCE ,_,_,_,_,_ ) ...</validators>
 

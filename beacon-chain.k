@@ -152,7 +152,6 @@ class ProposerSlashing(Container):
   // Custom types
   //====================================================
   syntax Slot           ::= Int      //a slot number
-  syntax Shard          ::= Int      //a shard number
   syntax ValidatorIndex ::= Int | ".ValidatorIndex"     //a validator registry index
   syntax Gwei           ::= Int      //an amount in Gwei
   syntax Hash           ::= Bytes32     //a hash
@@ -352,7 +351,7 @@ class Crosslink(Container):
     end_epoch: Epoch
     data_root: Hash
   */
-  syntax Crosslink ::= #Crosslink( Shard, Hash, Int, Int, Hash ) [klabel(#Crosslink), symbol]
+  syntax Crosslink ::= #Crosslink( Int, Hash, Int, Int, Hash ) [klabel(#Crosslink), symbol]
 
   /*
 class AttestationData(Container):
@@ -886,12 +885,12 @@ def get_crosslink_committee(state: BeaconState, epoch: Epoch, shard: Shard) -> S
         count=get_committee_count(state, epoch),
     )
 */
-  syntax IntList ::= getCrosslinkCommittee( Int, Shard ) [function]
+  syntax IntList ::= getCrosslinkCommittee( Int, Int ) [function]
   rule getCrosslinkCommittee(EPOCH, SHARD)
     => computeCommittee(
           getActiveValidatorIndices(EPOCH),
           getSeed(EPOCH),
-          (SHARD +Int SHARD_COUNT -Int {getStartShard(EPOCH)}:>Int) %Int SHARD_COUNT,
+          (SHARD +Int SHARD_COUNT -Int getStartShard(EPOCH)) %Int SHARD_COUNT,
           getCommitteeCount(EPOCH)
     )
 
@@ -908,7 +907,7 @@ def get_start_shard(state: BeaconState, epoch: Epoch) -> Shard:
         shard = Shard((shard + SHARD_COUNT - get_shard_delta(state, check_epoch)) % SHARD_COUNT)
     return shard
 */
-  syntax Shard ::= getStartShard( Int ) [function]
+  syntax Int ::= getStartShard( Int ) [function]
   rule [[ getStartShard(EPOCH) => getStartShardAux(
       getCurrentEpoch() +Int 1,
       (LSS +Int getShardDelta(getCurrentEpoch())) %Int SHARD_COUNT,
@@ -917,7 +916,7 @@ def get_start_shard(state: BeaconState, epoch: Epoch) -> Shard:
     <start-shard> LSS </start-shard>
     requires EPOCH <=Int getCurrentEpoch() +Int 1
 
-  syntax Shard ::= getStartShardAux( Int, Shard, Int ) [function]
+  syntax Int ::= getStartShardAux( Int, Int, Int ) [function]
   rule getStartShardAux(
       CheckEP => CheckEP -Int 1,
       SHARD => SHARD +Int SHARD_COUNT -Int getShardDelta(CheckEP -Int 1) %Int SHARD_COUNT,
@@ -988,17 +987,17 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
     <slot> SLOT </slot>
 
   syntax ValidatorIndex ::= getBeaconProposerIndexLoop(
-                              Int, Int, Int, Shard, IntList, Int, Bytes32, Int) [function]
+                              Int, Int, Int, Int, IntList, Int, Bytes32, Int) [function]
   rule [[ getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I)
     =>    getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                   get(FirstCommittee, (EPOCH +Int I) %Int len(FirstCommittee)) #as CandidateIndex,
-                  getByte( hash( toBytes({SEED}:>Int +Int I /Int 32) ), I %Int 32) /*#as RandomByte*/,
+                  getByte( hash( toBytes(SEED +Int I /Int 32) ), I %Int 32) /*#as RandomByte*/,
                   EffectiveBalance
           ) ]]
     <validators>... CandidateIndex |-> #Validator(_,_, EffectiveBalance ,_,_,_,_,_ ) ...</validators>
 
   syntax ValidatorIndex ::= getBeaconProposerIndexLoopAux(
-                              Int, Int, Int, Shard, IntList, Int, Bytes32, Int,
+                              Int, Int, Int, Int, IntList, Int, Bytes32, Int,
                               Int, Int, Gwei) [function]
   rule getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                                      CandidateIndex, RandomByte, EffectiveBalance)
@@ -1023,7 +1022,7 @@ def get_attestation_data_slot(state: BeaconState, data: AttestationData) -> Slot
     rule getAttestationDataSlot(#AttestationData(_,_, #Checkpoint(EP,_), #Crosslink(SHARD,_,_,_,_))) =>
       {computeStartSlotOfEpoch(EP)}:>Int +Int
         // offset
-        (( SHARD +Int SHARD_COUNT -Int {getStartShard(EP)}:>Int ) %Int SHARD_COUNT) /Int
+        (( SHARD +Int SHARD_COUNT -Int getStartShard(EP) ) %Int SHARD_COUNT) /Int
         // (committee_count // SLOTS_PER_EPOCH)
         (getCommitteeCount(EP) /Int SLOTS_PER_EPOCH)
 

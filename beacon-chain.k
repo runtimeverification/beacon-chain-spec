@@ -576,7 +576,19 @@ def is_slashable_attestation_data(data_1: AttestationData, data_2: AttestationDa
         (data_1.source.epoch < data_2.source.epoch and data_2.target.epoch < data_1.target.epoch)
     )
 */
-//
+  syntax Bool ::= isSlashableAttestationData(AttestationData, AttestationData) [function]
+  rule isSlashableAttestationData(
+    #AttestationData(H1, #Checkpoint(S1EP,S1H),#Checkpoint(T1EP,T1H), CL1),
+    #AttestationData(H2, #Checkpoint(S2EP,S2H),#Checkpoint(T2EP,T2H), CL2)
+    ) =>
+      // Double vote
+      //((H1 =/=K H2 orBool S1EP =/=K S2EP orBool S1H =/=K S2H orBool T1H =/=K T2H orBool CL1 =/=K CL2) andBool
+      //  T1EP ==K T2EP) orBool
+      (#AttestationData(H1, #Checkpoint(S1EP,S1H),#Checkpoint(T1EP,T1H), CL1)
+      =/=K #AttestationData(H2, #Checkpoint(S2EP,S2H),#Checkpoint(T2EP,T2H), CL2)
+      andBool T1EP ==K T2EP) orBool
+      // Surround vote
+      (S1EP <Int S2EP andBool T2EP <Int T1EP)
 
 /*
 def is_valid_indexed_attestation(state: BeaconState, indexed_attestation: IndexedAttestation) -> bool:

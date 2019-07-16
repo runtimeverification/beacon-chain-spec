@@ -382,7 +382,7 @@ class IndexedAttestation(Container):
     signature: BLSSignature
   */
   // TODO: Add constraint on length of ValidatorIndexList (MAX_VALIDATORS_PER_COMMITTEE)
-  syntax IndexedAttestation ::= #IndexedAttestation( ValidatorIndexList, ValidatorIndexList, AttestationData, BLSSignature )
+  syntax IndexedAttestation ::= #IndexedAttestation( IntList, IntList, AttestationData, BLSSignature )
 
   /*
 class PendingAttestation(Container):
@@ -576,7 +576,19 @@ def is_slashable_attestation_data(data_1: AttestationData, data_2: AttestationDa
         (data_1.source.epoch < data_2.source.epoch and data_2.target.epoch < data_1.target.epoch)
     )
 */
-//
+  syntax Bool ::= isSlashableAttestationData(AttestationData, AttestationData) [function]
+  rule isSlashableAttestationData(
+    #AttestationData(H1, #Checkpoint(S1EP,S1H),#Checkpoint(T1EP,T1H), CL1),
+    #AttestationData(H2, #Checkpoint(S2EP,S2H),#Checkpoint(T2EP,T2H), CL2)
+    ) =>
+      // Double vote
+      //((H1 =/=K H2 orBool S1EP =/=K S2EP orBool S1H =/=K S2H orBool T1H =/=K T2H orBool CL1 =/=K CL2) andBool
+      //  T1EP ==K T2EP) orBool
+      (#AttestationData(H1, #Checkpoint(S1EP,S1H),#Checkpoint(T1EP,T1H), CL1)
+      =/=K #AttestationData(H2, #Checkpoint(S2EP,S2H),#Checkpoint(T2EP,T2H), CL2)
+      andBool T1EP ==K T2EP) orBool
+      // Surround vote
+      (S1EP <Int S2EP andBool T2EP <Int T1EP)
 
 /*
 def is_valid_indexed_attestation(state: BeaconState, indexed_attestation: IndexedAttestation) -> bool:
@@ -1008,7 +1020,13 @@ def get_attestation_data_slot(state: BeaconState, data: AttestationData) -> Slot
     offset = (data.crosslink.shard + SHARD_COUNT - get_start_shard(state, data.target.epoch)) % SHARD_COUNT
     return Slot(compute_start_slot_of_epoch(data.target.epoch) + offset // (committee_count // SLOTS_PER_EPOCH))
 */
-//
+    syntax Slot ::= getAttestationDataSlot(AttestationData) [function]
+    rule getAttestationDataSlot(#AttestationData(_,_, #Checkpoint(EP,_), #Crosslink(SHARD,_,_,_,_))) =>
+      {computeStartSlotOfEpoch(EP)}:>Int +Int
+        // offset
+        (( SHARD +Int SHARD_COUNT -Int {getStartShard(EP)}:>Int ) %Int SHARD_COUNT) /Int
+        // (committee_count // SLOTS_PER_EPOCH)
+        (getCommitteeCount(EP) /Int SLOTS_PER_EPOCH)
 
 /*
 def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
@@ -1028,7 +1046,9 @@ def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
             committees[shard].compact_validators.append(compact_validator)
     return hash_tree_root(Vector[CompactCommittee, SHARD_COUNT](committees))
 */
-//
+  syntax Hash ::= getCompactCommitteesRoot(Epoch)
+  rule getCompactCommitteesRoot(EPOCH) => 0 // Dummy implementation
+
 
 /*
 def get_total_balance(state: BeaconState, indices: Set[ValidatorIndex]) -> Gwei:
@@ -1064,7 +1084,12 @@ def get_domain(state: BeaconState, domain_type: DomainType, message_epoch: Epoch
     fork_version = state.fork.previous_version if epoch < state.fork.epoch else state.fork.current_version
     return compute_domain(domain_type, fork_version)
 */
-//
+// TODO: add the case when EPOCH is None
+  syntax Domain ::= getDomain( DomainType, Epoch ) [function]
+  rule [[ getDomain(DTYPE, EPOCH) => computeDomain(DTYPE,
+    #if EPOCH <Int FEPOCH #then FPREV #else FCURR #fi
+  ) ]]
+  <fork> #Fork(FPREV,FCURR,FEPOCH) </fork>
 
 /*
 def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> IndexedAttestation:
@@ -1083,7 +1108,28 @@ def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> Ind
         signature=attestation.signature,
     )
 */
-//
+  syntax IndexedAttestation ::= getIndexedAttestation(Attestation) [function]
+  rule getIndexedAttestation(#Attestation(ABITS,ADATA,CBITS,SIGN)) =>
+    #IndexedAttestation(
+        sortIntList(listDiff(getAttestingIndices(ADATA,ABITS), getAttestingIndices(ADATA, CBITS))),
+        sortIntList(getAttestingIndices(ADATA, CBITS)),
+        ADATA,
+        SIGN
+    )
+
+  // TODO: optimize into a tail recursive version (?)
+  syntax IntList ::= sortIntList(IntList) [function]
+  rule sortIntList(.IntList) => .IntList
+  rule sortIntList(I IL) => minIndex(IL,I) sortIntList(listExcept(I IL, minIndex(IL, I)))
+
+  syntax Int ::= minIndex(IntList, Int) [function]
+  rule minIndex(I IL => IL, M => #if I <Int M #then I #else M #fi)
+  rule minIndex(.IntList, M) => M
+
+  // Note: If listExcept(IL, I) removes every occurrence of I in IL, then difference here will do the same
+  syntax IntList ::= listDiff(IntList, IntList) [function]
+  rule listDiff(I IL => IL, IL' => listExcept(IL', I))
+  rule listDiff(.IntList, IL') => IL'
 
 /*
 def get_attesting_indices(state: BeaconState,
@@ -1095,7 +1141,15 @@ def get_attesting_indices(state: BeaconState,
     committee = get_crosslink_committee(state, data.target.epoch, data.crosslink.shard)
     return set(index for i, index in enumerate(committee) if bits[i])
 */
-//
+  syntax IntList ::= getAttestingIndices(AttestationData, BitList) [function]
+  rule getAttestingIndices(#AttestationData(_,_, #Checkpoint(EP,_), #Crosslink(SHARD,_,_,_,_)), BL) =>
+    extractAttestingIndices(getCrosslinkCommittee(EP, SHARD), BL, .IntList)
+
+  syntax IntList ::= extractAttestingIndices(IntList, BitList, IntList) [function]
+  rule extractAttestingIndices(I IL => IL, 1 BL => BL, AL => AL I)
+  rule extractAttestingIndices(I IL => IL, 0 BL => BL, AL)
+  rule extractAttestingIndices(.IntList,_, AL) => AL
+
 
   // Helper functions -- Beacon state mutators
   //====================================================

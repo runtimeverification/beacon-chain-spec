@@ -1150,7 +1150,6 @@ def get_attesting_indices(state: BeaconState,
   rule extractAttestingIndices(I IL => IL, 0 BL => BL, AL)
   rule extractAttestingIndices(.IntList,_, AL) => AL
 
-
   // Helper functions -- Beacon state mutators
   //====================================================
 
@@ -1745,14 +1744,14 @@ def process_registry_updates(state: BeaconState) -> None:
     </validators>
   rule indexForMinEligEpoch(MIN, .IntList) => MIN
 
-  //returns the list except the 2nd argument. Used in sorting.
+  //returns the list with the first occurrence of the 2nd argument removed. Used in sorting.
   syntax IntList ::= listExcept( IntList , Int )                      [function, klabel(listExcept)]
                    | listExcept( IntList , Int , IntList /*result*/ ) [function, klabel(listExcept3)]
   rule listExcept(IL, EXCEPT) => listExcept(IL, EXCEPT, .IntList)
   rule listExcept( (I:Int IL) => IL, EXCEPT, REZ => REZ I     )
     when I =/=Int EXCEPT
-  rule listExcept((EXCEPT IL) => IL, EXCEPT, REZ /*unchanged*/)
-  rule listExcept(         .IntList,      _, REZ) => REZ
+  rule listExcept((EXCEPT IL) => .IntList /*terminate*/, EXCEPT, REZ IL /*dump the rest of the list without EXCEPT*/)
+  rule listExcept(.IntList, _, REZ) => REZ
 
 /*
 def process_slashings(state: BeaconState) -> None:

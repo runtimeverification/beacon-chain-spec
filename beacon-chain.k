@@ -151,7 +151,6 @@ class ProposerSlashing(Container):
 
   // Custom types
   //====================================================
-  syntax Slot           ::= Int      //a slot number
   syntax ValidatorIndex ::= Int | ".ValidatorIndex"     //a validator registry index
   syntax Gwei           ::= Int      //an amount in Gwei
   syntax Hash           ::= Bytes32     //a hash
@@ -408,7 +407,7 @@ class PendingAttestation(Container):
     proposer_index: ValidatorIndex
   */
   // TODO: Add constraint on length of BitList (MAX_VALIDATORS_PER_COMMITTEE)
-  syntax PendingAttestation ::= #PendingAttestation( BitList, AttestationData, Slot, ValidatorIndex ) [klabel(#PendingAttestation), symbol]
+  syntax PendingAttestation ::= #PendingAttestation( BitList, AttestationData, Int, ValidatorIndex ) [klabel(#PendingAttestation), symbol]
 
   /*
 class Eth1Data(Container):
@@ -452,7 +451,7 @@ class BeaconBlockHeader(Container):
     body_root: Hash
     signature: BLSSignature
   */
-  syntax BeaconBlockHeader ::= #BeaconBlockHeader( Slot, Hash, Hash, Hash, BLSSignature ) [klabel(#BeaconBlockHeader), symbol]
+  syntax BeaconBlockHeader ::= #BeaconBlockHeader( Int, Hash, Hash, Hash, BLSSignature ) [klabel(#BeaconBlockHeader), symbol]
 
   /*
 class AttesterSlashing(Container):
@@ -497,7 +496,7 @@ class Transfer(Container):
     pubkey: BLSPubkey  # Withdrawal pubkey
     signature: BLSSignature  # Signature checked against withdrawal pubkey
   */
-  syntax Transfer ::= #Transfer( ValidatorIndex, ValidatorIndex, Gwei, Gwei, Slot, BLSPubkey, BLSSignature )
+  syntax Transfer ::= #Transfer( ValidatorIndex, ValidatorIndex, Gwei, Gwei, Int, BLSPubkey, BLSSignature )
 
   // Helper functions -- Math
   //====================================================
@@ -723,7 +722,7 @@ def compute_epoch_of_slot(slot: Slot) -> Epoch:
     """
     return Epoch(slot // SLOTS_PER_EPOCH)
 */
-  syntax Int ::= computeEpochOfSlot(Slot) [function]
+  syntax Int ::= computeEpochOfSlot(Int) [function]
   rule computeEpochOfSlot(SLOT) => SLOT /Int SLOTS_PER_EPOCH
 
 /*
@@ -733,7 +732,7 @@ def compute_start_slot_of_epoch(epoch: Epoch) -> Slot:
     """
     return Slot(epoch * SLOTS_PER_EPOCH)
 */
-  syntax Slot ::= computeStartSlotOfEpoch(Int) [function]
+  syntax Int ::= computeStartSlotOfEpoch(Int) [function]
   rule computeStartSlotOfEpoch(EPOCH) => EPOCH *Int SLOTS_PER_EPOCH
 
 /*
@@ -803,7 +802,7 @@ def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
     assert slot < state.slot <= slot + SLOTS_PER_HISTORICAL_ROOT
     return state.block_roots[slot % SLOTS_PER_HISTORICAL_ROOT]
 */
-  syntax Hash ::= getBlockRootAtSlot( Slot ) [function]
+  syntax Hash ::= getBlockRootAtSlot( Int ) [function]
   rule [[ getBlockRootAtSlot(SLOT) => getBlockRootAtSlotAux(BRS, SLOT %Int SLOTS_PER_HISTORICAL_ROOT)]]
     <slot> SSLOT </slot>
     <block-roots> BRS </block-roots>
@@ -1036,9 +1035,9 @@ def get_attestation_data_slot(state: BeaconState, data: AttestationData) -> Slot
     offset = (data.crosslink.shard + SHARD_COUNT - get_start_shard(state, data.target.epoch)) % SHARD_COUNT
     return Slot(compute_start_slot_of_epoch(data.target.epoch) + offset // (committee_count // SLOTS_PER_EPOCH))
 */
-    syntax Slot ::= getAttestationDataSlot(AttestationData) [function]
+    syntax Int ::= getAttestationDataSlot(AttestationData) [function]
     rule getAttestationDataSlot(#AttestationData(_,_, #Checkpoint(EP,_), #Crosslink(SHARD,_,_,_,_))) =>
-      {computeStartSlotOfEpoch(EP)}:>Int +Int
+      computeStartSlotOfEpoch(EP) +Int
         // offset
         (( SHARD +Int SHARD_COUNT -Int getStartShard(EP) ) %Int SHARD_COUNT) /Int
         // (committee_count // SLOTS_PER_EPOCH)

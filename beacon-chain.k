@@ -152,7 +152,6 @@ class ProposerSlashing(Container):
   // Custom types
   //====================================================
   syntax ValidatorIndex ::= Int | ".ValidatorIndex"     //a validator registry index
-  syntax Gwei           ::= Int      //an amount in Gwei
   syntax Hash           ::= Bytes32     //a hash
   syntax Version        ::= Bytes4      //a fork version number
   syntax DomainType     ::= Bytes4      //a signature domain type
@@ -176,7 +175,6 @@ class ProposerSlashing(Container):
   syntax ValidatorIndexList ::= List{ValidatorIndex, ""}
   syntax IntList ::= List{Int, ""}
   syntax BitList ::= List{Bit, ""}
-  syntax GweiList ::= List{Gwei, ""}
   syntax HashList ::= List{Hash, ""}
 
   // (Non-configurable) constants
@@ -339,13 +337,13 @@ class Validator(Container):
     exit_epoch: Epoch
     withdrawable_epoch: Epoch  # When validator can withdraw or transfer funds
   */
-  syntax Validator ::= #Validator( BLSPubkey, Hash, Gwei, Bool, Int, Int, Int, Int ) [klabel(#Validator), symbol]
+  syntax Validator ::= #Validator( BLSPubkey, Hash, Int, Bool, Int, Int, Int, Int ) [klabel(#Validator), symbol]
 
   syntax BLSPubkey ::= Validator "." "pubkey"                       [function]
   rule #Validator(PK, _,_,_,_,_,_,_).pubkey => PK
   syntax Hash      ::= Validator "." "withdrawalCredentials"        [function]
   rule #Validator(_, HASH, _,_,_,_,_,_).withdrawalCredentials => HASH
-  syntax Gwei      ::= Validator "." "effectiveBalance"             [function]
+  syntax Int      ::= Validator "." "effectiveBalance"             [function]
   rule #Validator(_,_, EffBal, _,_,_,_,_).effectiveBalance => EffBal
   syntax Bool      ::= Validator "." "slashed"                      [function]
   rule #Validator(_,_,_, SLASHED, _,_,_,_).slashed => SLASHED
@@ -432,7 +430,7 @@ class DepositData(Container):
     amount: Gwei
     signature: BLSSignature
   */
-  syntax DepositData ::= #DepositData( BLSPubkey, Hash, Gwei, BLSSignature )
+  syntax DepositData ::= #DepositData( BLSPubkey, Hash, Int, BLSSignature )
 
   /*
 class CompactCommittee(Container):
@@ -496,7 +494,7 @@ class Transfer(Container):
     pubkey: BLSPubkey  # Withdrawal pubkey
     signature: BLSSignature  # Signature checked against withdrawal pubkey
   */
-  syntax Transfer ::= #Transfer( ValidatorIndex, ValidatorIndex, Gwei, Gwei, Int, BLSPubkey, BLSSignature )
+  syntax Transfer ::= #Transfer( ValidatorIndex, ValidatorIndex, Int, Int, Int, BLSPubkey, BLSSignature )
 
   // Helper functions -- Math
   //====================================================
@@ -1015,7 +1013,7 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
 
   syntax ValidatorIndex ::= getBeaconProposerIndexLoopAux(
                               Int, Int, Int, Int, IntList, Int, Bytes32, Int,
-                              Int, Int, Gwei) [function]
+                              Int, Int, Int) [function]
   rule getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                                      CandidateIndex, RandomByte, EffectiveBalance)
     => getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I +Int 1)
@@ -1072,11 +1070,11 @@ def get_total_balance(state: BeaconState, indices: Set[ValidatorIndex]) -> Gwei:
     """
     return Gwei(max(sum([state.validators[index].effective_balance for index in indices]), 1))
 */
-  syntax Gwei ::= getTotalBalance( IntList ) [function]
+  syntax Int ::= getTotalBalance( IntList ) [function]
   rule getTotalBalance(INDICES) => maxInt(getTotalBalancePure(INDICES, 0), 1)
 
   syntax Int ::= getTotalBalancePure( IntList, Int ) [function]
-  rule [[ getTotalBalancePure(I IL => IL, S => S +Int {VAL.effectiveBalance}:>Int) ]]
+  rule [[ getTotalBalancePure(I IL => IL, S => S +Int VAL.effectiveBalance) ]]
     <validators>... I |-> VAL ...</validators>
   rule getTotalBalancePure(.IntList, S) => S
 
@@ -1087,7 +1085,7 @@ def get_total_active_balance(state: BeaconState) -> Gwei:
     """
     return get_total_balance(state, set(get_active_validator_indices(state, get_current_epoch(state))))
 */
-  syntax Gwei ::= getTotalActiveBalance() [function]
+  syntax Int ::= getTotalActiveBalance() [function]
   rule getTotalActiveBalance() => getTotalBalance(getActiveValidatorIndices(getCurrentEpoch()))
 
 /*
@@ -1175,7 +1173,7 @@ def increase_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> 
     """
     state.balances[index] += delta
 */
-  syntax KItem ::= "increaseBalance" "(" ValidatorIndex "," Gwei ")"
+  syntax KItem ::= "increaseBalance" "(" ValidatorIndex "," Int ")"
   rule <k> increaseBalance(ValIndex, Delta) => . ...</k>
        <balances>... ValIndex |-> (BAL => BAL +Int Delta) ...</balances>
 
@@ -1186,7 +1184,7 @@ def decrease_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> 
     """
     state.balances[index] = 0 if delta > state.balances[index] else state.balances[index] - delta
 */
-  syntax KItem ::= "decreaseBalance" "(" ValidatorIndex "," Gwei ")"
+  syntax KItem ::= "decreaseBalance" "(" ValidatorIndex "," Int ")"
   rule <k> decreaseBalance(ValIndex, Delta) => . ...</k>
        <balances>... ValIndex |-> (BAL => #if Delta >Int BAL #then 0 #else BAL -Int Delta #fi) ...</balances>
 
@@ -1293,8 +1291,8 @@ def slash_validator(state: BeaconState,
 	           ~> slashValidatorAux(SlashedINDEX,
 	                                WhistleblINDEX,
 	                                getBeaconProposerIndex(),
-	                                {VAL.effectiveBalance}:>Int /Int WHISTLEBLOWER_REWARD_QUOTIENT, //whistleblower_reward
-	                                {VAL.effectiveBalance}:>Int /Int WHISTLEBLOWER_REWARD_QUOTIENT /Int PROPOSER_REWARD_QUOTIENT, //proposer_reward
+	                                VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT, //whistleblower_reward
+	                                VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT /Int PROPOSER_REWARD_QUOTIENT, //proposer_reward
 	                                getCurrentEpoch() +Int EPOCHS_PER_SLASHINGS_VECTOR) //SlashEPOCH
 	        ...</k>
 	       <validators> SlashedINDEX |-> VAL ...</validators>
@@ -1547,10 +1545,10 @@ def get_base_reward(state: BeaconState, index: ValidatorIndex) -> Gwei:
     effective_balance = state.validators[index].effective_balance
     return Gwei(effective_balance * BASE_REWARD_FACTOR // integer_squareroot(total_balance) // BASE_REWARDS_PER_EPOCH)
 */
-  syntax Gwei ::= getBaseReward( Int ) [function]
+  syntax Int ::= getBaseReward( Int ) [function]
   rule [[ getBaseReward(INDEX)
-          => {VAL.effectiveBalance}:>Int *Int BASE_REWARD_FACTOR
-             /Int integerSquareroot({getTotalActiveBalance()}:>Int)
+          => VAL.effectiveBalance *Int BASE_REWARD_FACTOR
+             /Int integerSquareroot(getTotalActiveBalance())
              /Int BASE_REWARDS_PER_EPOCH ]]
     <validators> INDEX |-> VAL </validators>
 
@@ -1678,7 +1676,7 @@ def process_registry_updates(state: BeaconState) -> None:
   //we will process validators in any order, not strictly increasing index like in python
   syntax KItem ::= "processRegistryUpdatesLoop1" "(" Map ")" //validators
   rule <k> (. => #if isActiveValidator(VAL, getCurrentEpoch())
-                      andBool {VAL.effectiveBalance}:>Int <=Int EJECTION_BALANCE
+                      andBool VAL.effectiveBalance <=Int EJECTION_BALANCE
                     #then initiateValidatorExit(INDEX)
                     #else .K
                  #fi
@@ -1688,7 +1686,7 @@ def process_registry_updates(state: BeaconState) -> None:
        <validators>... INDEX |-> (#Validator(_,_,_,_,
           ActEligibilityEpoch
           => #if ActEligibilityEpoch ==Int FAR_FUTURE_EPOCH
-                 andBool {VAL.effectiveBalance}:>Int >=Int MAX_EFFECTIVE_BALANCE
+                 andBool VAL.effectiveBalance >=Int MAX_EFFECTIVE_BALANCE
                 #then getCurrentEpoch()
                 #else ActEligibilityEpoch
              #fi,

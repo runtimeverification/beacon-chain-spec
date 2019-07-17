@@ -978,8 +978,8 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
 */
   syntax ValidatorIndex ::= getBeaconProposerIndex() [function]
   rule [[ getBeaconProposerIndex()
-       //=> #fun(EPOCH
-       //=> #fun(CommitteesPerSlot
+       => #fun(EPOCH
+       => #fun(CommitteesPerSlot
        //=> #fun(OFFSET
        //=> #fun(SHARD
        //=> #fun(FirstCommittee
@@ -990,14 +990,14 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
                                      FirstCommittee, MaxRandomByte, SEED, I)*/
        //todo commented code should work but crashes with ClassCastException, even with one #fun.
        => getBeaconProposerIndexLoop(0, 0, 0, 0, .IntList, 0, 0, 0)
-          //)(0)
-          //)(0/*getSeed(EPOCH)*/)
-          //)(2 ^Int 8 -Int 1)
-          //)(getCrosslinkCommittee(EPOCH, SHARD))
-          //)({({getStartShard(EPOCH)}:>Int +Int OFFSET) %Int SHARD_COUNT}:>Shard)
-          //)(CommitteesPerSlot *Int (SLOT %Int SLOTS_PER_EPOCH))
-          //)(getCommitteeCount(EPOCH))
-          //)(getCurrentEpoch())
+       //   )(0)
+       //   )(0/*getSeed(EPOCH)*/)
+       //   )(2 ^Int 8 -Int 1)
+       //   )(getCrosslinkCommittee(EPOCH, SHARD))
+       //   )((getStartShard(EPOCH) +Int OFFSET) %Int SHARD_COUNT)
+       //   )(CommitteesPerSlot *Int (SLOT %Int SLOTS_PER_EPOCH))
+          )(getCommitteeCount(EPOCH))
+          )(getCurrentEpoch())
        ]]
     <slot> SLOT </slot>
 

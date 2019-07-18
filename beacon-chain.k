@@ -1060,7 +1060,7 @@ def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
     return hash_tree_root(Vector[CompactCommittee, SHARD_COUNT](committees))
 */
   syntax Hash ::= getCompactCommitteesRoot(Int)
-  rule getCompactCommitteesRoot(EPOCH) => 0 // Dummy implementation
+  rule getCompactCommitteesRoot(EPOCH) => 0 // TODO: fix dummy implementation
 
 
 /*
@@ -1409,7 +1409,7 @@ def process_slot(state: BeaconState) -> None:
 */
   syntax KItem ::= "processSlot" "(" ")"
   rule <k> processSlot() =>
-             processSlotAux(hashTreeRoot(#Bytes(0,0)), SLOT %Int SLOTS_PER_HISTORICAL_ROOT) // Dummy bytes
+             processSlotAux(hashTreeRoot(#Bytes(0,0)), SLOT %Int SLOTS_PER_HISTORICAL_ROOT) // TODO: fix dummy bytes
        ...</k>
        <slot> SLOT </slot>
 
@@ -1418,13 +1418,13 @@ def process_slot(state: BeaconState) -> None:
        <state-roots> SLOT |-> (_ => HTROOT) </state-roots>
        <latest-block-header> #BeaconBlockHeader(_,_, BLOCKSTATEROOT =>
                                                              #if BLOCKSTATEROOT =/=K .BlockHeader
-                                                             #then HTROOT   // Dummy hash
+                                                             #then HTROOT   // TODO: fix dummy hash
                                                              #else BLOCKSTATEROOT #fi , _,_) </latest-block-header>
 
   syntax KItem ::= "cacheBlockRoot" "(" Int ")"
   rule <k> cacheBlockRoot(SLOT) => .K ...</k>
        <latest-block-header> BHEADER </latest-block-header>
-       <block-roots> SLOT |-> (BLOCKROOT => signingRoot(#Bytes(0,0))) </block-roots> // Dummy bytes
+       <block-roots> SLOT |-> (BLOCKROOT => signingRoot(#Bytes(0,0))) </block-roots> // TODO: fix dummy bytes
 
 
   // State transition function -- Epoch processing

@@ -397,6 +397,13 @@ class IndexedAttestation(Container):
   // TODO: Add constraint on length of ValidatorIndexList (MAX_VALIDATORS_PER_COMMITTEE)
   syntax IndexedAttestation ::= #IndexedAttestation( IntList, IntList, AttestationData, BLSSignature )
 
+  syntax IntList ::= IndexedAttestation "." "custodyBit0Indices"        [function]
+  rule #IndexedAttestation( IL0, _, _, _ ).custodyBit0Indices => IL0
+  syntax IntList ::= IndexedAttestation "." "custodyBit1Indices"        [function]
+  rule #IndexedAttestation( _, IL1, _, _ ).custodyBit1Indices => IL1
+  syntax AttestationData ::= IndexedAttestation "." "data"              [function]
+  rule #IndexedAttestation( _,_, DATA, _ ).data => DATA
+
   /*
 class PendingAttestation(Container):
     aggregation_bits: Bitlist[MAX_VALIDATORS_PER_COMMITTEE]
@@ -640,7 +647,14 @@ def is_valid_indexed_attestation(state: BeaconState, indexed_attestation: Indexe
         return False
     return True
 */
-//
+  syntax Bool ::= isValidIndexedAttestation( IndexedAttestation ) [function]
+  rule isValidIndexedAttestation(IAtt)
+    =>      len(IAtt.custodyBit1Indices) ==Int 0
+    andBool len(IAtt.custodyBit0Indices) +Int len(IAtt.custodyBit1Indices) <=Int MAX_VALIDATORS_PER_COMMITTEE
+    andBool intersection(IAtt.custodyBit0Indices, IAtt.custodyBit1Indices) ==K .IntList
+    andBool IAtt.custodyBit0Indices ==K sortIntList(IAtt.custodyBit0Indices)
+    andBool IAtt.custodyBit1Indices ==K sortIntList(IAtt.custodyBit1Indices)
+    //we do not check for BLS signature
 
 /*
 def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, index: uint64, root: Hash) -> bool:
@@ -1129,20 +1143,6 @@ def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> Ind
         ADATA,
         SIGN
     )
-
-  // TODO: optimize into a tail recursive version (?)
-  syntax IntList ::= sortIntList(IntList) [function]
-  rule sortIntList(.IntList) => .IntList
-  rule sortIntList(I IL) => minIndex(IL,I) sortIntList(listExcept(I IL, minIndex(IL, I)))
-
-  syntax Int ::= minIndex(IntList, Int) [function]
-  rule minIndex(I IL => IL, M => #if I <Int M #then I #else M #fi)
-  rule minIndex(.IntList, M) => M
-
-  // Note: If listExcept(IL, I) removes every occurrence of I in IL, then difference here will do the same
-  syntax IntList ::= listDiff(IntList, IntList) [function]
-  rule listDiff(I IL => IL, IL' => listExcept(IL', I))
-  rule listDiff(.IntList, IL') => IL'
 
 /*
 def get_attesting_indices(state: BeaconState,
@@ -1941,7 +1941,28 @@ def process_attester_slashing(state: BeaconState, attester_slashing: AttesterSla
             slashed_any = True
     assert slashed_any
 */
-//
+  syntax KItem ::= "processAttesterSlashing" "(" AttesterSlashing ")"
+  rule processAttesterSlashing(#AttesterSlashing( IAtt1, IAtt2 ))
+    => processAttesterSlashingLoop(
+        sortIntList(intersection(IAtt1.custodyBit0Indices +IntList IAtt1.custodyBit1Indices,
+                                 IAtt2.custodyBit0Indices +IntList IAtt2.custodyBit1Indices)), false)
+    requires isSlashableAttestationData(IAtt1.data, IAtt2.data)
+     andBool isValidIndexedAttestation(IAtt1)
+     andBool isValidIndexedAttestation(IAtt2)
+
+  syntax KItem ::= "processAttesterSlashingLoop" "(" IntList /*all attesting_indices*/
+                                                 "," Bool /*slashed_any*/ ")"
+  rule <k> (. => slashValidator(INDEX, .K))
+              ~> processAttesterSlashingLoop(INDEX ILIST => ILIST, _ => true) ...</k>
+    <validators> INDEX |-> VAL ...</validators>
+    requires isSlashableValidator(VAL, getCurrentEpoch())
+
+  rule <k> processAttesterSlashingLoop(INDEX ILIST => ILIST, _) ...</k>
+    <validators> INDEX |-> VAL ...</validators>
+    requires notBool isSlashableValidator(VAL, getCurrentEpoch())
+
+  rule processAttesterSlashingLoop(.IntList, true) => .K
+  //If 2nd arg is false, evaluation will get stuck. This corresponds to "assert slashed_any"
 
 /*
 def process_attestation(state: BeaconState, attestation: Attestation) -> None:
@@ -2094,6 +2115,39 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
   rule maxAux( I:Int IL ) => maxAux(IL, I)
   rule maxAux(I IL => IL, MAX => #if I <Int MAX #then MAX #else I #fi )
   rule maxAux(.IntList, MAX) => MAX
+
+  // TODO: optimize into a tail recursive version (?)
+  syntax IntList ::= sortIntList(IntList) [function]
+  rule sortIntList(.IntList) => .IntList
+  rule sortIntList(I IL) => minIndex(IL,I) sortIntList(listExcept(I IL, minIndex(IL, I)))
+
+  syntax Int ::= minIndex(IntList, Int) [function]
+  rule minIndex(I IL => IL, M => #if I <Int M #then I #else M #fi)
+  rule minIndex(.IntList, M) => M
+
+  // Note: If listExcept(IL, I) removes every occurrence of I in IL, then difference here will do the same
+  syntax IntList ::= listDiff(IntList, IntList) [function]
+  rule listDiff(I IL => IL, IL' => listExcept(IL', I))
+  rule listDiff(.IntList, IL') => IL'
+
+  syntax Bool ::= contains( Int, IntList ) [function]
+  rule contains(A, A IL ) => true
+  rule contains(A, B IL => IL)    requires A =/=Int B
+  rule contains(_, .IntList) => false
+
+  syntax IntList ::= intersection( IntList, IntList ) [function, klabel(intersection)]
+                   | intersection( IntList, IntList, IntList /*result*/) [function, klabel(intersection3)]
+  rule intersection(L1, L2) => intersection(L1, L2, .IntList)
+  rule intersection(A L1 => L1, L2, _)
+    requires notBool contains(A, L2)
+  rule intersection(A L1 => L1, L2, REZ => REZ A)
+    requires contains(A, L2)
+  rule intersection(.IntList, _, REZ) => REZ
+
+  //IntList concatenation
+  syntax IntList ::= IntList "+IntList" IntList     [function]
+  rule IL1 +IntList I IL2 => (IL1 I) +IntList IL2
+  rule IL  +IntList .IntList => IL
 
   syntax Bytes ::= toBytes( Int ) [function]
 

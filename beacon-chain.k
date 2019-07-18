@@ -74,8 +74,8 @@ class ProposerSlashing(Container):
         <fork> .Fork </fork>
         // History
         <latest-block-header> .BlockHeader </latest-block-header>
-        <block-roots> .HashList </block-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-        <state-roots> .HashList </state-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
+        <block-roots> .Map </block-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
+        <state-roots> .Map </state-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
         <historical-roots> .HashList </historical-roots> //List[Hash, HISTORICAL_ROOTS_LIMIT]
         // Eth1
         <eth1-data> .Eth1Data </eth1-data>
@@ -542,11 +542,12 @@ def hash(data: bytes) -> Hash is SHA256.
 /*
 def hash_tree_root(object: SSZSerializable) -> Hash
 */
-  syntax Bytes ::= hashTreeRoot( Bytes ) [function]
+  syntax Hash ::= hashTreeRoot( Bytes ) [function]
 
 /*
 def signing_root(object: Container) -> Hash
  */
+  syntax Bytes ::= signingRoot( Bytes ) [function]
 
 /*
 bls_verify is a function for verifying a BLS signature
@@ -778,7 +779,7 @@ def get_current_epoch(state: BeaconState) -> Epoch:
     """
     return compute_epoch_of_slot(state.slot)
 */
-  syntax Int ::= getCurrentEpoch() [function]
+  syntax Int ::= getCurrentEpoch( ) [function]
   rule [[ getCurrentEpoch() => computeEpochOfSlot(SLOT) ]]
     <slot> SLOT </slot>
 
@@ -815,15 +816,14 @@ def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
     return state.block_roots[slot % SLOTS_PER_HISTORICAL_ROOT]
 */
   syntax Hash ::= getBlockRootAtSlot( Int ) [function]
-  rule [[ getBlockRootAtSlot(SLOT) => getBlockRootAtSlotAux(BRS, SLOT %Int SLOTS_PER_HISTORICAL_ROOT)]]
+  rule [[ getBlockRootAtSlot(SLOT) => getBlockRootAtSlotAux(SLOT %Int SLOTS_PER_HISTORICAL_ROOT)]]
     <slot> SSLOT </slot>
-    <block-roots> BRS </block-roots>
     requires SLOT <Int SSLOT andBool SSLOT <=Int (SLOT +Int SLOTS_PER_HISTORICAL_ROOT)
 
-  syntax Hash ::= getBlockRootAtSlotAux( HashList, Int ) [function]
-  rule getBlockRootAtSlotAux(BR BRS, 0) => BR
-  rule getBlockRootAtSlotAux(BR BRS, I) => getBlockRootAtSlotAux(BRS, I -Int 1)
-    requires I >Int 0
+  syntax Hash ::= getBlockRootAtSlotAux( Int ) [function]
+  rule [[ getBlockRootAtSlotAux(SLOT) => BLOCKROOT ]]
+    <block-roots> SLOT |-> BLOCKROOT </block-roots>
+
 
 /*
 def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
@@ -1074,7 +1074,7 @@ def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
     return hash_tree_root(Vector[CompactCommittee, SHARD_COUNT](committees))
 */
   syntax Hash ::= getCompactCommitteesRoot(Int)
-  rule getCompactCommitteesRoot(EPOCH) => 0 // Dummy implementation
+  rule getCompactCommitteesRoot(EPOCH) => 0 // TODO: fix dummy implementation
 
 
 /*
@@ -1407,7 +1407,25 @@ def process_slot(state: BeaconState) -> None:
     previous_block_root = signing_root(state.latest_block_header)
     state.block_roots[state.slot % SLOTS_PER_HISTORICAL_ROOT] = previous_block_root
 */
-//
+  syntax KItem ::= "processSlot" "(" ")"
+  rule <k> processSlot() =>
+             processSlotAux(hashTreeRoot(#Bytes(0,0)), SLOT %Int SLOTS_PER_HISTORICAL_ROOT) // TODO: fix dummy bytes
+       ...</k>
+       <slot> SLOT </slot>
+
+  syntax KItem ::= "processSlotAux" "(" Hash "," Int ")"
+  rule <k> processSlotAux(HTROOT, SLOT) => cacheBlockRoot(SLOT) ... </k>
+       <state-roots> SLOT |-> (_ => HTROOT) </state-roots>
+       <latest-block-header> #BeaconBlockHeader(_,_, BLOCKSTATEROOT =>
+                                                             #if BLOCKSTATEROOT =/=K .BlockHeader
+                                                             #then HTROOT   // TODO: fix dummy hash
+                                                             #else BLOCKSTATEROOT #fi , _,_) </latest-block-header>
+
+  syntax KItem ::= "cacheBlockRoot" "(" Int ")"
+  rule <k> cacheBlockRoot(SLOT) => .K ...</k>
+       <latest-block-header> BHEADER </latest-block-header>
+       <block-roots> SLOT |-> (BLOCKROOT => signingRoot(#Bytes(0,0))) </block-roots> // TODO: fix dummy bytes
+
 
   // State transition function -- Epoch processing
   //====================================================

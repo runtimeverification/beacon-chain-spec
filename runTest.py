@@ -2,6 +2,7 @@
 
 import sys
 import yaml
+import argparse
 
 from functools import reduce
 
@@ -137,11 +138,15 @@ def emptyKLabelsToEmptyTokens(k):
     return newK
 
 if __name__ == "__main__":
-    test_file   = sys.argv[1]
-    output_json = sys.argv[2]
 
-    with open(test_file, "r") as yaml_file:
-        yaml_test = yaml.load(yaml_file, Loader = yaml.FullLoader)
+    arguments = argparse.ArgumentParser(prog = sys.argv[0])
+    arguments.add_argument('command'  , choices = ['parse'])
+    arguments.add_argument('-i', '--input'  , type = argparse.FileType('r'), default = '-')
+    arguments.add_argument('-o', '--output' , type = argparse.FileType('w'), default = '-')
+
+    args = arguments.parse_args()
+
+    yaml_test = yaml.load(args.input, Loader = yaml.FullLoader)
 
     keytable = init_cells
 
@@ -174,6 +179,6 @@ if __name__ == "__main__":
                 , "version" : 1.0
                 , "term"    : substitute(symbolic_configuration, keytable)
                 }
-    with open(output_json, "w") as output_json_file:
-        json.dump(kast_json, output_json_file)
-        printerr("Wrote output file: " + output_json)
+
+    if args.command == 'parse':
+        json.dump(kast_json, args.output)

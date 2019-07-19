@@ -136,4 +136,4 @@ test-operations-minimal: $(operations_minimal_tests:=.test)
 	    $< --debug --no-sort-collections
 
 %.yaml.json: runTest.py %.yaml
-	python3 $^ $@
+	python3 runTest.py parse --input $*.yaml --output $@

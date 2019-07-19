@@ -128,12 +128,7 @@ $(BUILD_DIR)/tests/buildConfig.out: buildConfig.py
 
 operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/operations/*/*_minimal.yaml)
 
-test-operations-minimal: $(operations_minimal_tests:=.test)
+test-operations-minimal: $(operations_minimal_tests:=.test-parse)
 
-%.yaml.test: %.yaml.json $(llvm_kompiled)
-	$(K_BIN)/kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
-	    --input json --output pretty --sort BeaconChainCell \
-	    $< --debug --no-sort-collections
-
-%.yaml.json: runTest.py %.yaml
-	python3 runTest.py parse --input $*.yaml --output $@
+%.yaml.test-parse: %.yaml $(llvm_kompiled)
+	python3 runTest.py parse --input $*.yaml

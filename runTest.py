@@ -3,6 +3,7 @@
 import sys
 import yaml
 import argparse
+import tempfile
 
 from functools import reduce
 
@@ -180,5 +181,9 @@ if __name__ == "__main__":
                 , "term"    : substitute(symbolic_configuration, keytable)
                 }
 
-    if args.command == 'parse':
-        json.dump(kast_json, args.output)
+    with tempfile.NamedTemporaryFile(mode = "w") as tempf:
+        json.dump(kast_json, tempf)
+        tempf.flush()
+        if not kast(".build/defn/llvm", tempf.name, kastArgs = ["--input", "json", "--output", "pretty"]):
+            printerr("[FATAL] kast return non-zero exit code: " + args.input.name + " " + test_case["description"])
+            sys.exit(1)

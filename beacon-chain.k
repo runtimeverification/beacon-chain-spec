@@ -318,12 +318,24 @@ class Fork(Container):
   */
   syntax Fork ::= #Fork( Version, Version, Int ) [klabel(#Fork), symbol]
 
+  syntax Version ::= Fork "." "previousVersion"                       [function]
+  rule #Fork(PV,_,_).previousVersion => PV
+  syntax Version ::= Fork "." "currentVersion"                        [function]
+  rule #Fork(_,CV,_).currentVersion => CV
+  syntax Int ::= Fork "." "epoch"                                     [function]
+  rule #Fork(_,_,EPOCH).epoch => EPOCH
+
   /*
 class Checkpoint(Container):
     epoch: Epoch
     root: Hash
   */
   syntax Checkpoint ::= #Checkpoint( Int, Hash ) [klabel(#Checkpoint), symbol]
+
+  syntax Int ::= Checkpoint "." "epoch"                                     [function]
+  rule #Checkpoint(EPOCH,_).epoch => EPOCH
+  syntax Hash ::= Checkpoint "." "root"                                     [function]
+  rule #Checkpoint(_,ROOT).root => ROOT
 
   /*
 class Validator(Container):
@@ -356,7 +368,6 @@ class Validator(Container):
   syntax Int       ::= Validator "." "withdrawableEpoch"            [function]
   rule #Validator(_,_,_,_,_,_,_, WithdrawableEpoch).withdrawableEpoch => WithdrawableEpoch
 
-
   /*
 class Crosslink(Container):
     shard: Shard
@@ -367,6 +378,17 @@ class Crosslink(Container):
     data_root: Hash
   */
   syntax Crosslink ::= #Crosslink( Int, Hash, Int, Int, Hash ) [klabel(#Crosslink), symbol]
+
+  syntax Int ::= Crosslink "." "shard"                       [function]
+  rule #Crosslink(SHARD, _,_,_,_).shard => SHARD
+  syntax Hash ::= Crosslink "." "parentRoot"                       [function]
+  rule #Crosslink(_,ROOT,_,_,_).parentRoot => ROOT
+  syntax Int ::= Crosslink "." "startEpoch"                       [function]
+  rule #Crosslink(_,_,EPOCH,_,_).startEpoch => EPOCH
+  syntax Int ::= Crosslink "." "endEpoch"                       [function]
+  rule #Crosslink(_,_,_,EPOCH,_).endEpoch => EPOCH
+  syntax Int ::= Crosslink "." "dataRoot"                       [function]
+  rule #Crosslink(_,_,_,_,ROOT).dataRoot => ROOT
 
   /*
 class AttestationData(Container):
@@ -379,6 +401,15 @@ class AttestationData(Container):
     crosslink: Crosslink
   */
   syntax AttestationData ::= #AttestationData( Hash, Checkpoint, Checkpoint, Crosslink ) [klabel(#AttestationData), symbol]
+
+  syntax Hash ::= AttestationData "." "beaconBlockRoot"                       [function]
+  rule #AttestationData(ROOT,_,_,_).beaconBlockRoot => ROOT
+  syntax Checkpoint ::= AttestationData "." "source"                       [function]
+  rule #AttestationData(_,CP,_,_).source => CP
+  syntax Checkpoint ::= AttestationData "." "target"                       [function]
+  rule #AttestationData(_,_,CP,_).target => CP
+  syntax Crosslink ::= AttestationData "." "crosslink"                       [function]
+  rule #AttestationData(_,_,_,CL).crosslink => CL
 
   /*
 class AttestationDataAndCustodyBit(Container):
@@ -413,6 +444,15 @@ class PendingAttestation(Container):
   */
   // TODO: Add constraint on length of BitList (MAX_VALIDATORS_PER_COMMITTEE)
   syntax PendingAttestation ::= #PendingAttestation( BitList, AttestationData, Int, ValidatorIndex ) [klabel(#PendingAttestation), symbol]
+
+  syntax BitList ::= PendingAttestation "." "aggregationBits"                           [function]
+  rule #PendingAttestation(BITS,_,_,_).aggregationBits => BITS
+  syntax AttestationData ::= PendingAttestation "." "data"                              [function]
+  rule #PendingAttestation(_,DATA,_,_).data => DATA
+  syntax Int ::= PendingAttestation "." "inclusionDelay"                                [function]
+  rule #PendingAttestation(_,_,SLOT,_).inclusionDelay => SLOT
+  syntax ValidatorIndex ::= PendingAttestation "." "proposerIndex"                      [function]
+  rule #PendingAttestation(_,_,_,VI).proposerIndex => VI
 
   /*
 class Eth1Data(Container):
@@ -1393,7 +1433,27 @@ def process_slots(state: BeaconState, slot: Slot) -> None:
             process_epoch(state)
         state.slot += Slot(1)
 */
-//
+  syntax KItem ::= "processSlots" "(" Int ")"
+  rule <k> processSlots(SLOT) => processSlotsLoop(SLOT) ...</k>
+       <slot> SSLOT </slot>
+    requires SSLOT <=Int SLOT
+
+  syntax KItem ::= "processSlotsLoop" "(" Int ")"
+  rule <k> processSlotsLoop(SLOT) =>
+             processSlot()   ~>
+             #if (SSLOT +Int 1) %Int SLOTS_PER_EPOCH ==K 0 #then processEpoch() #else .K #fi ~>
+             incrementSlot() ~>
+             processSlotsLoop(SLOT) ...</k>
+       <slot> SSLOT </slot>
+    requires SSLOT <Int SLOT
+
+  rule <k> processSlotsLoop(SLOT) => .K ... </k>
+       <slot> SSLOT </slot>
+    requires SSLOT >=Int SLOT
+
+  syntax KItem ::= "incrementSlot" "(" ")"
+  rule <k> incrementSlot() => .K ...</k>
+       <slot> SLOT => SLOT +Int 1 </slot>
 
 /*
 def process_slot(state: BeaconState) -> None:
@@ -1442,13 +1502,19 @@ def process_epoch(state: BeaconState) -> None:
     # @after_process_final_updates
 */
 //
+  syntax KItem ::= "processEpoch" "(" ")"  // TODO: complete the definition
 
 /*
 def get_matching_source_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
     assert epoch in (get_previous_epoch(state), get_current_epoch(state))
     return state.current_epoch_attestations if epoch == get_current_epoch(state) else state.previous_epoch_attestations
 */
-//
+  syntax PendingAttestationList ::= getMatchingSourceAttestations(Int) [function]
+  rule [[ getMatchingSourceAttestations(EPOCH) =>
+    #if EPOCH ==K getCurrentEpoch() #then CEA #else PEA #fi ]]
+    <current-epoch-attestations> CEA </current-epoch-attestations>
+    <previous-epoch-attestations> PEA </previous-epoch-attestations>
+
 
 /*
 def get_matching_target_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
@@ -1457,7 +1523,16 @@ def get_matching_target_attestations(state: BeaconState, epoch: Epoch) -> Sequen
         if a.data.target.root == get_block_root(state, epoch)
     ]
 */
-//
+  syntax PendingAttestationList ::= getMatchingTargetAttestations(Int) [function]
+  rule getMatchingTargetAttestations(EPOCH) =>
+         filterOutNonMatchingTargets(getMatchingSourceAttestations(EPOCH), EPOCH, .PendingAttestationList)
+
+  syntax PendingAttestationList ::= filterOutNonMatchingTargets(PendingAttestationList, Int, PendingAttestationList)
+  rule filterOutNonMatchingTargets(PA PAL => PAL, EPOCH, PAL' => PAL' PA)
+    when PA.data.target.root ==K getBlockRoot(EPOCH)
+  rule filterOutNonMatchingTargets(PA PAL => PAL, EPOCH, PAL')
+    when PA.data.target.root =/=K getBlockRoot(EPOCH)
+  rule filterOutNonMatchingTargets(.PendingAttestationList, EPOCH, PAL') => PAL'
 
 /*
 def get_matching_head_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
@@ -1466,7 +1541,17 @@ def get_matching_head_attestations(state: BeaconState, epoch: Epoch) -> Sequence
         if a.data.beacon_block_root == get_block_root_at_slot(state, get_attestation_data_slot(state, a.data))
     ]
 */
-//
+  syntax PendingAttestationList ::= getMatchingHeadAttestations(Int) [function]
+  rule getMatchingHeadAttestations(EPOCH) =>
+         filterOutNonMatchingHeads(getMatchingSourceAttestations(EPOCH), .PendingAttestationList)
+
+  syntax PendingAttestationList ::= filterOutNonMatchingHeads(PendingAttestationList, PendingAttestationList)
+  rule filterOutNonMatchingHeads(PA PAL => PAL, PAL' => PAL' PA)
+    when PA.data.beaconBlockRoot ==K getBlockRootAtSlot(getAttestationDataSlot(PA.data))
+  rule filterOutNonMatchingHeads(PA PAL => PAL, PAL')
+    when PA.data.beaconBlockRoot =/=K getBlockRootAtSlot(getAttestationDataSlot(PA.data))
+  rule filterOutNonMatchingHeads(.PendingAttestationList, PAL') => PAL'
+
 
 /*
 def get_unslashed_attesting_indices(state: BeaconState,
@@ -1476,13 +1561,14 @@ def get_unslashed_attesting_indices(state: BeaconState,
         output = output.union(get_attesting_indices(state, a.data, a.aggregation_bits))
     return set(filter(lambda index: not state.validators[index].slashed, list(output)))
 */
-//
+  syntax IntList ::= getUnslashedAttestingIndices(PendingAttestationList) [function]  // TODO: complete the defn
 
 /*
 def get_attesting_balance(state: BeaconState, attestations: Sequence[PendingAttestation]) -> Gwei:
     return get_total_balance(state, get_unslashed_attesting_indices(state, attestations))
 */
-//
+  syntax Int ::= getAttestingBalance(PendingAttestationList) [function]
+  rule getAttestingBalance(PAL) => getTotalBalance(getUnslashedAttestingIndices(PAL))
 
 /*
 def get_winning_crosslink_and_attesting_indices(state: BeaconState,

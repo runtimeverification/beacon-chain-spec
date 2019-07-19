@@ -151,39 +151,37 @@ if __name__ == "__main__":
 
     keytable = init_cells
 
-    # **TODO**: We need to run all the tests:
-    # for test_case in yaml_test['test_cases']:
-    test_case = yaml_test['test_cases'][0]
+    for test_case in yaml_test['test_cases']:
+        printerr("test file: " + args.input.name)
+        printerr("test description: " + test_case['description'])
 
-    printerr("test description: " + test_case['description'])
+        for pre_key in test_case['pre'].keys():
+            test_pre = test_case['pre'][pre_key]
+            if pre_key in pre_keys:
+                (cell_var, converter) = pre_keys[pre_key]
+                if cell_var in keytable:
+                    keytable[cell_var] = converter(test_pre)
+                else:
+                    printerr("unimplemented pre-key: " + str(pre_key) + " -> " + str(test_pre))
+            elif len(str(test_pre)) < 3:
+                printerr("unused pre-key: " + pre_key)
 
-    for pre_key in test_case['pre'].keys():
-        test_pre = test_case['pre'][pre_key]
-        if pre_key in pre_keys:
-            (cell_var, converter) = pre_keys[pre_key]
-            if cell_var in keytable:
-                keytable[cell_var] = converter(test_pre)
-            else:
-                printerr("unimplemented pre-key: " + str(pre_key) + " -> " + str(test_pre))
-        elif len(str(test_pre)) < 3:
-            printerr("unused pre-key: " + pre_key)
+        if 'transfer' in test_case:
+            printerr("Skipping transfer block!")
 
-    if 'transfer' in test_case:
-        printerr("Skipping transfer block!")
+        if test_case['post'] is None:
+            printerr("No post condition!")
+        else:
+            printerr("Skipping post block!")
 
-    if test_case['post'] is None:
-        printerr("No post condition!")
-    else:
-        printerr("Skipping post block!")
+        kast_json = { "format"  : "KAST"
+                    , "version" : 1.0
+                    , "term"    : substitute(symbolic_configuration, keytable)
+                    }
 
-    kast_json = { "format"  : "KAST"
-                , "version" : 1.0
-                , "term"    : substitute(symbolic_configuration, keytable)
-                }
-
-    with tempfile.NamedTemporaryFile(mode = "w") as tempf:
-        json.dump(kast_json, tempf)
-        tempf.flush()
-        if not kast(".build/defn/llvm", tempf.name, kastArgs = ["--input", "json", "--output", "pretty"]):
-            printerr("[FATAL] kast return non-zero exit code: " + args.input.name + " " + test_case["description"])
-            sys.exit(1)
+        with tempfile.NamedTemporaryFile(mode = "w") as tempf:
+            json.dump(kast_json, tempf)
+            tempf.flush()
+            if not kast(".build/defn/llvm", tempf.name, kastArgs = ["--input", "json", "--output", "pretty"]):
+                printerr("[FATAL] kast return non-zero exit code: " + args.input.name + " " + test_case["description"])
+                sys.exit(1)

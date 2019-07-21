@@ -114,13 +114,13 @@ class ProposerSlashing(Container):
           <block-eth1-data> .Eth1Data </block-eth1-data> // added "block-" prefix to name to resolve conflicting cell names
           <graffiti> -1 </graffiti>
           <proposer-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
-          	            <proposer-slashing multiplicity="*" type="Map">
-          	              <proposer-slashing-index> -1 </proposer-slashing-index>
-          	              <proposer-index> -1 </proposer-index>
-          	              <header1> .BlockHeader </header1>
-          	              <header2> .BlockHeader </header2>
-          	            </proposer-slashing>
-          	          </proposer-slashings>
+            <proposer-slashing multiplicity="*" type="Map">
+              <proposer-slashing-index> -1 </proposer-slashing-index>
+              <proposer-index> -1 </proposer-index>
+              <header1> .BlockHeader </header1>
+              <header2> .BlockHeader </header2>
+            </proposer-slashing>
+          </proposer-slashings>
           <attester-slashings> .AttesterSlashingList </attester-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
           <attestations> .AttestationList </attestations> //List[Attestation, MAX_ATTESTATIONS]
           <deposits> .DepositList </deposits> //List[Deposit, MAX_DEPOSITS]
@@ -497,6 +497,16 @@ class BeaconBlockHeader(Container):
     signature: BLSSignature
   */
   syntax BeaconBlockHeader ::= #BeaconBlockHeader( Int, Hash, Hash, Hash, BLSSignature ) [klabel(#BeaconBlockHeader), symbol]
+
+  //Cannot use "slot", conflicts with cell <slot>
+  syntax Int  ::= BeaconBlockHeader "." "_slot"        [function]
+  rule #BeaconBlockHeader(SLOT, _,_,_,_) => SLOT
+  syntax Hash ::= BeaconBlockHeader "." "parent_root"  [function]
+  rule #BeaconBlockHeader(_,ParentRoot, _,_,_) => ParentRoot
+  syntax Hash ::= BeaconBlockHeader "." "state_root"   [function]
+  rule #BeaconBlockHeader(_,_,StateRoot, _,_) => StateRoot
+  syntax Hash ::= BeaconBlockHeader "." "body_root"    [function]
+  rule #BeaconBlockHeader(_,_,_,BodyRoot, _) => BodyRoot
 
   /*
 class AttesterSlashing(Container):
@@ -2008,7 +2018,16 @@ def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSla
 
     slash_validator(state, proposer_slashing.proposer_index)
 */
-//
+  syntax KItem ::= "processProposerSlashing" "(" Int /*propsoer_slashing_index*/ ")"
+  rule <k> processProposerSlashing(SlashingIndex) => slashValidator(ProposerIndex, .K) ...</k>
+       <proposer-slashing-index> SlashingIndex </proposer-slashing-index>
+         <proposer-index> ProposerIndex </proposer-index>
+         <header1> HEAD1 </header1>
+         <header2> HEAD2 </header2>
+       <validators> ProposerIndex |-> VAL ...</validators>
+    requires computeEpochOfSlot(HEAD1._slot) ==Int computeEpochOfSlot(HEAD2._slot)
+     andBool HEAD1 =/=K HEAD2
+     andBool isSlashableValidator(VAL, getCurrentEpoch())
 
 /*
 def process_attester_slashing(state: BeaconState, attester_slashing: AttesterSlashing) -> None:

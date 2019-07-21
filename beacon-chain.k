@@ -97,8 +97,8 @@ class ProposerSlashing(Container):
         <current-epoch-attestations> .PendingAttestationList </current-epoch-attestations>
                                                        //List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
         // Crosslinks
-        <previous-crosslinks> .CrosslinkList </previous-crosslinks> //Vector[Crosslink, SHARD_COUNT]
-        <current-crosslinks> .CrosslinkList </current-crosslinks> //Vector[Crosslink, SHARD_COUNT]
+        <previous-crosslinks> .Map </previous-crosslinks> //Vector[Crosslink, SHARD_COUNT]
+        <current-crosslinks> .Map </current-crosslinks> //Vector[Crosslink, SHARD_COUNT]
         // Finality
         <justification-bits> .BitList </justification-bits> //Bitvector[JUSTIFICATION_BITS_LENGTH]
         <previous-justified-checkpoint> .Checkpoint </previous-justified-checkpoint>
@@ -524,6 +524,12 @@ class Attestation(Container):
   */
   // TODO: Add constraint on lengths of both BitList lists (MAX_VALIDATORS_PER_COMMITTEE)
   syntax Attestation ::= #Attestation( BitList, AttestationData, BitList, BLSSignature )
+
+  syntax BitList ::= Attestation "." "aggregation_bits" [function]
+  rule #Attestation(AggrBITS, _,_,_).aggregation_bits => AggrBITS
+  syntax AttestationData ::= Attestation "." "_data"    [function]
+  rule #Attestation(_, AttDATA, _,_)._data => AttDATA
+
 
   /*
 class Deposit(Container):
@@ -2103,7 +2109,51 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
     # Check signature
     assert is_valid_indexed_attestation(state, get_indexed_attestation(state, attestation))
 */
-//
+  syntax KItem ::= "process_attestation" "(" Attestation ")"
+  rule <k> process_attestation( ATT )
+           => process_attestation_if(ATT, #PendingAttestation(ATT.aggregation_bits,
+                                                              ATT._data,
+                                                              SLOT -Int getAttestationDataSlot(ATT._data),
+                                                              getBeaconProposerIndex()))
+       ...</k>
+       <slot> SLOT </slot>
+    requires ATT._data.crosslink.shard <Int SHARD_COUNT
+     andBool SetItem(ATT._data.target.epoch) in SetItem(getPreviousEpoch()) SetItem(getCurrentEpoch())
+     andBool getAttestationDataSlot(ATT._data) +Int MIN_ATTESTATION_INCLUSION_DELAY <=Int SLOT
+     andBool SLOT <=Int getAttestationDataSlot(ATT._data) +Int SLOTS_PER_EPOCH
+
+  //logic starting from if statement inside `process_attestation`
+  syntax KItem ::= "process_attestation_if" "(" Attestation "," PendingAttestation ")"
+
+  //if case true
+  rule <k> process_attestation_if(ATT, PendingATT)
+          => process_attestation_after_if(ATT, CurrentCrosslink) ...</k>
+    <current-justified-checkpoint> CurrJustCHECKP </current-justified-checkpoint>
+    <current-crosslinks> CurrentCrosslinkKey |-> CurrentCrosslink ...</current-crosslinks>
+    <current-epoch-attestations> CurrEpochATT => CurrEpochATT PendingATT </current-epoch-attestations>
+    requires ATT._data.target.epoch ==Int getCurrentEpoch() //if condition
+     andBool CurrentCrosslinkKey ==Int ATT._data.crosslink.shard
+     andBool ATT._data.source ==K CurrJustCHECKP
+
+  //if case false
+  rule <k> process_attestation_if(ATT, PendingATT)
+          => process_attestation_after_if(ATT, PrevCrosslink) ...</k>
+    <previous-justified-checkpoint> PrevJustCHECKP </previous-justified-checkpoint>
+    <previous-crosslinks> PrevCrosslinkKey |-> PrevCrosslink ...</previous-crosslinks>
+    <previous-epoch-attestations> PrevEpochATT => PrevEpochATT PendingATT </previous-epoch-attestations>
+    requires ATT._data.target.epoch =/=Int getCurrentEpoch() //if condition
+     andBool PrevCrosslinkKey ==Int ATT._data.crosslink.shard
+     andBool ATT._data.source ==K PrevJustCHECKP
+
+  //after if inside `process_attestation`
+  syntax KItem ::= "process_attestation_after_if" "(" Attestation "," Crosslink ")"
+  rule process_attestation_after_if(ATT, ParentCrosslink ) => .K
+     //assert data.crosslink.parent_root == hash_tree_root(parent_crosslink) todo is it needed?
+    requires ATT._data.crosslink.startEpoch ==Int ParentCrosslink.endEpoch
+     andBool ATT._data.crosslink.endEpoch ==Int minInt(ATT._data.target.epoch, ParentCrosslink.endEpoch +Int MAX_EPOCHS_PER_CROSSLINK)
+     //assert data.crosslink.data_root == Hash()
+     andBool isValidIndexedAttestation(getIndexedAttestation(ATT))
+
 
 /*
 def process_deposit(state: BeaconState, deposit: Deposit) -> None:

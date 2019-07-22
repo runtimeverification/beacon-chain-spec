@@ -2261,7 +2261,14 @@ def process_voluntary_exit(state: BeaconState, exit: VoluntaryExit) -> None:
     # Initiate exit
     initiate_validator_exit(state, exit.validator_index)
 */
-//
+  syntax KItem ::= "process_voluntary_exit" "(" VoluntaryExit ")"
+
+  rule <k> process_voluntary_exit(#VoluntaryExit(ExitEPOCH, ValINDEX, _)) => initiateValidatorExit(ValINDEX) ...</k>
+       <validators> ValINDEX |-> VAL ...</validators>
+    requires isActiveValidator(VAL, getCurrentEpoch())
+     andBool VAL.exitEpoch ==Int FAR_FUTURE_EPOCH
+     andBool getCurrentEpoch() >=Int ExitEPOCH
+     andBool getCurrentEpoch() >=Int VAL.activationEpoch +Int PERSISTENT_COMMITTEE_PERIOD
 
 /*
 def process_transfer(state: BeaconState, transfer: Transfer) -> None:

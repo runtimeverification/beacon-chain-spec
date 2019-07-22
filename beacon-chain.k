@@ -97,8 +97,8 @@ class ProposerSlashing(Container):
         <current-epoch-attestations> .PendingAttestationList </current-epoch-attestations>
                                                        //List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
         // Crosslinks
-        <previous-crosslinks> .CrosslinkList </previous-crosslinks> //Vector[Crosslink, SHARD_COUNT]
-        <current-crosslinks> .CrosslinkList </current-crosslinks> //Vector[Crosslink, SHARD_COUNT]
+        <previous-crosslinks> .Map </previous-crosslinks> //Vector[Crosslink, SHARD_COUNT]
+        <current-crosslinks> .Map </current-crosslinks> //Vector[Crosslink, SHARD_COUNT]
         // Finality
         <justification-bits> .BitList </justification-bits> //Bitvector[JUSTIFICATION_BITS_LENGTH]
         <previous-justified-checkpoint> .Checkpoint </previous-justified-checkpoint>
@@ -114,13 +114,13 @@ class ProposerSlashing(Container):
           <block-eth1-data> .Eth1Data </block-eth1-data> // added "block-" prefix to name to resolve conflicting cell names
           <graffiti> -1 </graffiti>
           <proposer-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
-          	            <proposer-slashing multiplicity="*" type="Map">
-          	              <proposer-slashing-index> -1 </proposer-slashing-index>
-          	              <proposer-index> -1 </proposer-index>
-          	              <header1> .BlockHeader </header1>
-          	              <header2> .BlockHeader </header2>
-          	            </proposer-slashing>
-          	          </proposer-slashings>
+            <proposer-slashing multiplicity="*" type="Map">
+              <proposer-slashing-index> -1 </proposer-slashing-index>
+              <proposer-index> -1 </proposer-index>
+              <header1> .BlockHeader </header1>
+              <header2> .BlockHeader </header2>
+            </proposer-slashing>
+          </proposer-slashings>
           <attester-slashings> .AttesterSlashingList </attester-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
           <attestations> .AttestationList </attestations> //List[Attestation, MAX_ATTESTATIONS]
           <deposits> .DepositList </deposits> //List[Deposit, MAX_DEPOSITS]
@@ -498,6 +498,16 @@ class BeaconBlockHeader(Container):
   */
   syntax BeaconBlockHeader ::= #BeaconBlockHeader( Int, Hash, Hash, Hash, BLSSignature ) [klabel(#BeaconBlockHeader), symbol]
 
+  //Cannot use "slot", conflicts with cell <slot>
+  syntax Int  ::= BeaconBlockHeader "." "_slot"        [function]
+  rule #BeaconBlockHeader(SLOT, _,_,_,_)._slot => SLOT
+  syntax Hash ::= BeaconBlockHeader "." "parent_root"  [function]
+  rule #BeaconBlockHeader(_,ParentRoot, _,_,_).parent_root => ParentRoot
+  syntax Hash ::= BeaconBlockHeader "." "state_root"   [function]
+  rule #BeaconBlockHeader(_,_,StateRoot, _,_).state_root => StateRoot
+  syntax Hash ::= BeaconBlockHeader "." "body_root"    [function]
+  rule #BeaconBlockHeader(_,_,_,BodyRoot, _).body_root => BodyRoot
+
   /*
 class AttesterSlashing(Container):
     attestation_1: IndexedAttestation
@@ -514,6 +524,12 @@ class Attestation(Container):
   */
   // TODO: Add constraint on lengths of both BitList lists (MAX_VALIDATORS_PER_COMMITTEE)
   syntax Attestation ::= #Attestation( BitList, AttestationData, BitList, BLSSignature )
+
+  syntax BitList ::= Attestation "." "aggregation_bits" [function]
+  rule #Attestation(AggrBITS, _,_,_).aggregation_bits => AggrBITS
+  syntax AttestationData ::= Attestation "." "_data"    [function]
+  rule #Attestation(_, AttDATA, _,_)._data => AttDATA
+
 
   /*
 class Deposit(Container):
@@ -2008,7 +2024,16 @@ def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSla
 
     slash_validator(state, proposer_slashing.proposer_index)
 */
-//
+  syntax KItem ::= "processProposerSlashing" "(" Int /*propsoer_slashing_index*/ ")"
+  rule <k> processProposerSlashing(SlashingIndex) => slashValidator(ProposerIndex, .K) ...</k>
+       <proposer-slashing-index> SlashingIndex </proposer-slashing-index>
+         <proposer-index> ProposerIndex </proposer-index>
+         <header1> HEAD1 </header1>
+         <header2> HEAD2 </header2>
+       <validators> ProposerIndex |-> VAL ...</validators>
+    requires computeEpochOfSlot(HEAD1._slot) ==Int computeEpochOfSlot(HEAD2._slot)
+     andBool HEAD1 =/=K HEAD2
+     andBool isSlashableValidator(VAL, getCurrentEpoch())
 
 /*
 def process_attester_slashing(state: BeaconState, attester_slashing: AttesterSlashing) -> None:
@@ -2084,7 +2109,51 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
     # Check signature
     assert is_valid_indexed_attestation(state, get_indexed_attestation(state, attestation))
 */
-//
+  syntax KItem ::= "process_attestation" "(" Attestation ")"
+  rule <k> process_attestation( ATT )
+           => process_attestation_if(ATT, #PendingAttestation(ATT.aggregation_bits,
+                                                              ATT._data,
+                                                              SLOT -Int getAttestationDataSlot(ATT._data),
+                                                              getBeaconProposerIndex()))
+       ...</k>
+       <slot> SLOT </slot>
+    requires ATT._data.crosslink.shard <Int SHARD_COUNT
+     andBool SetItem(ATT._data.target.epoch) in SetItem(getPreviousEpoch()) SetItem(getCurrentEpoch())
+     andBool getAttestationDataSlot(ATT._data) +Int MIN_ATTESTATION_INCLUSION_DELAY <=Int SLOT
+     andBool SLOT <=Int getAttestationDataSlot(ATT._data) +Int SLOTS_PER_EPOCH
+
+  //logic starting from if statement inside `process_attestation`
+  syntax KItem ::= "process_attestation_if" "(" Attestation "," PendingAttestation ")"
+
+  //if case true
+  rule <k> process_attestation_if(ATT, PendingATT)
+          => process_attestation_after_if(ATT, CurrentCrosslink) ...</k>
+    <current-justified-checkpoint> CurrJustCHECKP </current-justified-checkpoint>
+    <current-crosslinks> CurrentCrosslinkKey |-> CurrentCrosslink ...</current-crosslinks>
+    <current-epoch-attestations> CurrEpochATT => CurrEpochATT PendingATT </current-epoch-attestations>
+    requires ATT._data.target.epoch ==Int getCurrentEpoch() //if condition
+     andBool CurrentCrosslinkKey ==Int ATT._data.crosslink.shard
+     andBool ATT._data.source ==K CurrJustCHECKP
+
+  //if case false
+  rule <k> process_attestation_if(ATT, PendingATT)
+          => process_attestation_after_if(ATT, PrevCrosslink) ...</k>
+    <previous-justified-checkpoint> PrevJustCHECKP </previous-justified-checkpoint>
+    <previous-crosslinks> PrevCrosslinkKey |-> PrevCrosslink ...</previous-crosslinks>
+    <previous-epoch-attestations> PrevEpochATT => PrevEpochATT PendingATT </previous-epoch-attestations>
+    requires ATT._data.target.epoch =/=Int getCurrentEpoch() //if condition
+     andBool PrevCrosslinkKey ==Int ATT._data.crosslink.shard
+     andBool ATT._data.source ==K PrevJustCHECKP
+
+  //after if inside `process_attestation`
+  syntax KItem ::= "process_attestation_after_if" "(" Attestation "," Crosslink ")"
+  rule process_attestation_after_if(ATT, ParentCrosslink ) => .K
+     //assert data.crosslink.parent_root == hash_tree_root(parent_crosslink) todo is it needed?
+    requires ATT._data.crosslink.startEpoch ==Int ParentCrosslink.endEpoch
+     andBool ATT._data.crosslink.endEpoch ==Int minInt(ATT._data.target.epoch, ParentCrosslink.endEpoch +Int MAX_EPOCHS_PER_CROSSLINK)
+     //assert data.crosslink.data_root == Hash()
+     andBool isValidIndexedAttestation(getIndexedAttestation(ATT))
+
 
 /*
 def process_deposit(state: BeaconState, deposit: Deposit) -> None:

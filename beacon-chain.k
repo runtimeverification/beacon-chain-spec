@@ -500,13 +500,13 @@ class BeaconBlockHeader(Container):
 
   //Cannot use "slot", conflicts with cell <slot>
   syntax Int  ::= BeaconBlockHeader "." "_slot"        [function]
-  rule #BeaconBlockHeader(SLOT, _,_,_,_) => SLOT
+  rule #BeaconBlockHeader(SLOT, _,_,_,_)._slot => SLOT
   syntax Hash ::= BeaconBlockHeader "." "parent_root"  [function]
-  rule #BeaconBlockHeader(_,ParentRoot, _,_,_) => ParentRoot
+  rule #BeaconBlockHeader(_,ParentRoot, _,_,_).parent_root => ParentRoot
   syntax Hash ::= BeaconBlockHeader "." "state_root"   [function]
-  rule #BeaconBlockHeader(_,_,StateRoot, _,_) => StateRoot
+  rule #BeaconBlockHeader(_,_,StateRoot, _,_).state_root => StateRoot
   syntax Hash ::= BeaconBlockHeader "." "body_root"    [function]
-  rule #BeaconBlockHeader(_,_,_,BodyRoot, _) => BodyRoot
+  rule #BeaconBlockHeader(_,_,_,BodyRoot, _).body_root => BodyRoot
 
   /*
 class AttesterSlashing(Container):

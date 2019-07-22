@@ -479,6 +479,13 @@ class DepositData(Container):
   */
   syntax DepositData ::= #DepositData( BLSPubkey, Hash, Int, BLSSignature )
 
+  syntax BLSPubkey  ::= DepositData "." "pubkey"                  [function]
+  rule #DepositData( PUBKEY, _,_,_ ).pubkey => PUBKEY
+  syntax Hash       ::= DepositData "." "withdrawal_credentials"  [function]
+  rule #DepositData( _, WC, _,_ ).withdrawal_credentials => WC
+  syntax Int        ::= DepositData "." "amount"                  [function]
+  rule #DepositData( _,_, AMOUNT, _ ).amount => AMOUNT
+
   /*
 class CompactCommittee(Container):
     pubkeys: List[Bytes48, MAX_VALIDATORS_PER_COMMITTEE]
@@ -538,6 +545,10 @@ class Deposit(Container):
   */
   // TODO: Add constraint on length of HashList (DEPOSIT_CONTRACT_TREE_DEPTH + 1)
   syntax Deposit ::= #Deposit( HashList, DepositData )
+
+  syntax DepositData ::= Deposit "." "data" [function]
+  rule #Deposit(_, DATA).data => DATA
+
 
   /*
 class VoluntaryExit(Container):
@@ -2196,7 +2207,42 @@ def process_deposit(state: BeaconState, deposit: Deposit) -> None:
         index = ValidatorIndex(validator_pubkeys.index(pubkey))
         increase_balance(state, index, amount)
 */
-//
+  //todo not implemented: is_valid_merkle_branch, bls_verify
+  syntax KItem ::= "process_deposit" "(" Deposit ")"
+
+  //case pubkey in validator_pubkeys
+  rule <k> process_deposit(DEP) => increaseBalance(getValidatorIndexByPubkey(DEP.data.pubkey), DEP.data.amount) ...</k>
+    <eth1-deposit-index> EDI => EDI +Int 1 </eth1-deposit-index>
+    requires getValidatorIndexByPubkey(DEP.data.pubkey) =/=K .ValidatorIndex
+
+  //case pubkey not in validator_pubkeys
+  rule <k> process_deposit(DEP) => .K ...</k>
+    <eth1-deposit-index> EDI => EDI +Int 1 </eth1-deposit-index>
+    <validators>
+      VALIDATORS
+      (.Map => size(VALIDATORS) |-> #Validator(DEP.data.pubkey,
+                                               DEP.data.withdrawal_credentials,
+                                               minInt(DEP.data.amount
+                                                  -Int DEP.data.amount %Int EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE),
+                                               false,
+                                               FAR_FUTURE_EPOCH,
+                                               FAR_FUTURE_EPOCH,
+                                               FAR_FUTURE_EPOCH,
+                                               FAR_FUTURE_EPOCH ) )
+    </validators>
+    <balances> .Map => size(VALIDATORS) |->  DEP.data.amount ...</balances>
+    requires getValidatorIndexByPubkey(DEP.data.pubkey) ==K .ValidatorIndex
+
+  syntax ValidatorIndex ::= getValidatorIndexByPubkey( BLSPubkey )                      [function]
+                          | getValidatorIndexByPubkey( BLSPubkey, Map /*Validators*/ )  [function]
+  rule [[ getValidatorIndexByPubkey(PUBKEY) =>  getValidatorIndexByPubkey(PUBKEY, VALIDATORS) ]]
+    <validators> VALIDATORS </validators>
+  rule getValidatorIndexByPubkey(PUBKEY, _:Map (I |-> VAL:Validator => .Map))
+    requires VAL.pubkey =/=K PUBKEY
+  rule getValidatorIndexByPubkey(PUBKEY, _:Map (I |-> VAL:Validator)) => I
+    requires VAL.pubkey ==K PUBKEY
+  rule getValidatorIndexByPubkey(_, .Map) => .ValidatorIndex
+
 
 /*
 def process_voluntary_exit(state: BeaconState, exit: VoluntaryExit) -> None:

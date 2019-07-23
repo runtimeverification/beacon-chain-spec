@@ -2188,7 +2188,37 @@ def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
         for operation in operations:
             function(state, operation)
 */
-//
+  syntax KItem ::= "process_operations" "(" ")"
+  rule <k> process_operations()
+           => process_operations_aux(ProposerSlashings, AttesterSlashings, Attestations, Deposits, VoluntaryExits, Transfers) ...</k>
+    <proposer-slashings> ProposerSlashings </proposer-slashings>
+    <attester-slashings> AttesterSlashings </attester-slashings>
+    <attestations> Attestations </attestations>
+    <deposits> Deposits </deposits>
+    <voluntary-exits> VoluntaryExits </voluntary-exits>
+    <transfers> Transfers </transfers>
+
+  //todo more precise type instead of K for 1st arg. ProposerSlashingCellMap ?
+  syntax KItem ::= "process_operations_aux" "(" K "," AttesterSlashingList "," AttestationList
+                                            "," DepositList "," VoluntaryExitList "," TransferList ")"
+
+  //todo throws "Internal: Uncaught exception thrown of type NoSuchElementException (key not found: #cells) should work
+  /*rule (. => processProposerSlashing(INDEX))
+       ~> process_operations_aux( <proposer-slashing> <proposer-index> INDEX </proposer-index> ...</proposer-slashing> BAG => BAG, _,_,_,_,_ )*/
+  rule (. => processAttesterSlashing(AttSlashing))
+       ~> process_operations_aux(.ProposerSlashingCellMap, AttSlashing:AttesterSlashing L => L, _,_,_,_ )
+  rule (. => process_attestation(Att))
+       ~> process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, Att:Attestation L => L, _,_,_ )
+  rule (. => process_deposit(DEP))
+       ~> process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, DEP:Deposit L => L, _,_ )
+  rule (. => process_voluntary_exit(VolEX))
+       ~> process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, .DepositList,
+                                 VolEX:VoluntaryExit L => L, _ )
+  rule (. => process_transfer(TR))
+       ~> process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, .DepositList,
+                                 .VoluntaryExitList, TR:Transfer L => L )
+  rule process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, _ .DepositList,
+                              .VoluntaryExitList, .TransferList ) => .K
 
 /*
 def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSlashing) -> None:

@@ -1588,7 +1588,22 @@ def get_unslashed_attesting_indices(state: BeaconState,
         output = output.union(get_attesting_indices(state, a.data, a.aggregation_bits))
     return set(filter(lambda index: not state.validators[index].slashed, list(output)))
 */
-  syntax IntList ::= getUnslashedAttestingIndices(PendingAttestationList) [function]  // TODO: complete the defn
+  syntax IntList ::= getUnslashedAttestingIndices(PendingAttestationList) [function]
+  rule getUnslashedAttestingIndices(PAL) => filterOutSlashedIndices(getAttestingIndicesLoop(PAL, .IntList))
+
+  // merging, instead of concatenation, of lists is performed
+  syntax IntList ::= getAttestingIndicesLoop(PendingAttestationList, IntList) [function]
+  rule getAttestingIndicesLoop(PA PAL => PAL, IL => (IL ++IntList getAttestingIndices(PA.data, PA.aggregationBits)))
+  rule getAttestingIndicesLoop(.PendingAttestationList, IL) => IL
+
+  syntax IntList ::= filterOutSlashedIndices(IntList) [function]
+  rule [[ filterOutSlashedIndices(I IL) => #if VAL.slashed
+                                           #then filterOutSlashedIndices(IL)
+                                           #else I filterOutSlashedIndices(IL)
+                                           #fi ]]
+    <validators>... I |-> VAL ...</validators>
+
+  rule filterOutSlashedIndices(.IntList) => .IntList
 
 /*
 def get_attesting_balance(state: BeaconState, attestations: Sequence[PendingAttestation]) -> Gwei:
@@ -1614,6 +1629,163 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
     return winning_crosslink, get_unslashed_attesting_indices(state, winning_attestations)
 */
 //
+  syntax CrosslinkIntListPair ::= #crosslinkIntListPair(Crosslink, IntList)
+
+  syntax Crosslink ::= fst(CrosslinkIntListPair) [function]
+  rule  fst(#crosslinkIntListPair(CL,_)) => CL
+  syntax IntList ::= snd(CrosslinkIntListPair) [function]
+  rule  snd(#crosslinkIntListPair(_,IL)) => IL
+
+  syntax CrosslinkIntListPair ::= getWinningCrosslinkAndAttestingIndices(Int, Int) [function]
+
+  // attestations == filterMatchingShard(getMatchingSourceAttestations(EP), SHARD, .PendingAttestationList)
+  // crosslinks == getShardCrosslinks(crosslinksOf(attestations), .CrosslinkList)
+  // winning_crosslink == maxBasedOnDataRoot(maxBasedOnBalance(crosslinks, epoch, shard))
+  // winning_attestations == filterMatchingCrosslink( attestations )
+
+  rule getWinningCrosslinkAndAttestingIndices(EPOCH, SHARD) =>
+    #crosslinkIntListPair( //winning crosslink
+                           maxBasedOnDataRoot(
+                             maxBasedOnBalance(
+                               getShardCrosslinks(
+                                 crosslinksOf(
+                                   filterMatchingShard(
+                                     getMatchingSourceAttestations(EPOCH),
+                                     SHARD,
+                                     .PendingAttestationList
+                                   )
+                                 ), SHARD, .CrosslinkList),
+                               EPOCH,
+                               SHARD
+                             )
+                           ),
+                           //Unslashed attesting indices (list)
+                           getUnslashedAttestingIndices(
+                             filterMatchingCrosslink(
+                               filterMatchingShard(
+                                 getMatchingSourceAttestations(EPOCH),
+                                 SHARD,
+                                 .PendingAttestationList
+                               ),
+                               maxBasedOnDataRoot(
+                                 maxBasedOnBalance(
+                                   getShardCrosslinks(
+                                     crosslinksOf(
+                                       filterMatchingShard(
+                                         getMatchingSourceAttestations(EPOCH),
+                                         SHARD,
+                                         .PendingAttestationList
+                                       )
+                                     ), SHARD, .CrosslinkList),
+                                   EPOCH,
+                                   SHARD
+                                 )
+                               ),
+                               .PendingAttestationList
+                             )
+                           )
+                         )
+
+  // extracts the list of attestations for the given shard
+  syntax PendingAttestationList ::= filterMatchingShard(PendingAttestationList, Int, PendingAttestationList) [function]
+  rule filterMatchingShard(PA PAL => PAL, SHARD, PAL' => PAL' PA)
+    when PA.data.crosslink.shard ==K SHARD
+  rule filterMatchingShard(PA PAL => PAL, SHARD, PAL')
+    when PA.data.crosslink.shard =/=K SHARD
+  rule filterMatchingShard(.PendingAttestationList, _, PAL') => PAL'
+
+  // extracts the list of crosslinks matching the condition given for 'crosslinks' in the python code
+  syntax CrosslinkList ::= getShardCrosslinks(CrosslinkList, Int, CrosslinkList) [function]
+  rule [[ getShardCrosslinks(C CL => CL, SHARD, CL' => CL' C) ]]
+    <current-crosslinks> SHARD |-> CURRC </current-crosslinks>
+      when hashTreeRoot(CURRC) ==K C.parentRoot
+      //orBool hashTreeRoot(CURRC) ==K hashTreeRoot(C)  //TODO: fix hashTreeRoot condition
+
+  rule [[ getShardCrosslinks(C CL => CL, SHARD, CL') ]]
+    <current-crosslinks> SHARD |-> CURRC </current-crosslinks>
+      when hashTreeRoot(CURRC) =/=K C.parentRoot
+      //andBool hashTreeRoot(CURRC) =/=K hashTreeRoot(C) //TODO: fix hashTreeRoot condition
+
+  rule getShardCrosslinks(.CrosslinkList, SHARD, CL') => CL'
+
+  // extracts the crosslinks of a given attestation list
+  syntax CrosslinkList ::= crosslinksOf(PendingAttestationList) [function]
+  rule crosslinksOf(PA PAL) => PA.data.crosslink crosslinksOf(PAL)
+  rule crosslinksOf(.PendingAttestationList) => .CrosslinkList
+
+  // extract from input the crosslinks with the maximum attestation balance
+  syntax CrosslinkList ::= maxBasedOnBalance(CrosslinkList, Int, Int) [function]
+  rule maxBasedOnBalance(CL, EP, SHARD) =>
+    maxBasedOnBalanceAux(CL, EP, SHARD, findMaxBalance(CL, EP, SHARD, 0), .CrosslinkList)
+
+  syntax CrosslinkList ::= maxBasedOnBalanceAux(CrosslinkList, Int, Int, Int, CrosslinkList) [function]
+  rule maxBasedOnBalanceAux(C CL => CL, EP, SHARD, MAXBAL, CL' => CL' C)
+    when getAttestingBalance(
+           filterMatchingCrosslink(
+             filterMatchingShard(
+               getMatchingSourceAttestations(EP),
+               SHARD,
+               .PendingAttestationList)
+           , C, .PendingAttestationList)) ==K MAXBAL
+  rule maxBasedOnBalanceAux(C CL => CL, EP, SHARD, MAXBAL, CL')
+    when getAttestingBalance(
+           filterMatchingCrosslink(
+             filterMatchingShard(
+               getMatchingSourceAttestations(EP),
+               SHARD,
+               .PendingAttestationList)
+           , C, .PendingAttestationList)) =/=K MAXBAL
+  rule maxBasedOnBalanceAux(.CrosslinkList, EP, SHARD, MAXBAL, CL') => CL'
+
+  syntax Int ::= findMaxBalance(CrosslinkList, Int, Int, Int) [function]
+  rule findMaxBalance(C CL => CL,
+                      EP,
+                      SHARD,
+                      BALANCE => getAttestingBalance(
+                                            filterMatchingCrosslink(
+                                              filterMatchingShard(
+                                                getMatchingSourceAttestations(EP),
+                                                SHARD,
+                                                .PendingAttestationList)
+                                            , C, .PendingAttestationList)) )
+    when getAttestingBalance(
+           filterMatchingCrosslink(
+             filterMatchingShard(
+               getMatchingSourceAttestations(EP),
+               SHARD,
+               .PendingAttestationList)
+             , C, .PendingAttestationList)) >Int BALANCE
+
+  rule findMaxBalance(C CL => CL,
+                      EP,
+                      SHARD,
+                      BALANCE)
+    when getAttestingBalance(
+           filterMatchingCrosslink(
+             filterMatchingShard(
+               getMatchingSourceAttestations(EP),
+               SHARD,
+               .PendingAttestationList)
+             , C, .PendingAttestationList)) <=Int BALANCE
+  rule findMaxBalance(.CrosslinkList, EP, SHARD, BALANCE) => BALANCE
+
+  syntax PendingAttestationList ::= filterMatchingCrosslink(PendingAttestationList, Crosslink, PendingAttestationList) [function]
+  rule filterMatchingCrosslink(PA PAL => PAL, C, PAL' => PAL' PA)
+    when PA.data.crosslink ==K C
+  rule filterMatchingCrosslink(PA PAL => PAL, C, PAL')
+    when PA.data.crosslink =/=K C
+  rule filterMatchingCrosslink(.PendingAttestationList, C, PAL') => PAL'
+
+  // get the crosslink with the maximum data root hash value
+  syntax Crosslink ::= maxBasedOnDataRoot(CrosslinkList) [function]
+  rule maxBasedOnDataRoot(C CL) => maxBasedOnDataRootAux(CL, C, C.dataRoot)
+
+  syntax Crosslink ::= maxBasedOnDataRootAux(CrosslinkList, Crosslink, Hash) [function]
+  rule maxBasedOnDataRootAux(C CL => CL, MAXC => C, MAXCDROOT => C.dataRoot)
+    when C.dataRoot >Int MAXCDROOT
+  rule maxBasedOnDataRootAux(C CL => CL, MAXC, MAXCDROOT)
+    when C.dataRoot <=Int MAXCDROOT
+  rule maxBasedOnDataRootAux(.CrosslinkList, MAXC, MAXCDROOT) => MAXC
 
 /*
 def process_justification_and_finalization(state: BeaconState) -> None:
@@ -2399,6 +2571,12 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
   syntax IntList ::= IntList "+IntList" IntList     [function]
   rule IL1 +IntList I IL2 => (IL1 I) +IntList IL2
   rule IL  +IntList .IntList => IL
+
+  //IntList merging (no duplicates)
+  //Note: if the input lists duplicate-free, the resulting list will also be duplicate-free
+  syntax IntList ::= IntList "++IntList" IntList     [function]
+  rule IL1 ++IntList I IL2 => #if contains(I, IL1) #then (IL1 ++IntList IL2) #else (IL1 I) ++IntList IL2 #fi
+  rule IL  ++IntList .IntList => IL
 
   syntax Bytes ::= toBytes( Int ) [function]
 

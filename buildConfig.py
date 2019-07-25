@@ -2,10 +2,10 @@
 
 import sys
 
-# From K's pyk-library
-from util import *
-from kast import *
-from pyk  import *
+import pyk
+
+from pyk.kast      import combineDicts, appliedLabelStr, constLabel, underbarUnparsing, K_symbols, KApply, KVariable, KToken
+from pyk.kastManip import substitute, prettyPrintKast
 
 BEACON_CHAIN_symbols = { }
 

@@ -24,7 +24,7 @@ K_LIB:=$(K_RELEASE)/lib
 PATH:=$(K_BIN):$(PATH)
 export PATH
 
-PYTHONPATH:=$(K_LIB)/py-kframework
+PYTHONPATH:=$(K_LIB)
 export PYTHONPATH
 
 TANGLER:=$(PANDOC_TANGLE_SUBMODULE)/tangle.lua

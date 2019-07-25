@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-import sys
-import yaml
 import argparse
+import json
+import sys
 import tempfile
+import yaml
 
 from functools import reduce
 
@@ -182,6 +183,7 @@ if __name__ == "__main__":
         with tempfile.NamedTemporaryFile(mode = "w") as tempf:
             json.dump(kast_json, tempf)
             tempf.flush()
-            if not kast(".build/defn/llvm", tempf.name, kastArgs = ["--input", "json", "--output", "pretty"]):
+            (returnCode, _, _) =  pyk.kast(".build/defn/llvm", tempf.name, kastArgs = ["--input", "json", "--output", "pretty"])
+            if returnCode != 0:
                 printerr("[FATAL] kast return non-zero exit code: " + args.input.name + " " + test_case["description"])
-                sys.exit(1)
+                sys.exit(returnCode)

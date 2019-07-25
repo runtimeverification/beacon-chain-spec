@@ -139,6 +139,12 @@ def emptyKLabelsToEmptyTokens(k):
         newK = rewriteAnywhereWith(rule, newK)
     return newK
 
+def kast(inputFile, *kastArgs):
+    return pyk.kast(".build/defn/llvm", inputFile, kastArgs = list(kastArgs), kRelease = "deps/k/k-distribution/target/release/k")
+
+def krun(inputFile, *krunArgs):
+    return pyk.krun(".build/defn/llvm", inputFile, krunArgs = list(krunArgs), kRelease = "deps/k/k-distribution/target/release/k")
+
 if __name__ == "__main__":
 
     arguments = argparse.ArgumentParser(prog = sys.argv[0])
@@ -180,10 +186,10 @@ if __name__ == "__main__":
                     , "term"    : substitute(symbolic_configuration, keytable)
                     }
 
-        with tempfile.NamedTemporaryFile(mode = "w") as tempf:
+        with tempfile.NamedTemporaryFile(mode = "w", delete = False) as tempf:
             json.dump(kast_json, tempf)
             tempf.flush()
-            (returnCode, _, _) =  pyk.kast(".build/defn/llvm", tempf.name, kastArgs = ["--input", "json", "--output", "pretty"])
+            (returnCode, _, _) = kast(tempf.name, "--input", "json", "--output", "pretty")
             if returnCode != 0:
                 printerr("[FATAL] kast return non-zero exit code: " + args.input.name + " " + test_case["description"])
                 sys.exit(returnCode)

@@ -31,7 +31,7 @@ def assocWithUnitAST(joinKLabel, emptyKLabel, converter = lambda x: x):
 
 def indexedMapOf(mapElement):
     def _indexedMapOf(inputList):
-        mapElements = [ KApply("_|->_", [mapElement(v), intToken(k)]) for (k,v) in enumerate(inputList) ]
+        mapElements = [ KApply("_|->_", [intToken(k), mapElement(v)]) for (k,v) in enumerate(inputList) ]
         return assocWithUnitAST("_Map_", ".Map")(mapElements)
     return _indexedMapOf
 

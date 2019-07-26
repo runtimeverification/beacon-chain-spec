@@ -6,45 +6,7 @@ import sys
 import tempfile
 import yaml
 
-from functools import reduce
-
 from buildConfig import *
-
-def printerr(msg):
-    sys.stderr.write(msg + "\n")
-
-intToken    = lambda x: KToken(str(x), 'Int')
-boolToken   = lambda x: KToken(str(x).lower(), 'Bool')
-stringToken = lambda x: KToken('"' + str(x) + '"', 'String')
-
-hexIntToken = lambda x: intToken(int(x, 16))
-
-unimplemented = lambda input: KToken("UNIMPLEMENTED << " + str(input) + " >>", "K")
-
-foldr = lambda func, init: lambda xs: reduce(lambda x, y: func(y, x), xs[::-1], init)
-
-def assocWithUnitAST(joinKLabel, emptyKLabel, converter = lambda x: x):
-    emptyElem = KApply(emptyKLabel, [])
-    _join = lambda head, tail: KApply(joinKLabel, [converter(head), tail])
-    return foldr(_join, KApply(emptyKLabel, []))
-
-def indexedMapOf(mapElement):
-    def _indexedMapOf(inputList):
-        mapElements = [ KApply("_|->_", [mapElement(v), intToken(k)]) for (k,v) in enumerate(inputList) ]
-        return assocWithUnitAST("_Map_", ".Map")(mapElements)
-    return _indexedMapOf
-
-def listOf(sort, converter = lambda x: x):
-    listSort = "___TYPES__" + sort + "_" + sort + "List"
-    listUnit = ".List{\"" + listSort + "\"}_" + sort + "List"
-    return assocWithUnitAST(listSort, listUnit, converter = converter)
-
-def labelWithKeyPairs(label, keyConverters):
-    def _labelWithKeyPairs(input):
-        args = [ converter(input[key]) for (key, converter) in keyConverters ]
-        return KApply(label, args)
-    return _labelWithKeyPairs
-
 
 forkTerm = labelWithKeyPairs("#Fork" , [ ('previous_version' , hexIntToken)
                                        , ('current_version'  , hexIntToken)

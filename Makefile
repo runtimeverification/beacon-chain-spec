@@ -117,14 +117,8 @@ TEST_CONCRETE_BACKEND:=llvm
 
 test: test-python-config test-operations-minimal
 
-test-python-config: $(BUILD_DIR)/tests/buildConfig.out $(llvm_kompiled)
-	$(K_BIN)/kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
-	     --output pretty --sort BeaconChainCell \
-	     $<
-
-$(BUILD_DIR)/tests/buildConfig.out: buildConfig.py
-	mkdir -p $(dir $@)
-	python3 $< > $@
+test-python-config: buildConfig.py $(llvm_kompiled)
+	python3 $<
 
 operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/operations/*/*_minimal.yaml)
 

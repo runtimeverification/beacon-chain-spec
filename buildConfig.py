@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 
+import json
 import sys
+import tempfile
 
 import pyk
 
 from pyk.kast      import combineDicts, appliedLabelStr, constLabel, underbarUnparsing, K_symbols, KApply, KVariable, KToken
 from pyk.kastManip import substitute, prettyPrintKast
+
+def kast(inputFile, *kastArgs):
+    return pyk.kast(".build/defn/llvm", inputFile, kastArgs = list(kastArgs), kRelease = "deps/k/k-distribution/target/release/k")
+
+def krun(inputFile, *krunArgs):
+    return pyk.krun(".build/defn/llvm", inputFile, krunArgs = list(krunArgs), kRelease = "deps/k/k-distribution/target/release/k")
 
 BEACON_CHAIN_symbols = { }
 
@@ -126,7 +134,14 @@ init_cells = { 'K_CELL'                             : KToken('.Pgm', 'Pgm')
              , 'SIGNATURE_CELL'                     : KToken('-1', 'Int')
              }
 
+initial_configuration = substitute(symbolic_configuration, init_cells)
+
 if __name__ == "__main__":
-    instantiated_configuration = substitute(symbolic_configuration, init_cells)
-    print(prettyPrintKast(instantiated_configuration, ALL_symbols))
-    sys.exit(0)
+    kast_json = { "format": "KAST", "version": 1, "term": initial_configuration }
+    with tempfile.NamedTemporaryFile(mode = "w") as tempf:
+        json.dump(kast_json, tempf)
+        tempf.flush()
+        (returnCode, _, _) = kast(tempf.name, "--input", "json", "--output", "pretty")
+        if returnCode != 0:
+            printerr("[FATAL] kast returned non-zero exit code reading/printing the initial configuration")
+            sys.exit(returnCode)

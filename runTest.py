@@ -139,12 +139,6 @@ def emptyKLabelsToEmptyTokens(k):
         newK = rewriteAnywhereWith(rule, newK)
     return newK
 
-def kast(inputFile, *kastArgs):
-    return pyk.kast(".build/defn/llvm", inputFile, kastArgs = list(kastArgs), kRelease = "deps/k/k-distribution/target/release/k")
-
-def krun(inputFile, *krunArgs):
-    return pyk.krun(".build/defn/llvm", inputFile, krunArgs = list(krunArgs), kRelease = "deps/k/k-distribution/target/release/k")
-
 if __name__ == "__main__":
 
     arguments = argparse.ArgumentParser(prog = sys.argv[0])

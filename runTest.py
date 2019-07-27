@@ -7,7 +7,7 @@ import sys
 import tempfile
 import yaml
 
-from pyk.kast    import _fatal
+from pyk.kast    import _fatal, _warning
 from buildConfig import *
 
 forkTerm = labelWithKeyPairs('#Fork' , [ ('previous_version' , hexIntToken)
@@ -129,9 +129,11 @@ if __name__ == '__main__':
         printerr('')
         printerr(test_title)
         printerr('='.join(['' for i in test_title + ' ']))
-        printerr
-        all_keys = init_cells.keys()
+        all_keys = list(init_cells.keys())
+
         init_config_subst = buildInitConfigSubstitution(test_case['pre'])
+        init_config = substitute(symbolic_configuration, init_config_subst)
+        kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
 
         if 'transfer' in test_case:
             printerr('Skipping transfer block!')
@@ -141,14 +143,10 @@ if __name__ == '__main__':
         else:
             printerr('Skipping post block!')
 
-        init_config = substitute(symbolic_configuration, init_config_subst)
-        fastPrinted = prettyPrintKast(init_config['args'][0], ALL_symbols).strip()
-
-        kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
-
         with tempfile.NamedTemporaryFile(mode = 'w') as tempf:
             json.dump(kast_json, tempf)
             tempf.flush()
+            fastPrinted = prettyPrintKast(init_config['args'][0], ALL_symbols).strip()
             (returnCode, kastPrinted, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty')
             kastPrinted = kastPrinted.strip()
             if fastPrinted != kastPrinted:

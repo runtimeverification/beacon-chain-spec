@@ -12,17 +12,26 @@ from pyk.kast      import combineDicts, appliedLabelStr, constLabel, underbarUnp
 from pyk.kastManip import substitute, prettyPrintKast
 
 def printerr(msg):
-    sys.stderr.write(msg + "\n")
+    sys.stderr.write(msg + '\n')
 
 intToken    = lambda x: KToken(str(x), 'Int')
 boolToken   = lambda x: KToken(str(x).lower(), 'Bool')
-stringToken = lambda x: KToken('"' + str(x) + '"', 'String')
+stringToken = lambda x: KToken(''' + str(x) + ''', 'String')
 
 hexIntToken = lambda x: intToken(int(x, 16))
 
-unimplemented = lambda input: KToken("UNIMPLEMENTED << " + str(input) + " >>", "K")
+unimplemented = lambda input: KToken('UNIMPLEMENTED << ' + str(input) + ' >>', 'K')
 
 foldr = lambda func, init: lambda xs: reduce(lambda x, y: func(y, x), xs[::-1], init)
+
+def assocSort(elemSort):
+    return '_TYPES__' + elemSort + '_' + elemSort + 'List'
+
+def assocJoin(elemSort):
+    return '__' + assocSort(elemSort)
+
+def assocUnit(elemSort):
+    return '.List{"' + assocJoin(elemSort) + '"}_' + elemSort + 'List'
 
 def assocWithUnitAST(joinKLabel, emptyKLabel, converter = lambda x: x):
     emptyElem = KApply(emptyKLabel, [])
@@ -31,14 +40,14 @@ def assocWithUnitAST(joinKLabel, emptyKLabel, converter = lambda x: x):
 
 def indexedMapOf(converter = lambda x: x):
     def _indexedMapOf(inputList):
-        mapElements = [ KApply("_|->_", [intToken(k), converter(v)]) for (k,v) in enumerate(inputList) ]
-        return assocWithUnitAST("_Map_", ".Map")(mapElements)
+        mapElements = [ KApply('_|->_', [intToken(k), converter(v)]) for (k,v) in enumerate(inputList) ]
+        return assocWithUnitAST('_Map_', '.Map')(mapElements)
     return _indexedMapOf
 
 def listOf(sort, converter = lambda x: x):
-    listSort = "___TYPES__" + sort + "_" + sort + "List"
-    listUnit = ".List{\"" + listSort + "\"}_" + sort + "List"
-    return assocWithUnitAST(listSort, listUnit, converter = converter)
+    lJoin = '__' + assocSort(sort)
+    lUnit = assocUnit(sort)
+    return assocWithUnitAST(lJoin, lUnit, converter = converter)
 
 def labelWithKeyPairs(label, keyConverters):
     def _labelWithKeyPairs(input):
@@ -47,35 +56,48 @@ def labelWithKeyPairs(label, keyConverters):
     return _labelWithKeyPairs
 
 def kast(inputFile, *kastArgs):
-    return pyk.kast(".build/defn/llvm", inputFile, kastArgs = list(kastArgs), kRelease = "deps/k/k-distribution/target/release/k")
+    return pyk.kast('.build/defn/llvm', inputFile, kastArgs = list(kastArgs), kRelease = 'deps/k/k-distribution/target/release/k')
 
 def krun(inputFile, *krunArgs):
-    return pyk.krun(".build/defn/llvm", inputFile, krunArgs = list(krunArgs), kRelease = "deps/k/k-distribution/target/release/k")
+    return pyk.krun('.build/defn/llvm', inputFile, krunArgs = list(krunArgs), kRelease = 'deps/k/k-distribution/target/release/k')
 
-BEACON_CHAIN_symbols = { }
+BEACON_CHAIN_symbols = { '.ProposerSlashingCellMap' : constLabel('.ProposerSlashingCellMap') }
 
-BEACON_CHAIN_appliedLabels = [ "#Fork"
-                             , "#Validator"
-                             , "#Crosslink"
-                             , "#BeaconBlockHeader"
-                             , "#Eth1Data"
-                             , "#AttestationData"
-                             , "#PendingAttestation"
+BEACON_CHAIN_constLabels = [ '.Pgm'
+                           , '.Eth1Data'
+                           ]
+
+for cLabel in BEACON_CHAIN_constLabels:
+    BEACON_CHAIN_symbols[cLabel + '_BEACON-CHAIN_'] = constLabel(cLabel)
+
+BEACON_CHAIN_appliedLabels = [ '#Fork'
+                             , '#Validator'
+                             , '#Crosslink'
+                             , '#BeaconBlockHeader'
+                             , '#Eth1Data'
+                             , '#AttestationData'
+                             , '#PendingAttestation'
                              ]
 
 for appliedLabel in BEACON_CHAIN_appliedLabels:
     BEACON_CHAIN_symbols[appliedLabel] = appliedLabelStr(appliedLabel)
 
-BEACON_CHAIN_lists = [ "PendingAttestation"
-                     , "Bytes32"
-                     , "Uint64"
-                     , "Eth1Data"
-                     , "Crosslink"
+BEACON_CHAIN_lists = [ 'PendingAttestation'
+                     , 'AttesterSlashing'
+                     , 'Attestation'
+                     , 'Deposit'
+                     , 'VoluntaryExit'
+                     , 'Transfer'
+                     , 'Bytes32'
+                     , 'Uint64'
+                     , 'Eth1Data'
+                     , 'Crosslink'
+                     , 'Hash'
                      ]
 
 for list_sort in BEACON_CHAIN_lists:
-    BEACON_CHAIN_symbols["." + list_sort + "List"] = constLabel("")
-    BEACON_CHAIN_symbols[      list_sort + "List"] = underbarUnparsing("__")
+    BEACON_CHAIN_symbols[assocUnit(list_sort)] = constLabel('.' + list_sort + 'List')
+    BEACON_CHAIN_symbols[assocJoin(list_sort)] = underbarUnparsing('__')
 
 ALL_symbols = combineDicts(K_symbols, BEACON_CHAIN_symbols)
 
@@ -177,12 +199,12 @@ init_cells = { 'K_CELL'                             : KSequence([KConstant('.Pgm
 
 initial_configuration = substitute(symbolic_configuration, init_cells)
 
-if __name__ == "__main__":
-    kast_json = { "format": "KAST", "version": 1, "term": initial_configuration }
-    with tempfile.NamedTemporaryFile(mode = "w") as tempf:
+if __name__ == '__main__':
+    kast_json = { 'format': 'KAST', 'version': 1, 'term': initial_configuration }
+    with tempfile.NamedTemporaryFile(mode = 'w') as tempf:
         json.dump(kast_json, tempf)
         tempf.flush()
-        (returnCode, _, _) = kast(tempf.name, "--input", "json", "--output", "pretty")
+        (returnCode, _, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty')
         if returnCode != 0:
-            printerr("[FATAL] kast returned non-zero exit code reading/printing the initial configuration")
+            printerr('[FATAL] kast returned non-zero exit code reading/printing the initial configuration')
             sys.exit(returnCode)

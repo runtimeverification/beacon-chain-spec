@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import copy
 import json
 import sys
 import tempfile
@@ -72,7 +73,7 @@ pre_keys = { "genesis_time"                  : ('GENESIS_TIME_CELL'             
            , "latest_block_header"           : ('LATEST_BLOCK_HEADER_CELL'        , blockheaderTerm)
            , "block_roots"                   : ('BLOCK_ROOTS_CELL'                , indexedMapOf("Bytes32"))
            , "state_roots"                   : ('STATE_ROOTS_CELL'                , indexedMapOf("Bytes32"))
-           , "historical_roots"              : ('HISTORICAL_ROOTS_CELL'           , listOf("Hash", converter = intToken))
+           , "historical_roots"              : ('HISTORICAL_ROOTS_CELL'           , listOf("Hash", converter = hexIntToken))
            , "eth1_data"                     : ('ETH1_DATA_CELL'                  , eth1dataTerm)
            , "eth1_data_votes"               : ('ETH1_DATA_VOTES_CELL'            , listOf("Eth1Data", converter = eth1dataTerm))
            , "eth1_deposit_index"            : ('ETH1_DEPOSIT_INDEX_CELL'         , intToken)
@@ -94,7 +95,7 @@ pre_keys = { "genesis_time"                  : ('GENESIS_TIME_CELL'             
            }
 
 def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_keys = []):
-    new_key_table = key_table
+    new_key_table = copy.deepcopy(key_table)
     for pre_key in test_pre_state.keys():
         test_pre = test_pre_state[pre_key]
         if pre_key in pre_keys:
@@ -118,7 +119,7 @@ if __name__ == "__main__":
 
     yaml_test = yaml.load(args.input, Loader = yaml.FullLoader)
 
-    for test_case in yaml_test['test_cases'][17:]:
+    for test_case in yaml_test['test_cases']:
         printerr("test file: " + args.input.name)
         printerr("test description: " + test_case['description'])
         all_keys = init_cells.keys()

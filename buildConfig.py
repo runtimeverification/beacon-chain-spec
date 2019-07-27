@@ -29,9 +29,9 @@ def assocWithUnitAST(joinKLabel, emptyKLabel, converter = lambda x: x):
     _join = lambda head, tail: KApply(joinKLabel, [converter(head), tail])
     return foldr(_join, KApply(emptyKLabel, []))
 
-def indexedMapOf(mapElement):
+def indexedMapOf(converter = lambda x: x):
     def _indexedMapOf(inputList):
-        mapElements = [ KApply("_|->_", [intToken(k), mapElement(v)]) for (k,v) in enumerate(inputList) ]
+        mapElements = [ KApply("_|->_", [intToken(k), converter(v)]) for (k,v) in enumerate(inputList) ]
         return assocWithUnitAST("_Map_", ".Map")(mapElements)
     return _indexedMapOf
 
@@ -45,7 +45,6 @@ def labelWithKeyPairs(label, keyConverters):
         args = [ converter(input[key]) for (key, converter) in keyConverters ]
         return KApply(label, args)
     return _labelWithKeyPairs
-
 
 def kast(inputFile, *kastArgs):
     return pyk.kast(".build/defn/llvm", inputFile, kastArgs = list(kastArgs), kRelease = "deps/k/k-distribution/target/release/k")

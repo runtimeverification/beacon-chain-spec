@@ -120,8 +120,11 @@ if __name__ == "__main__":
     yaml_test = yaml.load(args.input, Loader = yaml.FullLoader)
 
     for test_case in yaml_test['test_cases']:
-        printerr("test file: " + args.input.name)
-        printerr("test description: " + test_case['description'])
+        test_title = test_case['description'] + " from " + args.input.name
+        printerr("")
+        printerr(test_title)
+        printerr("=".join(['' for i in test_title + ' ']))
+        printerr
         all_keys = init_cells.keys()
         init_config_subst = buildInitConfigSubstitution(test_case['pre'])
 

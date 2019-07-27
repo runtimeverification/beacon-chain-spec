@@ -93,6 +93,7 @@ BEACON_CHAIN_lists = [ 'PendingAttestation'
                      , 'Eth1Data'
                      , 'Crosslink'
                      , 'Hash'
+                     , 'Bit'
                      ]
 
 for list_sort in BEACON_CHAIN_lists:

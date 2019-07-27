@@ -89,7 +89,7 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : ('genesis_time'    
                     , 'CURRENT_EPOCH_ATTESTATIONS_CELL'    : ('current_epoch_attestations'    , listOf('PendingAttestation', converter = pendingAttestationTerm))
                     , 'PREVIOUS_CROSSLINKS_CELL'           : ('previous_crosslinks'           , indexedMapOf(converter = crosslinkTerm))
                     , 'CURRENT_CROSSLINKS_CELL'            : ('current_crosslinks'            , indexedMapOf(converter = crosslinkTerm))
-                    , 'JUSTIFICATION_BITS_CELL'            : ('justification_bitfield'        , intToken)
+                    , 'JUSTIFICATION_BITS_CELL'            : ('justification_bitfield'        , lambda inputInt: listOf('Bit', converter = intToken)([i for i in bin(int(inputInt))[2:]]))
                     , 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL' : ('previous_justified_checkpoint' , checkpointTerm)
                     , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'  : ('current_justified_checkpoint'  , checkpointTerm)
                     , 'FINALIZED_CHECKPOINT_CELL'          : ('finalized_checkpoint'          , checkpointTerm)

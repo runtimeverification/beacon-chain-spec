@@ -97,7 +97,7 @@ class ProposerSlashing(Container):
         <current-epoch-attestations> .PendingAttestationList </current-epoch-attestations>
                                                        //List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
         // Crosslinks
-        <previous-crosslinks> .Map </previous-crosslinks> //Vector[Crosslink, SHARD_COUNT]
+        <previous-crosslinks> #V(.Map, SHARD_COUNT) </previous-crosslinks> //Vector[Crosslink, SHARD_COUNT]
         <current-crosslinks> .Map </current-crosslinks> //Vector[Crosslink, SHARD_COUNT]
         // Finality
         <justification-bits> .BitList </justification-bits> //Bitvector[JUSTIFICATION_BITS_LENGTH]
@@ -130,6 +130,13 @@ class ProposerSlashing(Container):
         <signature> -1 </signature>
       </block>
     </beacon-chain>
+
+  //Represents List/Vector in Python, for objects that are subject to merkelization/hashing.
+  syntax Vector ::= "#V" "(" Map "," Int ")"
+
+  //Access vector by key.
+  syntax KItem ::= Vector "[" Int "]"
+  rule #V((KEY |-> VAL) _:Map, _) [ KEY ] => VAL
 
   syntax KItem ::= Pgm
   syntax Pgm ::= ".Pgm"
@@ -883,7 +890,7 @@ def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
     return state.block_roots[slot % SLOTS_PER_HISTORICAL_ROOT]
 */
   syntax Hash ::= getBlockRootAtSlot( Int ) [function]
-  rule [[ getBlockRootAtSlot(SLOT) => getBlockRootAtSlotAux(SLOT %Int SLOTS_PER_HISTORICAL_ROOT)]]
+  rule [[ getBlockRootAtSlot(SLOT) => getBlockRootAtSlotAux(SLOT %Int SLOTS_PER_HISTORICAL_ROOT) ]]
     <slot> SSLOT </slot>
     requires SLOT <Int SSLOT andBool SSLOT <=Int (SLOT +Int SLOTS_PER_HISTORICAL_ROOT)
 
@@ -900,7 +907,7 @@ def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
     return state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
 */
   syntax Hash ::= getRandaoMix( Int ) [function]
-  rule [[ getRandaoMix( EPOCH ) => getRandaoMixAux( RMS, EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR )]]
+  rule [[ getRandaoMix( EPOCH ) => getRandaoMixAux( RMS, EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR ) ]]
     <randao-mixes> RMS </randao-mixes>
 
   syntax Hash ::= getRandaoMixAux( HashList, Int ) [function]
@@ -2350,12 +2357,11 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
 
   //if case false
   rule <k> process_attestation_if(ATT, PendingATT)
-          => process_attestation_after_if(ATT, PrevCrosslink) ...</k>
+          => process_attestation_after_if(ATT, { PrevCrosslinks [ ATT._data.crosslink.shard ] }:>Crosslink ) ...</k>
     <previous-justified-checkpoint> PrevJustCHECKP </previous-justified-checkpoint>
-    <previous-crosslinks> PrevCrosslinkKey |-> PrevCrosslink ...</previous-crosslinks>
+    <previous-crosslinks> PrevCrosslinks </previous-crosslinks>
     <previous-epoch-attestations> PrevEpochATT => PrevEpochATT PendingATT </previous-epoch-attestations>
     requires ATT._data.target.epoch =/=Int getCurrentEpoch() //if condition
-     andBool PrevCrosslinkKey ==Int ATT._data.crosslink.shard
      andBool ATT._data.source ==K PrevJustCHECKP
 
   //after if inside `process_attestation`

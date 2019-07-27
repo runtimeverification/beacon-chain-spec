@@ -93,13 +93,19 @@ pre_keys = { "genesis_time"                  : ('GENESIS_TIME_CELL'             
            , "finalized_checkpoint"          : ('FINALIZED_CHECKPOINT'            , checkpointTerm)
            }
 
-def emptyKLabelsToEmptyTokens(k):
-    _emptyKLabelsToEmptyTokens = [ (KApply(".Map", []), KToken("", "Map"))
-                                 ]
-    newK = k
-    for rule in _emptyKLabelsToEmptyTokens:
-        newK = rewriteAnywhereWith(rule, newK)
-    return newK
+def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_keys = []):
+    new_key_table = key_table
+    for pre_key in test_pre_state.keys():
+        test_pre = test_pre_state[pre_key]
+        if pre_key in pre_keys:
+            (cell_var, converter) = pre_keys[pre_key]
+            if cell_var in new_key_table and cell_var not in skip_keys:
+                new_key_table[cell_var] = converter(test_pre)
+            else:
+                printerr("unimplemented pre-key: " + str(pre_key) + " -> " + str(test_pre))
+        elif len(str(test_pre)) < 3:
+            printerr("unused pre-key: " + pre_key)
+    return new_key_table
 
 if __name__ == "__main__":
 
@@ -112,22 +118,11 @@ if __name__ == "__main__":
 
     yaml_test = yaml.load(args.input, Loader = yaml.FullLoader)
 
-    keytable = init_cells
-
-    for test_case in yaml_test['test_cases']:
+    for test_case in yaml_test['test_cases'][17:]:
         printerr("test file: " + args.input.name)
         printerr("test description: " + test_case['description'])
-
-        for pre_key in test_case['pre'].keys():
-            test_pre = test_case['pre'][pre_key]
-            if pre_key in pre_keys:
-                (cell_var, converter) = pre_keys[pre_key]
-                if cell_var in keytable:
-                    keytable[cell_var] = converter(test_pre)
-                else:
-                    printerr("unimplemented pre-key: " + str(pre_key) + " -> " + str(test_pre))
-            elif len(str(test_pre)) < 3:
-                printerr("unused pre-key: " + pre_key)
+        all_keys = init_cells.keys()
+        init_config_subst = buildInitConfigSubstitution(test_case['pre'])
 
         if 'transfer' in test_case:
             printerr("Skipping transfer block!")
@@ -139,7 +134,7 @@ if __name__ == "__main__":
 
         kast_json = { "format"  : "KAST"
                     , "version" : 1.0
-                    , "term"    : substitute(symbolic_configuration, keytable)
+                    , "term"    : substitute(symbolic_configuration, init_config_subst)
                     }
 
         with tempfile.NamedTemporaryFile(mode = "w", delete = False) as tempf:

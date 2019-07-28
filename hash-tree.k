@@ -30,15 +30,16 @@ module HASH-TREE
     elif isinstance(values, Bitlist):
         as_integer = sum([values[i] << i for i in range(len(values))])
         return as_integer.to_bytes((values.length + 7) // 8, "little")
-    # FIXME - may include any container type and possibly lists
+    # todo - may include any container type and possibly lists
     return b''.join([serialize_basic(value) for value in values])*/
   //todo a more narrow type
   syntax Bytes ::= pack ( KItem ) [function]
   rule pack(B:Bytes) => B
 
   //Length is always JUSTIFICATION_BITS_LENGTH
-  //fixme continue - correct number of bits
-  //rule pack(BL:BitList) => toInt(BL, JUSTIFICATION_BITS_LENGTH)
-
+  //not sure if this is little endian
+  rule pack(BL:BitList) => #Bytes( toInt(BL, (JUSTIFICATION_BITS_LENGTH +Int 7) /Int 8 *Int 8),
+                                   (JUSTIFICATION_BITS_LENGTH +Int 7) /Int 8)
+  //todo pack for container type
 
 endmodule

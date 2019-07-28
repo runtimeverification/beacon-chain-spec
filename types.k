@@ -456,7 +456,7 @@ class Transfer(Container):
   // Type conversion functions
   //====================================================
 
-  syntax Int ::= toInt( BitList , Int /*size*/ )                      [function]
+  syntax Int ::= toInt( BitList , Int /*size in bits*/  )             [function]
                | toInt( BitList , Int /*size*/ , Int /*result*/ )     [function]
   rule toInt(BL, SIZE) => toInt(BL, SIZE, 1)
   rule toInt(BIT BL => BL, SIZE => SIZE -Int 1, RES => 2 *Int RES +Int BL)

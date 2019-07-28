@@ -32,7 +32,7 @@ def indexedMapOf(mapElement):
     return _indexedMapOf
 
 def listOf(sort, converter = lambda x: x):
-    listSort = "___BEACON-CHAIN__" + sort + "_" + sort + "List"
+    listSort = "___TYPES__" + sort + "_" + sort + "List"
     listUnit = ".List{\"" + listSort + "\"}_" + sort + "List"
     return assocWithUnitAST(listSort, listUnit, converter = converter)
 

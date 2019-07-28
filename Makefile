@@ -84,7 +84,7 @@ build-llvm: $(llvm_kompiled)
 
 # Generate definitions from source files
 
-k_files=$(MAIN_DEFN_FILE).k beacon-chain.k
+k_files=$(MAIN_DEFN_FILE).k beacon-chain.k hash-tree.k types.k
 llvm_files=$(patsubst %,$(DEFN_DIR)/llvm/%,$(k_files))
 
 defn: llvm-defn

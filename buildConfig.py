@@ -63,27 +63,27 @@ def krun(inputFile, *krunArgs):
 
 BEACON_CHAIN_symbols = { '.ProposerSlashingCellMap' : constLabel('.ProposerSlashingCellMap') }
 
-BEACON_CHAIN_constLabels = [ '.Pgm'
-                           , '.Eth1Data'
-                           , '.Fork'
-                           , '.Checkpoint'
-                           , '.BlockHeader'
-                           ]
+TYPES_constLabels = [ '.Pgm'
+                    , '.Eth1Data'
+                    , '.Fork'
+                    , '.Checkpoint'
+                    , '.BlockHeader'
+                    ]
 
-for cLabel in BEACON_CHAIN_constLabels:
-    BEACON_CHAIN_symbols[cLabel + '_BEACON-CHAIN_'] = constLabel(cLabel)
+for cLabel in TYPES_constLabels:
+    BEACON_CHAIN_symbols[cLabel + '_TYPES_'] = constLabel(cLabel)
 
-BEACON_CHAIN_appliedLabels = [ '#Fork'
-                             , '#Validator'
-                             , '#Crosslink'
-                             , '#BeaconBlockHeader'
-                             , '#Eth1Data'
-                             , '#AttestationData'
-                             , '#PendingAttestation'
-                             , '#Transfer'
-                             ]
+TYPES_appliedLabels = [ '#Fork'
+                      , '#Validator'
+                      , '#Crosslink'
+                      , '#BeaconBlockHeader'
+                      , '#Eth1Data'
+                      , '#AttestationData'
+                      , '#PendingAttestation'
+                      , '#Transfer'
+                      ]
 
-for appliedLabel in BEACON_CHAIN_appliedLabels:
+for appliedLabel in TYPES_appliedLabels:
     BEACON_CHAIN_symbols[appliedLabel] = appliedLabelStr(appliedLabel)
 
 BEACON_CHAIN_lists = [ 'PendingAttestation'
@@ -161,15 +161,15 @@ symbolic_configuration = KApply ( '<generatedTop>' , [ KApply ( '<beacon-chain>'
                                                      ]
                                 )
 
-init_cells = { 'K_CELL'                             : KSequence([KConstant('.Pgm_BEACON-CHAIN_')])
+init_cells = { 'K_CELL'                             : KSequence([KConstant('.Pgm_TYPES_')])
              , 'GENESIS_TIME_CELL'                  : KToken('0', 'Int')
              , 'SLOT_CELL'                          : KToken('0', 'Int')
-             , 'FORK_CELL'                          : KConstant('.Fork_BEACON-CHAIN_')
-             , 'LATEST_BLOCK_HEADER_CELL'           : KConstant('.BlockHeader_BEACON-CHAIN_')
+             , 'FORK_CELL'                          : KConstant('.Fork_TYPES_')
+             , 'LATEST_BLOCK_HEADER_CELL'           : KConstant('.BlockHeader_TYPES_')
              , 'BLOCK_ROOTS_CELL'                   : KConstant('.Map')
              , 'STATE_ROOTS_CELL'                   : KConstant('.Map')
              , 'HISTORICAL_ROOTS_CELL'              : listOf('Hash')([])
-             , 'ETH1_DATA_CELL'                     : KConstant('.Eth1Data_BEACON-CHAIN_')
+             , 'ETH1_DATA_CELL'                     : KConstant('.Eth1Data_TYPES_')
              , 'ETH1_DATA_VOTES_CELL'               : listOf('Eth1Data')([])
              , 'ETH1_DEPOSIT_INDEX_CELL'            : KToken('0', 'Int')
              , 'VALIDATORS_CELL'                    : KConstant('.Map')
@@ -184,14 +184,14 @@ init_cells = { 'K_CELL'                             : KSequence([KConstant('.Pgm
              , 'PREVIOUS_CROSSLINKS_CELL'           : KConstant('.Map')
              , 'CURRENT_CROSSLINKS_CELL'            : KConstant('.Map')
              , 'JUSTIFICATION_BITS_CELL'            : listOf('Bit')([])
-             , 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL' : KConstant('.Checkpoint_BEACON-CHAIN_')
-             , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'  : KConstant('.Checkpoint_BEACON-CHAIN_')
-             , 'FINALIZED_CHECKPOINT_CELL'          : KConstant('.Checkpoint_BEACON-CHAIN_')
+             , 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL' : KConstant('.Checkpoint_TYPES_')
+             , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'  : KConstant('.Checkpoint_TYPES_')
+             , 'FINALIZED_CHECKPOINT_CELL'          : KConstant('.Checkpoint_TYPES_')
              , 'BLOCKSLOT_CELL'                     : KToken('-1', 'Int')
              , 'PARENT_ROOT_CELL'                   : KToken('-1', 'Int')
              , 'STATE_ROOT_CELL'                    : KToken('-1', 'Int')
              , 'RANDAO_REVEAL_CELL'                 : KToken('-1', 'Int')
-             , 'BLOCK-ETH1_DATA_CELL'               : KConstant('.Eth1Data_BEACON-CHAIN_')
+             , 'BLOCK-ETH1_DATA_CELL'               : KConstant('.Eth1Data_TYPES_')
              , 'GRAFFITI_CELL'                      : KToken('-1', 'Int')
              , 'PROPOSER_SLASHINGS_CELL'            : KConstant('.ProposerSlashingCellMap')
              , 'ATTESTER_SLASHINGS_CELL'            : listOf('AttesterSlashing')([])

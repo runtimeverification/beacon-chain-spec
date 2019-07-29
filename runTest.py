@@ -157,7 +157,7 @@ if __name__ == '__main__':
                 printerr('Diff: ')
                 for line in difflib.unified_diff(kastPrinted.split('\n'), fastPrinted.split('\n'), fromfile='kast', tofile='fast', lineterm='\n'):
                     print(line)
-                _fatal('kastPrinted and fastPrinted differ!')
+                _warning('kastPrinted and fastPrinted differ!')
             (returnCode, _, _) = krun(tempf.name, '--term', '--parser', 'cat')
             if returnCode != 0:
                 _fatal('krun returned non-zero exit code: ' + args.input.name + ' ' + test_case['description'])

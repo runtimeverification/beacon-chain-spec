@@ -117,7 +117,7 @@ def getKeyChain(yaml_input, key_chain):
         if key in output:
             output = output[key]
         else:
-            _fatal('Key not found: ' + key + ' from chain ' + str(key_chain))
+            return None
     return output
 
 def gatherKeyChains(yaml_input):
@@ -139,8 +139,13 @@ def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_key
     for cell_var in key_table:
         if cell_var in init_config_cells and cell_var not in skip_keys:
             (pre_keys, converter) = init_config_cells[cell_var]
-            new_key_table[cell_var] = converter(getKeyChain(test_pre_state, pre_keys))
-            used_key_chains.append(pre_keys)
+            test_field = getKeyChain(test_pre_state, pre_keys)
+            if test_field is None:
+                new_key_table[cell_var] = key_table[cell_var]
+                _warning('Key not found: ' + str(pre_keys))
+            else:
+                new_key_table[cell_var] = converter(getKeyChain(test_pre_state, pre_keys))
+                used_key_chains.append(pre_keys)
         else:
             new_key_table[cell_var] = key_table[cell_var]
             _warning('Unset configuration variable: ' + cell_var)

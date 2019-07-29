@@ -2,7 +2,6 @@ requires "hash-tree.k"
 
 module BEACON-CHAIN
   imports DOMAINS
-  imports BYTES-HOOKED
   imports HASH-TREE
 
 /*
@@ -1607,15 +1606,6 @@ def process_registry_updates(state: BeaconState) -> None:
     </validators>
   rule indexForMinEligEpoch(MIN, .IntList) => MIN
 
-  //returns the list with the first occurrence of the 2nd argument removed. Used in sorting.
-  syntax IntList ::= listExcept( IntList , Int )                      [function, klabel(listExcept)]
-                   | listExcept( IntList , Int , IntList /*result*/ ) [function, klabel(listExcept3)]
-  rule listExcept(IL, EXCEPT) => listExcept(IL, EXCEPT, .IntList)
-  rule listExcept( (I:Int IL) => IL, EXCEPT, REZ => REZ I     )
-    when I =/=Int EXCEPT
-  rule listExcept((EXCEPT IL) => .IntList /*terminate*/, EXCEPT, REZ IL /*dump the rest of the list without EXCEPT*/)
-  rule listExcept(.IntList, _, REZ) => REZ
-
 /*
 def process_slashings(state: BeaconState) -> None:
     epoch = get_current_epoch(state)
@@ -2075,77 +2065,5 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
   syntax Int ::= getBalance( ValidatorIndex ) [function]
   rule [[ getBalance(INDEX) => BAL ]]
     <balances> INDEX |-> BAL ...</balances>
-
-
-  // Python framework functions
-  //====================================================
-
-  syntax Int ::= len( IntList ) [function]
-  rule len( _:Int L) => 1 +Int len(L)
-  rule len(.IntList) => 0
-
-  syntax Int ::= get( IntList, Int ) [function]
-  rule get( _:Int L => L, I => I -Int 1)
-    requires I >Int 0
-  rule get( ELEM _:IntList, 0) => ELEM
-
-  syntax Int ::= sum( IntList ) [function]
-  rule sum( IL ) => sumAux(IL, 0)
-
-  syntax Int ::= sumAux( IntList, Int ) [function]
-  rule sumAux(I:Int IL => IL, S => S +Int I)
-  rule sumAux(.IntList, S) => S
-
-  syntax Int ::= maxAux ( IntList )       [function, klabel(maxAux)]
-               | maxAux ( IntList , Int ) [function, klabel(maxAux2)]
-  rule maxAux( I:Int IL ) => maxAux(IL, I)
-  rule maxAux(I IL => IL, MAX => #if I <Int MAX #then MAX #else I #fi )
-  rule maxAux(.IntList, MAX) => MAX
-
-  // TODO: optimize into a tail recursive version (?)
-  syntax IntList ::= sortIntList(IntList) [function]
-  rule sortIntList(.IntList) => .IntList
-  rule sortIntList(I IL) => minIndex(IL,I) sortIntList(listExcept(I IL, minIndex(IL, I)))
-
-  syntax Int ::= minIndex(IntList, Int) [function]
-  rule minIndex(I IL => IL, M => #if I <Int M #then I #else M #fi)
-  rule minIndex(.IntList, M) => M
-
-  // Note: If listExcept(IL, I) removes every occurrence of I in IL, then difference here will do the same
-  syntax IntList ::= listDiff(IntList, IntList) [function]
-  rule listDiff(I IL => IL, IL' => listExcept(IL', I))
-  rule listDiff(.IntList, IL') => IL'
-
-  syntax Bool ::= contains( Int, IntList ) [function]
-  rule contains(A, A IL ) => true
-  rule contains(A, B IL => IL)    requires A =/=Int B
-  rule contains(_, .IntList) => false
-
-  syntax IntList ::= intersection( IntList, IntList ) [function, klabel(intersection)]
-                   | intersection( IntList, IntList, IntList /*result*/) [function, klabel(intersection3)]
-  rule intersection(L1, L2) => intersection(L1, L2, .IntList)
-  rule intersection(A L1 => L1, L2, _)
-    requires notBool contains(A, L2)
-  rule intersection(A L1 => L1, L2, REZ => REZ A)
-    requires contains(A, L2)
-  rule intersection(.IntList, _, REZ) => REZ
-
-  //IntList concatenation
-  syntax IntList ::= IntList "+IntList" IntList     [function]
-  rule IL1 +IntList I IL2 => (IL1 I) +IntList IL2
-  rule IL  +IntList .IntList => IL
-
-  //IntList merging (no duplicates)
-  //Note: if the input lists duplicate-free, the resulting list will also be duplicate-free
-  syntax IntList ::= IntList "++IntList" IntList     [function]
-  rule IL1 ++IntList I IL2 => #if contains(I, IL1) #then (IL1 ++IntList IL2) #else (IL1 I) ++IntList IL2 #fi
-  rule IL  ++IntList .IntList => IL
-
-  syntax Bytes ::= toBytes( Int ) [function]
-
-  //first argument is a result of hash(), e.g. a 256-bit number.
-  syntax Int ::= getByte(Bytes, Int) [function]
-  rule getByte(BYTES, I) => Bytes2Int(substrBytes(BYTES, I, I), BE, Unsigned)
-  //todo question: what endianness should we use above?
 
 endmodule

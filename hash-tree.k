@@ -2,8 +2,14 @@ requires "types.k"
 
 module HASH-TREE
   imports DOMAINS
-  imports BYTES-HOOKED
   imports TYPES
+
+  syntax Int ::= "BYTES_PER_CHUNK"
+  rule BYTES_PER_CHUNK => 32                                  [macro]
+  syntax Int ::= "BYTES_PER_LENGTH_OFFSET"
+  rule BYTES_PER_LENGTH_OFFSET => 4                           [macro]
+  syntax Int ::= "BITS_PER_BYTE"
+  rule BITS_PER_BYTE => 8                                     [macro]
 
 //todo these integers might have different length??
 /* def serialize_basic(value: SSZValue):
@@ -46,7 +52,27 @@ def pack(values: Series):
   rule pack(VALUE:SSZValue) => serialize_basic(VALUE)
 
   // Int lists will be padded to their static size later anyway
-  rule pack(I:Int IL:IntList) => serialize_basic(I) ++Bytes pack(IL)
+  rule pack(I:Int IL:IntList) => serialize_basic(I) +Bytes pack(IL)
   rule pack(.IntList) => #Bytes(0, 0)
+
+/*
+It is here that chunkification described in the dock of pack() happens.
+
+def chunkify(bytez):
+    # pad `bytez` to nearest 32-byte multiple
+    bytez += b'\x00' * (-len(bytez) % 32)
+    return [bytez[i:i + 32] for i in range(0, len(bytez), 32)]
+*/
+  syntax IntList ::= chunkify( Bytes )                                [function]
+  rule chunkify(B) => chunkifyAux(padTo32(B))
+
+  syntax Bytes ::= padTo32( Bytes )                                   [function]
+  rule padTo32(#Bytes(DATA, LEN)) => #Bytes(DATA <<Int ((LEN +Int 31) /Int 32 -Int LEN)  , (LEN +Int 31) /Int 32 )
+
+  syntax IntList ::= chunkifyAux( Bytes )                             [function]
+  rule chunkifyAux(#Bytes(DATA, LEN)) => chunkifyAux(#Bytes(DATA >>Int BYTES_PER_CHUNK, LEN -Int BYTES_PER_CHUNK))
+                                         +IntList (DATA %Int (1 <<Int BYTES_PER_CHUNK) .IntList)
+    requires LEN >Int BYTES_PER_CHUNK
+  rule chunkifyAux(#Bytes(0, 0)) => .IntList
 
 endmodule

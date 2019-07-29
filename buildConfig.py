@@ -65,6 +65,9 @@ BEACON_CHAIN_symbols = { '.ProposerSlashingCellMap' : constLabel('.ProposerSlash
 
 BEACON_CHAIN_constLabels = [ '.Pgm'
                            , '.Eth1Data'
+                           , '.Fork'
+                           , '.Checkpoint'
+                           , '.BlockHeader'
                            ]
 
 for cLabel in BEACON_CHAIN_constLabels:

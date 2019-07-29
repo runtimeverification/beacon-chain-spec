@@ -107,7 +107,7 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'BLOCKSLOT_CELL'                     : (['latest_block_header', 'slot']        , intToken)
                     , 'PARENT_ROOT_CELL'                   : (['latest_block_header', 'parent_root'] , hexIntToken)
                     , 'STATE_ROOT_CELL'                    : (['latest_block_header', 'state_root']  , hexIntToken)
-                    , 'SIGNATURE_CELL'                     : (['latest_block_header', 'signature']   , intToken)
+                    , 'SIGNATURE_CELL'                     : (['latest_block_header', 'signature']   , hexIntToken)
                     , 'TRANSFERS_CELL'                     : (['transfers']                          , listOf('Transfer', converter = transferTerm))
                     }
 

@@ -77,6 +77,7 @@ BEACON_CHAIN_appliedLabels = [ '#Fork'
                              , '#Eth1Data'
                              , '#AttestationData'
                              , '#PendingAttestation'
+                             , '#Transfer'
                              ]
 
 for appliedLabel in BEACON_CHAIN_appliedLabels:
@@ -94,6 +95,7 @@ BEACON_CHAIN_lists = [ 'PendingAttestation'
                      , 'Crosslink'
                      , 'Hash'
                      , 'Bit'
+                     , 'Transfer'
                      ]
 
 for list_sort in BEACON_CHAIN_lists:

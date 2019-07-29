@@ -62,12 +62,22 @@ attestationDataTerm = labelWithKeyPairs('#AttestationData' , [ ('beacon_block_ro
                                                              ]
                                        )
 
-pendingAttestationTerm = labelWithKeyPairs('#PendingAttestation' , [ ('aggregation_bits'     , listOf('Bit', converter = intToken))
-                                                                   , ('data'                 , attestationDataTerm)
-                                                                   , ('inclusion_delay'      , intToken)
-                                                                   , ('proposer_index'       , intToken)
+pendingAttestationTerm = labelWithKeyPairs('#PendingAttestation' , [ ('aggregation_bits' , listOf('Bit', converter = intToken))
+                                                                   , ('data'             , attestationDataTerm)
+                                                                   , ('inclusion_delay'  , intToken)
+                                                                   , ('proposer_index'   , intToken)
                                                                    ]
                                           )
+
+transferTerm = labelWithKeyPairs('#Transfer' , [ ('sender'    , intToken)
+                                               , ('recipient' , intToken)
+                                               , ('amount'    , intToken)
+                                               , ('fee'       , intToken)
+                                               , ('slot'      , intToken)
+                                               , ('pubkey'    , hexIntToken)
+                                               , ('signature' , hexIntToken)
+                                               ]
+                                )
 
 init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']                       , intToken)
                     , 'SLOT_CELL'                          : (['slot']                               , intToken)
@@ -98,6 +108,7 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'PARENT_ROOT_CELL'                   : (['latest_block_header', 'parent_root'] , hexIntToken)
                     , 'STATE_ROOT_CELL'                    : (['latest_block_header', 'state_root']  , hexIntToken)
                     , 'SIGNATURE_CELL'                     : (['latest_block_header', 'signature']   , intToken)
+                    , 'TRANSFERS_CELL'                     : (['transfers']                          , listOf('Transfer', converter = transferTerm))
                     }
 
 def getKeyChain(yaml_input, key_chain):
@@ -158,12 +169,12 @@ if __name__ == '__main__':
 
         all_keys = list(init_cells.keys())
 
+        if 'transfer' in test_case:
+            test_case['pre']['transfers'] = [ test_case['transfer'] ]
+
         init_config_subst = buildInitConfigSubstitution(test_case['pre'])
         init_config = substitute(symbolic_configuration, init_config_subst)
         kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
-
-        if 'transfer' in test_case:
-            _warning('Skipping transfer block!')
 
         if test_case['post'] is None:
             _warning('No post condition!')
@@ -174,14 +185,16 @@ if __name__ == '__main__':
             json.dump(kast_json, tempf)
             tempf.flush()
             fastPrinted = prettyPrintKast(init_config['args'][0], ALL_symbols).strip()
-            (returnCode, kastPrinted, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty')
+            (returnCode, kastPrinted, kastError) = kast(tempf.name, '--input', 'json', '--output', 'pretty')
+            if returnCode != 0:
+                printerr(kastError)
+                _fatal('kast returned non-zero exit code: ' + args.input.name + ' ' + test_case['description'], code = returnCode)
             kastPrinted = kastPrinted.strip()
             if fastPrinted != kastPrinted:
                 _warning('kastPrinted and fastPrinted differ!')
                 for line in difflib.unified_diff(kastPrinted.split('\n'), fastPrinted.split('\n'), fromfile='kast', tofile='fast', lineterm='\n'):
-                    sys.stderr.write(line)
+                    sys.stderr.write(line + '\n')
                 sys.stderr.flush()
             (returnCode, _, _) = krun(tempf.name, '--term', '--parser', 'cat')
             if returnCode != 0:
-                _fatal('krun returned non-zero exit code: ' + args.input.name + ' ' + test_case['description'])
-                sys.exit(returnCode)
+                _fatal('krun returned non-zero exit code: ' + args.input.name + ' ' + test_case['description'], code = returnCode)

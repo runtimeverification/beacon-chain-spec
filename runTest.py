@@ -129,6 +129,10 @@ if __name__ == '__main__':
         printerr('')
         printerr(test_title)
         printerr('='.join(['' for i in test_title + ' ']))
+
+        if 'bls_setting' in test_case and test_case['bls_setting'] > 1:
+            _warning('Skipping test with `bls_setting` set to ' + str(test_case['bls_setting']))
+
         all_keys = list(init_cells.keys())
 
         init_config_subst = buildInitConfigSubstitution(test_case['pre'])

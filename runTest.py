@@ -184,17 +184,19 @@ if __name__ == '__main__':
         with tempfile.NamedTemporaryFile(mode = 'w') as tempf:
             json.dump(kast_json, tempf)
             tempf.flush()
+
             fastPrinted = prettyPrintKast(init_config['args'][0], ALL_symbols).strip()
-            (returnCode, kastPrinted, kastError) = kast(tempf.name, '--input', 'json', '--output', 'pretty')
+            (returnCode, kastPrinted, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty')
             if returnCode != 0:
-                printerr(kastError)
                 _fatal('kast returned non-zero exit code: ' + args.input.name + ' ' + test_case['description'], code = returnCode)
+
             kastPrinted = kastPrinted.strip()
             if fastPrinted != kastPrinted:
                 _warning('kastPrinted and fastPrinted differ!')
                 for line in difflib.unified_diff(kastPrinted.split('\n'), fastPrinted.split('\n'), fromfile='kast', tofile='fast', lineterm='\n'):
                     sys.stderr.write(line + '\n')
                 sys.stderr.flush()
+
             (returnCode, _, _) = krun(tempf.name, '--term', '--parser', 'cat')
             if returnCode != 0:
                 _fatal('krun returned non-zero exit code: ' + args.input.name + ' ' + test_case['description'], code = returnCode)

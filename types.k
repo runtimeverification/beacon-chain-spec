@@ -476,4 +476,7 @@ def bytes_to_int(data: bytes) -> uint64:
 */
   syntax Int ::= bytesToInt( Bytes ) [function]
 
+  syntax Bytes ::= Bytes "++Bytes" Bytes [function]
+  rule #Bytes(I1, L1) ++Bytes #Bytes(I2, L2) => #Bytes(I1 <<Int (L2 *Int 8) +Int I2, L1 +Int L2)
+
 endmodule

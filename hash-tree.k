@@ -21,7 +21,10 @@ module HASH-TREE
   rule serialize_basic(true)  => #Bytes(1, 1)
   rule serialize_basic(false) => #Bytes(0, 1)
 
-/*def pack(values: Series):
+/* Given ordered objects of the same basic type, serialize them, pack them into BYTES_PER_CHUNK-byte chunks,
+    right-pad the last chunk with zero bytes, and return the chunks.
+
+def pack(values: Series):
     if isinstance(values, bytes):  # Bytes and BytesN are already packed
         return values
     elif isinstance(values, Bitvector):
@@ -30,9 +33,8 @@ module HASH-TREE
     elif isinstance(values, Bitlist):
         as_integer = sum([values[i] << i for i in range(len(values))])
         return as_integer.to_bytes((values.length + 7) // 8, "little")
-    # todo - may include any container type and possibly lists
     return b''.join([serialize_basic(value) for value in values])*/
-  //todo a more narrow type
+  //todo a more narrow type - Series??.
   syntax Bytes ::= pack ( KItem ) [function]
   rule pack(B:Bytes) => B
 
@@ -40,6 +42,11 @@ module HASH-TREE
   //not sure if this is little endian
   rule pack(BL:BitList) => #Bytes( toInt(BL, (JUSTIFICATION_BITS_LENGTH +Int 7) /Int 8 *Int 8),
                                    (JUSTIFICATION_BITS_LENGTH +Int 7) /Int 8)
-  //todo pack for container type
+
+  rule pack(VALUE:SSZValue) => serialize_basic(VALUE)
+
+  // Int lists will be padded to their static size later anyway
+  rule pack(I:Int IL:IntList) => serialize_basic(I) ++Bytes pack(IL)
+  rule pack(.IntList) => #Bytes(0, 0)
 
 endmodule

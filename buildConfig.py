@@ -61,10 +61,7 @@ def kast(inputFile, *kastArgs):
 def krun(inputFile, *krunArgs):
     return pyk.krun('.build/defn/llvm', inputFile, krunArgs = list(krunArgs), kRelease = 'deps/k/k-distribution/target/release/k')
 
-BEACON_CHAIN_symbols = { '.ProposerSlashingCellMap' : constLabel('.ProposerSlashingCellMap')
-                       , assocUnit('Bit')           : constLabel('.BitList')
-                       , assocJoin('Bit')           : lambda b, bs: b + "  " + bs
-                       }
+BEACON_CHAIN_symbols = { '.ProposerSlashingCellMap' : constLabel('.ProposerSlashingCellMap') }
 
 BEACON_CHAIN_constLabels = [ '.Pgm'
                            , '.Eth1Data'
@@ -96,11 +93,12 @@ BEACON_CHAIN_lists = [ 'PendingAttestation'
                      , 'Eth1Data'
                      , 'Crosslink'
                      , 'Hash'
+                     , 'Bit'
                      ]
 
 for list_sort in BEACON_CHAIN_lists:
     BEACON_CHAIN_symbols[assocUnit(list_sort)] = constLabel('.' + list_sort + 'List')
-    BEACON_CHAIN_symbols[assocJoin(list_sort)] = underbarUnparsing('__')
+    BEACON_CHAIN_symbols[assocJoin(list_sort)] = lambda e, es: e + '  ' + es
 
 ALL_symbols = combineDicts(K_symbols, BEACON_CHAIN_symbols)
 

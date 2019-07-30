@@ -24,7 +24,7 @@ K_LIB:=$(K_RELEASE)/lib
 PATH:=$(K_BIN):$(PATH)
 export PATH
 
-PYTHONPATH:=$(K_LIB)/py-kframework
+PYTHONPATH:=$(K_LIB)
 export PYTHONPATH
 
 TANGLER:=$(PANDOC_TANGLE_SUBMODULE)/tangle.lua
@@ -117,23 +117,12 @@ TEST_CONCRETE_BACKEND:=llvm
 
 test: test-python-config test-operations-minimal
 
-test-python-config: $(BUILD_DIR)/tests/buildConfig.out $(llvm_kompiled)
-	$(K_BIN)/kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
-	     --output pretty --sort BeaconChainCell \
-	     $<
-
-$(BUILD_DIR)/tests/buildConfig.out: buildConfig.py
-	mkdir -p $(dir $@)
-	python3 $< > $@
+test-python-config: buildConfig.py $(llvm_kompiled)
+	python3 $<
 
 operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/operations/*/*_minimal.yaml)
 
-test-operations-minimal: $(operations_minimal_tests:=.test)
+test-operations-minimal: $(operations_minimal_tests:=.test-parse)
 
-%.yaml.test: %.yaml.json $(llvm_kompiled)
-	$(K_BIN)/kast --directory $(DEFN_DIR)/$(TEST_CONCRETE_BACKEND) \
-	    --input json --output pretty --sort BeaconChainCell \
-	    $< --debug --no-sort-collections
-
-%.yaml.json: runTest.py %.yaml
-	python3 $^ $@
+%.yaml.test-parse: %.yaml $(llvm_kompiled)
+	python3 runTest.py parse --input $*.yaml

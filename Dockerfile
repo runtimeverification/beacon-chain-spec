@@ -1,4 +1,4 @@
-FROM runtimeverification/ubuntu:bionic
+FROM runtimeverificationinc/ubuntu:bionic
 
 RUN    apt-get update                                                        \
     && apt-get upgrade --yes                                                 \

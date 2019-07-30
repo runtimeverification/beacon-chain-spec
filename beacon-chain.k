@@ -148,11 +148,6 @@ def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
   // Helper functions -- Crypto
   //====================================================
 /*
-def hash(data: bytes) -> Hash is SHA256.
-*/
-  syntax Bytes ::= hash( Bytes ) [function]
-
-/*
 def hash_tree_root(object: SSZSerializable) -> Hash
 */
   syntax Hash ::= hashTreeRoot( Bytes ) [function]
@@ -308,7 +303,7 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
     return ValidatorIndex(index)
 */
 //
-  syntax Int ::= computeShuffledIndex( Int, Int, Bytes32 ) [function]
+  syntax Int ::= computeShuffledIndex( Int, Int, Hash ) [function]
   rule computeShuffledIndex(INDEX, COUNT, SEED) => INDEX %Int COUNT //NOTEH mock implementation
 
 
@@ -334,7 +329,7 @@ def compute_committee(indices: Sequence[ValidatorIndex],
         .IntList
     )
 
-  syntax IntList ::= computeCommitteeLoop( Int, Int, Bytes32, IntList, IntList )
+  syntax IntList ::= computeCommitteeLoop( Int, Int, Hash, IntList, IntList )
   rule computeCommitteeLoop(I => I +Int 1, END, SEED, INDICES,
                             RESULT => RESULT computeShuffledIndex(I, len(INDICES), SEED))
     requires I <Int END
@@ -494,8 +489,7 @@ def get_seed(state: BeaconState, epoch: Epoch) -> Hash:
     active_index_root = state.active_index_roots[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
     return hash(mix + active_index_root + int_to_bytes(epoch, length=32))
 */
-  syntax Bytes32 ::= getSeed( Int ) [function]
-  rule getSeed(_) => 0 //NOTEH mock implementation for now
+  syntax Hash ::= getSeed( Int ) [function]
 
 /*
 def get_committee_count(state: BeaconState, epoch: Epoch) -> uint64:
@@ -1042,7 +1036,7 @@ def process_slot(state: BeaconState) -> None:
 */
   syntax KItem ::= "processSlot" "(" ")"
   rule <k> processSlot() =>
-             processSlotAux(hashTreeRoot(#Bytes(0,0)), SLOT %Int SLOTS_PER_HISTORICAL_ROOT) // TODO: fix dummy bytes
+             processSlotAux(hashTreeRoot(""), SLOT %Int SLOTS_PER_HISTORICAL_ROOT) // TODO: fix dummy bytes
        ...</k>
        <slot> SLOT </slot>
 
@@ -1057,7 +1051,7 @@ def process_slot(state: BeaconState) -> None:
   syntax KItem ::= "cacheBlockRoot" "(" Int ")"
   rule <k> cacheBlockRoot(SLOT) => .K ...</k>
        <latest-block-header> BHEADER </latest-block-header>
-       <block-roots> SLOT |-> (BLOCKROOT => signingRoot(#Bytes(0,0))) </block-roots> // TODO: fix dummy bytes
+       <block-roots> SLOT |-> (BLOCKROOT => signingRoot("")) </block-roots> // TODO: fix dummy bytes
 
 
   // State transition function -- Epoch processing
@@ -1328,9 +1322,9 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
 
   syntax Crosslink ::= maxBasedOnDataRootAux(CrosslinkList, Crosslink, Hash) [function]
   rule maxBasedOnDataRootAux(C CL => CL, MAXC => C, MAXCDROOT => C.dataRoot)
-    when C.dataRoot >Int MAXCDROOT
+    when {C.dataRoot}:>String >String MAXCDROOT
   rule maxBasedOnDataRootAux(C CL => CL, MAXC, MAXCDROOT)
-    when C.dataRoot <=Int MAXCDROOT
+    when {C.dataRoot}:>String <=String MAXCDROOT
   rule maxBasedOnDataRootAux(.CrosslinkList, MAXC, MAXCDROOT) => MAXC
 
 /*

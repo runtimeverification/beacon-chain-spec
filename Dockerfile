@@ -6,7 +6,8 @@ RUN    apt-get update                                                        \
         autoconf bison clang-8 cmake curl flex gcc git-lfs libboost-test-dev \
         libcrypto++-dev libffi-dev libjemalloc-dev libmpfr-dev libprocps-dev \
         libsecp256k1-dev libssl-dev libtool libyaml-dev lld-8 llvm-8-tools   \
-        make maven opam openjdk-11-jdk pandoc pkg-config python3 zlib1g-dev
+        make maven opam openjdk-11-jdk pandoc pkg-config python3 python3-pip \
+        zlib1g-dev
 
 USER user:user
 

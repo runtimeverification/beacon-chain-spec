@@ -4,12 +4,33 @@ module HASH-TREE
   imports DOMAINS
   imports TYPES
 
+  // Macros
+  //====================================================
+
   syntax Int ::= "BYTES_PER_CHUNK"
   rule BYTES_PER_CHUNK => 32                                  [macro]
   syntax Int ::= "BYTES_PER_LENGTH_OFFSET"
   rule BYTES_PER_LENGTH_OFFSET => 4                           [macro]
   syntax Int ::= "BITS_PER_BYTE"
   rule BITS_PER_BYTE => 8                                     [macro]
+
+
+  // Framework functions -- Crypto
+  //====================================================
+
+/* Usage in KEVM: #parseHexBytes(Sha256(#unparseByteStack(WS:WordStack)))
+  Judging by usage pattern, each char in the string is a byte.
+*/
+  syntax String ::= Sha256 ( String )                                 [function, hook(KRYPTO.sha256)]
+
+/* def hash(data: bytes) -> Hash is SHA256.
+*/
+  syntax Hash ::= hash( Bytes )                                       [function]
+  rule hash(BYTES) => Sha256(BYTES)
+
+
+  // SSZ library functions
+  //====================================================
 
 //todo these integers might have different length??
 /* def serialize_basic(value: SSZValue):
@@ -23,11 +44,11 @@ module HASH-TREE
     else:
         raise Exception(f"Type not supported: {type(value)}")*/
   syntax Bytes ::= "serialize_basic" "(" SSZValue ")" [function]
-  rule serialize_basic(A:Int) => #Bytes(A, 8)
-  rule serialize_basic(true)  => #Bytes(1, 1)
-  rule serialize_basic(false) => #Bytes(0, 1)
+  rule serialize_basic(A:Int) => Int2Bytes(A, 8)
+  rule serialize_basic(true)  => "" +String chrChar(1 modInt (2 ^Int 8))
+  rule serialize_basic(false) => "" +String chrChar(0 modInt (2 ^Int 8))
 
-/* Given ordered objects of the same basic type, serialize them, pack them into BYTES_PER_CHUNK-byte chunks,
+/* Given ordered objects of the same basic type, serialize them, pack them into BYTES_PER_CHUNK (32) -byte chunks,
     right-pad the last chunk with zero bytes, and return the chunks.
 
 def pack(values: Series):
@@ -46,14 +67,14 @@ def pack(values: Series):
 
   //Length is always JUSTIFICATION_BITS_LENGTH
   //not sure if this is little endian
-  rule pack(BL:BitList) => #Bytes( toInt(BL, (JUSTIFICATION_BITS_LENGTH +Int 7) /Int 8 *Int 8),
-                                   (JUSTIFICATION_BITS_LENGTH +Int 7) /Int 8)
+  rule pack(BL:BitList) => Int2Bytes( toInt(BL, (JUSTIFICATION_BITS_LENGTH +Int 7) /Int 8 *Int 8),
+                                      (JUSTIFICATION_BITS_LENGTH +Int 7) /Int 8 )
 
   rule pack(VALUE:SSZValue) => serialize_basic(VALUE)
 
   // Int lists will be padded to their static size later anyway
   rule pack(I:Int IL:IntList) => serialize_basic(I) +Bytes pack(IL)
-  rule pack(.IntList) => #Bytes(0, 0)
+  rule pack(.IntList) => ""
 
 /*
 It is here that chunkification described in the dock of pack() happens.
@@ -63,16 +84,16 @@ def chunkify(bytez):
     bytez += b'\x00' * (-len(bytez) % 32)
     return [bytez[i:i + 32] for i in range(0, len(bytez), 32)]
 */
-  syntax IntList ::= chunkify( Bytes )                                [function]
+  syntax ChunkList ::= chunkify( Bytes )                              [function]
   rule chunkify(B) => chunkifyAux(padTo32(B))
 
   syntax Bytes ::= padTo32( Bytes )                                   [function]
-  rule padTo32(#Bytes(DATA, LEN)) => #Bytes(DATA <<Int ((LEN +Int 31) /Int 32 -Int LEN)  , (LEN +Int 31) /Int 32 )
+  rule padTo32(BYTES) => BYTES +Bytes ("\x00" *Bytes ((lengthString(BYTES) +Int 31) /Int 32 -Int lengthString(BYTES)) )
 
-  syntax IntList ::= chunkifyAux( Bytes )                             [function]
-  rule chunkifyAux(#Bytes(DATA, LEN)) => chunkifyAux(#Bytes(DATA >>Int BYTES_PER_CHUNK, LEN -Int BYTES_PER_CHUNK))
-                                         +IntList (DATA %Int (1 <<Int BYTES_PER_CHUNK) .IntList)
-    requires LEN >Int BYTES_PER_CHUNK
-  rule chunkifyAux(#Bytes(0, 0)) => .IntList
+  syntax ChunkList ::= chunkifyAux( Bytes )                           [function]
+  rule chunkifyAux(BYTES) => substrString(BYTES, 0, 32) , chunkifyAux(substrString(BYTES, 32, lengthString(BYTES)))
+    requires lengthString(BYTES) >=Int 32
+
+  rule chunkifyAux("") => .ChunkList
 
 endmodule

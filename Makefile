@@ -78,7 +78,7 @@ KOMPILE_OPTS?=
 LLVM_KOMPILE_OPTS:=$(KOMPILE_OPTS) -ccopt -O2
 
 llvm_kompiled:=$(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE)-kompiled/interpreter
-haskell_kompiled:=$(DEFN_DIR)/haskell/$(MAIN_DEFN_FILE)-kompiled/interpreter
+haskell_kompiled:=$(DEFN_DIR)/haskell/$(MAIN_DEFN_FILE)-kompiled/definition.kore
 
 build: build-llvm build-haskell
 build-llvm: $(llvm_kompiled)

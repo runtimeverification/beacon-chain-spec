@@ -3,7 +3,8 @@ module TYPES
 
   // Basic Python (SSZ) types
   //====================================================
-  syntax Bytes   ::= #Bytes( Int, Int ) //DATA, LEN
+  syntax Bytes   ::= String
+  syntax ChunkList ::= List{Bytes, ","}
   syntax Uint64  ::= Int
   syntax Bytes4  ::= Int
   syntax Bytes8  ::= Int
@@ -23,7 +24,7 @@ module TYPES
   // Custom types
   //====================================================
   syntax ValidatorIndex ::= Int | ".ValidatorIndex"     //a validator registry index
-  syntax Hash           ::= Bytes32     //a hash
+  syntax Hash           ::= Bytes
   syntax Version        ::= Bytes4      //a fork version number
   syntax DomainType     ::= Bytes4      //a signature domain type
   syntax Domain         ::= Bytes8      //a signature domain
@@ -258,7 +259,7 @@ class Crosslink(Container):
   rule #Crosslink(_,_,EPOCH,_,_).startEpoch => EPOCH
   syntax Int ::= Crosslink "." "endEpoch"                             [function]
   rule #Crosslink(_,_,_,EPOCH,_).endEpoch => EPOCH
-  syntax Int ::= Crosslink "." "dataRoot"                             [function]
+  syntax Hash ::= Crosslink "." "dataRoot"                            [function]
   rule #Crosslink(_,_,_,_,ROOT).dataRoot => ROOT
 
   /*
@@ -465,7 +466,12 @@ def int_to_bytes(n: uint64, length: uint64) -> bytes:
     """
     return n.to_bytes(length, ENDIANNESS)
 */
-  syntax Bytes ::= intToBytes( Int ) [function]
+  syntax Bytes ::= Int2Bytes ( Int , Int )                            [function]
+                 | Int2Bytes ( Int , Int , String )                   [function]
+  rule Int2Bytes(N, LEN) => Int2Bytes(N, LEN, "")
+  rule Int2Bytes(N => N >>Int 8, LEN => LEN -Int 1, BYTES => chrChar(N modInt (2 ^Int 8)) +String BYTES)
+    requires LEN >Int 0
+  rule Int2Bytes(0, 0, BYTES) => BYTES
 
 /*
 def bytes_to_int(data: bytes) -> uint64:
@@ -540,10 +546,8 @@ def bytes_to_int(data: bytes) -> uint64:
 
   syntax Bytes ::= toBytes( Int ) [function] //todo remove?
 
-  //first argument is a result of hash(), e.g. a 256-bit number.
-  syntax Int ::= getByte(Bytes, Int) [function]
-  //rule getByte(BYTES, I) => Bytes2Int(substrBytes(BYTES, I, I), BE, Unsigned)
-  //todo implement after deciding the form of Hash
+  syntax Int ::= getByte(Hash, Int) [function]
+  rule getByte(BYTES:String, I) => ordChar(substrString(BYTES, I, I +Int 1))
   //todo question: what endianness should we use above?
 
   //IntList concatenation
@@ -557,7 +561,12 @@ def bytes_to_int(data: bytes) -> uint64:
   rule IL1 ++IntList I IL2 => #if contains(I, IL1) #then (IL1 ++IntList IL2) #else (IL1 I) ++IntList IL2 #fi
   rule IL  ++IntList .IntList => IL
 
-  syntax Bytes ::= Bytes "+Bytes" Bytes [function]
-  rule #Bytes(I1, L1) +Bytes #Bytes(I2, L2) => #Bytes((I1 <<Int (L2 *Int 8)) +Int I2, L1 +Int L2)
+  syntax Bytes ::= Bytes "+Bytes" Bytes                               [function]
+  rule B1 +Bytes B2 => B1 +String B2
+
+  syntax Bytes ::= Bytes "*Bytes" Int                                 [function]
+  rule B *Bytes I => (B *Bytes (I -Int 1)) +Bytes B
+    requires I >Int 0
+  rule B *Bytes 0 => ""
 
 endmodule

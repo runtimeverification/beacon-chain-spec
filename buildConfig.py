@@ -16,7 +16,8 @@ def printerr(msg):
 
 intToken    = lambda x: KToken(str(x), 'Int')
 boolToken   = lambda x: KToken(str(x).lower(), 'Bool')
-stringToken = lambda x: KToken(''' + str(x) + ''', 'String')
+stringToken = lambda x: KToken('"' + str(x) + '"', 'String')
+hashToken   = stringToken
 
 hexIntToken = lambda x: intToken(int(x, 16))
 

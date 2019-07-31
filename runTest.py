@@ -18,12 +18,12 @@ forkTerm = labelWithKeyPairs('#Fork' , [ ('previous_version' , hexIntToken)
                             )
 
 checkpointTerm = labelWithKeyPairs('#Checkpoint' , [ ('epoch' , intToken)
-                                                   , ('root'  , hexIntToken)
+                                                   , ('root'  , hashToken)
                                                    ]
                                   )
 
 validatorTerm = labelWithKeyPairs('#Validator' , [ ('pubkey'                       , hexIntToken)
-                                                 , ('withdrawal_credentials'       , hexIntToken)
+                                                 , ('withdrawal_credentials'       , hashToken)
                                                  , ('effective_balance'            , intToken)
                                                  , ('slashed'                      , boolToken)
                                                  , ('activation_eligibility_epoch' , intToken)
@@ -34,28 +34,28 @@ validatorTerm = labelWithKeyPairs('#Validator' , [ ('pubkey'                    
                                  )
 
 crosslinkTerm = labelWithKeyPairs('#Crosslink' , [ ('shard'       , intToken)
-                                                 , ('parent_root' , hexIntToken)
+                                                 , ('parent_root' , hashToken)
                                                  , ('start_epoch' , intToken)
                                                  , ('end_epoch'   , intToken)
-                                                 , ('data_root'   , hexIntToken)
+                                                 , ('data_root'   , hashToken)
                                                  ]
                                  )
 
 blockheaderTerm = labelWithKeyPairs('#BeaconBlockHeader' , [ ('slot'        , intToken)
-                                                           , ('parent_root' , hexIntToken)
-                                                           , ('state_root'  , hexIntToken)
-                                                           , ('body_root'   , hexIntToken)
+                                                           , ('parent_root' , hashToken)
+                                                           , ('state_root'  , hashToken)
+                                                           , ('body_root'   , hashToken)
                                                            , ('signature'   , hexIntToken)
                                                            ]
                                    )
 
-eth1dataTerm = labelWithKeyPairs('#Eth1Data' , [ ('deposit_root'  , hexIntToken)
+eth1dataTerm = labelWithKeyPairs('#Eth1Data' , [ ('deposit_root'  , hashToken)
                                                , ('deposit_count' , intToken)
-                                               , ('block_hash'    , hexIntToken)
+                                               , ('block_hash'    , hashToken)
                                                ]
                                 )
 
-attestationDataTerm = labelWithKeyPairs('#AttestationData' , [ ('beacon_block_root' , hexIntToken)
+attestationDataTerm = labelWithKeyPairs('#AttestationData' , [ ('beacon_block_root' , hashToken)
                                                              , ('source'            , checkpointTerm)
                                                              , ('target'            , checkpointTerm)
                                                              , ('crosslink'         , crosslinkTerm)
@@ -85,16 +85,16 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'LATEST_BLOCK_HEADER_CELL'           : (['latest_block_header']                , blockheaderTerm)
                     , 'BLOCK_ROOTS_CELL'                   : (['block_roots']                        , indexedMapOf(converter = hexIntToken))
                     , 'STATE_ROOTS_CELL'                   : (['state_roots']                        , indexedMapOf(converter = hexIntToken))
-                    , 'HISTORICAL_ROOTS_CELL'              : (['historical_roots']                   , listOf('Hash', converter = hexIntToken))
+                    , 'HISTORICAL_ROOTS_CELL'              : (['historical_roots']                   , listOf('Hash', converter = hashToken))
                     , 'ETH1_DATA_CELL'                     : (['eth1_data']                          , eth1dataTerm)
                     , 'ETH1_DATA_VOTES_CELL'               : (['eth1_data_votes']                    , listOf('Eth1Data', converter = eth1dataTerm))
                     , 'ETH1_DEPOSIT_INDEX_CELL'            : (['eth1_deposit_index']                 , intToken)
                     , 'VALIDATORS_CELL'                    : (['validators']                         , indexedMapOf(converter = validatorTerm))
                     , 'BALANCES_CELL'                      : (['balances']                           , indexedMapOf(converter = intToken))
                     , 'START_SHARD_CELL'                   : (['start_shard']                        , intToken)
-                    , 'RANDAO_MIXES_CELL'                  : (['randao_mixes']                       , listOf('Hash', converter = hexIntToken))
-                    , 'ACTIVE_INDEX_ROOTS_CELL'            : (['active_index_roots']                 , listOf('Hash', converter = hexIntToken))
-                    , 'COMPACT_COMMITTEES_ROOTS_CELL'      : (['compact_committees_roots']           , listOf('Hash', converter = hexIntToken))
+                    , 'RANDAO_MIXES_CELL'                  : (['randao_mixes']                       , listOf('Hash', converter = hashToken))
+                    , 'ACTIVE_INDEX_ROOTS_CELL'            : (['active_index_roots']                 , listOf('Hash', converter = hashToken))
+                    , 'COMPACT_COMMITTEES_ROOTS_CELL'      : (['compact_committees_roots']           , listOf('Hash', converter = hashToken))
                     , 'SLASHINGS_CELL'                     : (['slashings']                          , indexedMapOf(converter = intToken))
                     , 'PREVIOUS_EPOCH_ATTESTATION_CELL'    : (['previous_epoch_attestations']        , listOf('PendingAttestation', converter = pendingAttestationTerm))
                     , 'CURRENT_EPOCH_ATTESTATIONS_CELL'    : (['current_epoch_attestations']         , listOf('PendingAttestation', converter = pendingAttestationTerm))
@@ -133,7 +133,7 @@ def gatherKeyChains(yaml_input):
                 key_chains.append([k] + sub_key_chain)
     return key_chains
 
-def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_keys = []):
+def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_keys = [], debug_keys = []):
     new_key_table = {}
     used_key_chains = []
     for cell_var in key_table:
@@ -144,7 +144,12 @@ def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_key
                 new_key_table[cell_var] = key_table[cell_var]
                 _warning('Key not found: ' + str(pre_keys))
             else:
-                new_key_table[cell_var] = converter(getKeyChain(test_pre_state, pre_keys))
+                kast_term = converter(getKeyChain(test_pre_state, pre_keys))
+                if cell_var in debug_keys:
+                    _notif(cell_var)
+                    printerr(str(kast_term))
+                    printerr(prettyPrintKast(kast_term, ALL_symbols))
+                new_key_table[cell_var] = kast_term
                 used_key_chains.append(pre_keys)
         else:
             new_key_table[cell_var] = key_table[cell_var]
@@ -177,7 +182,42 @@ if __name__ == '__main__':
         if 'transfer' in test_case:
             test_case['pre']['transfers'] = [ test_case['transfer'] ]
 
-        init_config_subst = buildInitConfigSubstitution(test_case['pre'])
+        skip_keys = [
+                    #  'GENESIS_TIME_CELL'
+                    #, 'SLOT_CELL'
+                    #, 'FORK_CELL'
+                    #, 'LATEST_BLOCK_HEADER_CELL'
+                    #, 'BLOCK_ROOTS_CELL'
+                    #, 'STATE_ROOTS_CELL'
+                    #, 'HISTORICAL_ROOTS_CELL'
+                    #, 'ETH1_DATA_CELL'
+                    #, 'ETH1_DATA_VOTES_CELL'
+                    #, 'ETH1_DEPOSIT_INDEX_CELL'
+                    #, 'VALIDATORS_CELL'
+                    #, 'BALANCES_CELL'
+                    #, 'START_SHARD_CELL'
+                    #, 'RANDAO_MIXES_CELL'
+                    #, 'ACTIVE_INDEX_ROOTS_CELL'
+                    #, 'COMPACT_COMMITTEES_ROOTS_CELL'
+                    #, 'SLASHINGS_CELL'
+                    #, 'PREVIOUS_EPOCH_ATTESTATION_CELL'
+                    #, 'CURRENT_EPOCH_ATTESTATIONS_CELL'
+                    #, 'PREVIOUS_CROSSLINKS_CELL'
+                    #, 'CURRENT_CROSSLINKS_CELL'
+                    #, 'JUSTIFICATION_BITS_CELL'
+                    #, 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL'
+                    #, 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'
+                    #, 'FINALIZED_CHECKPOINT_CELL'
+                    #, 'BLOCKSLOT_CELL'
+                    #, 'PARENT_ROOT_CELL'
+                    #, 'STATE_ROOT_CELL'
+                    #, 'SIGNATURE_CELL'
+                    #, 'TRANSFERS_CELL'
+                    ]
+
+        debug_keys = [ ]
+
+        init_config_subst = buildInitConfigSubstitution(test_case['pre'], skip_keys = skip_keys, debug_keys = debug_keys)
         init_config = substitute(symbolic_configuration, init_config_subst)
         kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
 

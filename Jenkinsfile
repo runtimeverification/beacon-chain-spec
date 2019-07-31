@@ -35,7 +35,7 @@ pipeline {
     stage('Test') {
       steps {
         sh '''
-          make test
+          make test -j8
         '''
       }
     }

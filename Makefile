@@ -37,8 +37,8 @@ ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-spec-tests
 
 .PHONY: all clean \
 	    deps deps-k deps-tangle deps-tests \
-	    defn defn-llvm \
-	    build build-llvm \
+	    defn defn-llvm defn-haskell \
+	    build build-llvm build-haskell \
 	    test test-split test-python-config test-operations-minimal
 .SECONDARY:
 
@@ -65,7 +65,7 @@ deps-tests: $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
 
 $(K_SUBMODULE)/mvn.timestamp: $(K_SUBMODULE)/submodule.timestamp
 	@echo "== building: $*"
-	cd $(K_SUBMODULE) && mvn package -DskipTests -Dhaskell.backend.skip
+	cd $(K_SUBMODULE) && mvn package -DskipTests
 	touch $(K_SUBMODULE)/mvn.timestamp
 
 # Building
@@ -78,19 +78,28 @@ KOMPILE_OPTS?=
 LLVM_KOMPILE_OPTS:=$(KOMPILE_OPTS) -ccopt -O2
 
 llvm_kompiled:=$(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE)-kompiled/interpreter
+haskell_kompiled:=$(DEFN_DIR)/haskell/$(MAIN_DEFN_FILE)-kompiled/definition.kore
 
-build: build-llvm
+build: build-llvm build-haskell
 build-llvm: $(llvm_kompiled)
+build-haskell: $(haskell_kompiled)
 
 # Generate definitions from source files
 
 k_files=$(MAIN_DEFN_FILE).k beacon-chain.k hash-tree.k types.k
 llvm_files=$(patsubst %,$(DEFN_DIR)/llvm/%,$(k_files))
+haskell_files=$(patsubst %,$(DEFN_DIR)/haskell/%,$(k_files))
 
-defn: llvm-defn
+defn: llvm-defn haskell-defn
 defn-llvm: $(llvm_files)
+defn-haskell: $(haskell_files)
 
 $(DEFN_DIR)/llvm/%.k: %.k
+	@echo "==  copying: $@"
+	mkdir -p $(dir $@)
+	cp $< $@
+
+$(DEFN_DIR)/haskell/%.k: %.k
 	@echo "==  copying: $@"
 	mkdir -p $(dir $@)
 	cp $< $@
@@ -99,10 +108,18 @@ $(DEFN_DIR)/llvm/%.k: %.k
 
 $(llvm_kompiled): $(llvm_files)
 	@echo "== kompile: $@"
-	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm \
+	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm                   \
 	                 --syntax-module $(SYNTAX_MODULE) $(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE).k \
-	                 --directory $(DEFN_DIR)/llvm -I $(DEFN_DIR)/llvm \
+	                 --directory $(DEFN_DIR)/llvm -I $(DEFN_DIR)/llvm                      \
 	                 $(LLVM_KOMPILE_OPTS)
+
+# Haskell Backend
+
+$(haskell_kompiled): $(haskell_files)
+	@echo "== kompile: $@"
+	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend haskell                   \
+	                 --syntax-module $(SYNTAX_MODULE) $(DEFN_DIR)/haskell/$(MAIN_DEFN_FILE).k \
+	                 --directory $(DEFN_DIR)/haskell -I $(DEFN_DIR)/haskell
 
 # Testing
 # -------

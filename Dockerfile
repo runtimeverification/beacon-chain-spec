@@ -9,13 +9,21 @@ RUN    apt-get update                                                        \
         make maven opam openjdk-11-jdk pandoc pkg-config python3 python3-pip \
         zlib1g-dev
 
+ADD deps/k/haskell-backend/src/main/native/haskell-backend/scripts/install-stack.sh /.install-stack/
+RUN /.install-stack/install-stack.sh
+
 USER user:user
 
 ADD --chown=user:user deps/k/llvm-backend/src/main/native/llvm-backend/install-rust deps/k/llvm-backend/src/main/native/llvm-backend/rust-checksum /home/user/.install-rust/
 RUN    cd /home/user/.install-rust \
     && ./install-rust
 
-ENV LD_LIBRARY_PATH=/usr/local/lib
-ENV PATH=/home/user/.local/bin:/home/user/.cargo/bin:$PATH
+ADD --chown=user:user deps/k/haskell-backend/src/main/native/haskell-backend/stack.yaml /home/user/.tmp-haskell/
+ADD --chown=user:user deps/k/haskell-backend/src/main/native/haskell-backend/kore/package.yaml /home/user/.tmp-haskell/kore/
+RUN    cd /home/user/.tmp-haskell  \
+    && stack build --only-snapshot
 
 RUN pip3 install -U PyYAML
+
+ENV LD_LIBRARY_PATH=/usr/local/lib
+ENV PATH=/home/user/.local/bin:/home/user/.cargo/bin:$PATH

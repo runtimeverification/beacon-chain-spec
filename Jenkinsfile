@@ -2,12 +2,7 @@ pipeline {
   options {
     ansiColor('xterm')
   }
-  agent {
-    dockerfile {
-      additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-      args '-m 60g'
-    }
-  }
+  agent { dockerfile { } }
   stages {
     stage('Init title') {
       when { changeRequest() }
@@ -28,7 +23,7 @@ pipeline {
     stage('Build') {
       steps {
         sh '''
-          make build
+          make build -j2
         '''
       }
     }

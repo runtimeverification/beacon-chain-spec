@@ -502,6 +502,9 @@ def bytes_to_int(data: bytes) -> uint64:
   // Python framework functions
   //====================================================
 
+  syntax Int ::= "bit_length" "(" Int ")"                             [function]
+  rule bit_length(A) => log2Int(A) +Int 1
+
   syntax Int ::= len( IntList ) [function]
   rule len( _:Int L) => 1 +Int len(L)
   rule len(.IntList) => 0
@@ -589,6 +592,12 @@ def bytes_to_int(data: bytes) -> uint64:
   rule B *Bytes I => (B *Bytes (I -Int 1)) +Bytes B
     requires I >Int 0
   rule B *Bytes 0 => ""
+
+  syntax Int ::= len( ChunkList )                                     [function]
+               | len( ChunkList , Int )                               [function]
+  rule len(CHUNKS) => len(CHUNKS, 0)
+  rule len((_, CHUNKS => CHUNKS), I => I +Int 1)
+  rule len(.ChunkList, I) => I
 
   syntax BitList ::= shiftRight(BitList) [function]
   rule shiftRight(BL I) => 0 BL

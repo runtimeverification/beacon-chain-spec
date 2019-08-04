@@ -12,7 +12,7 @@ module TYPES
   syntax Bytes48 ::= Int
   syntax Bytes96 ::= Int
   syntax Bit     ::= Int
-  syntax SSZValue ::= Int | Uint64 | Bool
+  syntax BasicValue ::= Int | Uint64 | Bool
 
   syntax KItem ::= Pgm
   syntax Pgm ::= ".Pgm"
@@ -48,6 +48,10 @@ module TYPES
   syntax IntList ::= List{Int, ""}
   syntax BitList ::= List{Bit, ""}
   syntax HashList ::= List{Hash, ""}
+
+  syntax TypedList ::= Uint64List | Bytes32List | Bytes48List
+       | AttesterSlashingList | AttestationList | DepositList | VoluntaryExitList | TransferList | CrosslinkList
+       | Eth1DataList | PendingAttestationList | ValidatorIndexList | IntList | BitList | HashList
 
   // (Non-configurable) constants
   //====================================================
@@ -442,11 +446,6 @@ class Transfer(Container):
   */
   syntax Transfer ::= #Transfer( ValidatorIndex, ValidatorIndex, Int, Int, Int, BLSPubkey, BLSSignature ) [klabel(#Transfer), symbol]
 
-  syntax Container ::= Fork | Checkpoint | Validator | Crosslink | AttestationData | AttestationDataAndCustodyBit
-                     | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
-                     | CompactCommittee | BeaconBlockHeader | AttesterSlashing | Attestation | Deposit
-                     | DepositData | VoluntaryExit | Transfer
-
   // The return type of get_winning_crosslink_and_attesting_indices
   syntax CrosslinkIntListPair ::= #crosslinkIntListPair(Crosslink, IntList)
 
@@ -462,6 +461,13 @@ class Transfer(Container):
   rule  #mapMapPair(MAP,_).map1 => MAP
   syntax Map ::= MapMapPair "." "map2" [function]
   rule  #mapMapPair(_,MAP).map2 => MAP
+
+  syntax Container ::= Fork | Checkpoint | Validator | Crosslink | AttestationData | AttestationDataAndCustodyBit
+                     | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
+                     | CompactCommittee | BeaconBlockHeader | AttesterSlashing | Attestation | Deposit
+                     | DepositData | VoluntaryExit | Transfer
+
+  syntax Value ::= BasicValue | Container | TypedList
 
 
   // Type conversion functions

@@ -48,7 +48,7 @@ module HASH-TREE
             return b'\x00'
     else:
         raise Exception(f"Type not supported: {type(value)}")*/
-  syntax Bytes ::= "serialize_basic" "(" SSZValue ")" [function]
+  syntax Bytes ::= "serialize_basic" "(" BasicValue ")" [function]
   rule serialize_basic(A:Int) => Int2Bytes(A, 8)
   rule serialize_basic(true)  => "" +String chrChar(1 modInt (2 ^Int 8))
   rule serialize_basic(false) => "" +String chrChar(0 modInt (2 ^Int 8))
@@ -66,8 +66,7 @@ def pack(values: Series):
         as_integer = sum([values[i] << i for i in range(len(values))])
         return as_integer.to_bytes((values.length + 7) // 8, "little")
     return b''.join([serialize_basic(value) for value in values])*/
-  //todo a more narrow type - Series??.
-  syntax Bytes ::= pack ( KItem ) [function]
+  syntax Bytes ::= pack ( Value ) [function]
   rule pack(B:Bytes) => B
 
   //Length is always JUSTIFICATION_BITS_LENGTH
@@ -75,7 +74,7 @@ def pack(values: Series):
   rule pack(BL:BitList) => Int2Bytes( toInt(BL, (JUSTIFICATION_BITS_LENGTH +Int 7) /Int 8 *Int 8),
                                       (JUSTIFICATION_BITS_LENGTH +Int 7) /Int 8 )
 
-  rule pack(VALUE:SSZValue) => serialize_basic(VALUE)
+  rule pack(VALUE:BasicValue) => serialize_basic(VALUE)
 
   // Int lists will be padded to their static size later anyway
   rule pack(I:Int IL:IntList) => serialize_basic(I) +Bytes pack(IL)
@@ -227,5 +226,22 @@ for layer in range(1, 100):
 
   rule merkleMergeLoop(H => hashConcat({TMP[J]}:>Bytes, H), I, COUNT, DEPTH, TMP, J => J +Int 1)
     requires notBool (I &Int (1 <<Int J) ==Int 0)
+
+/* def is_bottom_layer_kind(typ: SSZType):
+    return (
+        isinstance(typ, BasicType) or
+        (issubclass(typ, Elements) and isinstance(typ.elem_type, BasicType))
+    )
+*/
+  syntax Bool ::= "is_bottom_layer_kind" "(" Value ")"                [function]
+  rule is_bottom_layer_kind(_:BasicValue) => true
+  rule is_bottom_layer_kind(_:Uint64List) => true
+  rule is_bottom_layer_kind(_:Bytes32List) => true
+  rule is_bottom_layer_kind(_:Bytes48List) => true
+  rule is_bottom_layer_kind(_:IntList) => true
+  rule is_bottom_layer_kind(_:BitList) => true
+  rule is_bottom_layer_kind(_:HashList) => true
+
+  rule is_bottom_layer_kind(_) => false                               [owise]
 
 endmodule

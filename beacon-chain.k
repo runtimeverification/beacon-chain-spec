@@ -1931,7 +1931,33 @@ def process_slashings(state: BeaconState) -> None:
             penalty = validator.effective_balance * min(sum(state.slashings) * 3, total_balance) // total_balance
             decrease_balance(state, ValidatorIndex(index), penalty)
 */
-//
+  syntax KItem ::= "processSlashings"
+  rule <k> processSlashings =>
+           processSlashingsLoop(
+             {keys_list(ValMap)}:>IntList,
+             getCurrentEpoch(),
+             getTotalActiveBalance()
+           )
+       ... </k>
+       <validators> ValMap </validators>
+
+  syntax KItem ::= "processSlashingsLoop" "(" IntList "," Int "," Int ")"
+  rule <k> (. => decreaseBalance(INDEX, VAL.effectiveBalance *Int minInt(sumSlashings() *Int 3, TotalBalance) /Int TotalBalance))
+           ~> processSlashingsLoop(INDEX IL => IL, EP, TotalBalance)
+       ... </k>
+       <validators> ... INDEX |-> VAL ... </validators>
+    requires VAL.slashed andBool EP +Int EPOCHS_PER_SLASHINGS_VECTOR /Int 2 ==K VAL.withdrawableEpoch
+
+  rule <k> processSlashingsLoop(INDEX IL => IL, EP, TotalBalance) ... </k>
+       <validators> ... INDEX |-> VAL ... </validators>
+    requires notBool (VAL.slashed andBool EP +Int EPOCHS_PER_SLASHINGS_VECTOR /Int 2 ==K VAL.withdrawableEpoch)
+
+  rule <k> processSlashingsLoop(.IntList, _, _) => .K ... </k>
+
+  syntax Int ::= sumSlashings() [function]
+  rule [[ sumSlashings() => sumIntList({values(SlashMap)}:>IntList)]]
+    <slashings> SlashMap </slashings>
+
 
 /*
 def process_final_updates(state: BeaconState) -> None:

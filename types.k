@@ -561,6 +561,10 @@ def bytes_to_int(data: bytes) -> uint64:
   rule listExcept((EXCEPT IL) => .IntList /*terminate*/, EXCEPT, REZ IL /*dump the rest of the list without EXCEPT*/)
   rule listExcept(.IntList, _, REZ) => REZ
 
+  syntax Int ::= sumIntList(IntList) [function]
+  rule sumIntList(I IL) => I +Int sumIntList(IL)
+  rule sumIntList(.IntList) => 0
+
   syntax Bytes ::= toBytes( Int ) [function] //todo remove?
 
   syntax Int ::= getByte(Hash, Int) [function]

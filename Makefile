@@ -54,22 +54,9 @@ clean-submodules:
 # Non-K Dependencies
 # ------------------
 
-libsecp256k1_out:=$(LIBRARY_PATH)/pkgconfig/libsecp256k1.pc
 libff_out:=$(LIBRARY_PATH)/libff.a
 
-libsecp256k1: $(libsecp256k1_out)
 libff: $(libff_out)
-
-$(DEPS_DIR)/secp256k1/autogen.sh:
-	@echo "== submodule: $(DEPS_DIR)/secp256k1"
-	git submodule update --init --recursive -- $(DEPS_DIR)/secp256k1
-
-$(libsecp256k1_out): $(DEPS_DIR)/secp256k1/autogen.sh
-	cd $(DEPS_DIR)/secp256k1/ \
-	    && ./autogen.sh \
-	    && ./configure --enable-module-recovery --prefix="$(BUILD_LOCAL)" \
-	    && make -s -j4 \
-	    && make install
 
 UNAME_S := $(shell uname -s)
 
@@ -159,8 +146,8 @@ $(llvm_kompiled): $(llvm_files) $(libff_out)
 	                 --directory $(DEFN_DIR)/llvm -I $(DEFN_DIR)/llvm                      \
 	                 --hook-namespaces KRYPTO                                              \
 	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                        \
-	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp -ccopt          \
-	                 -lsecp256k1 -ccopt -lprocps -ccopt -g -ccopt -std=c++11 -ccopt -O2    \
+	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp                 \
+	                 -ccopt -lprocps -ccopt -g -ccopt -std=c++11 -ccopt -O2                \
 	                 -ccopt -L$(LIBRARY_PATH)                                              \
 	                 $(LLVM_KOMPILE_OPTS)
 

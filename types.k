@@ -447,6 +447,23 @@ class Transfer(Container):
                      | CompactCommittee | BeaconBlockHeader | AttesterSlashing | Attestation | Deposit
                      | DepositData | VoluntaryExit | Transfer
 
+  // The return type of get_winning_crosslink_and_attesting_indices
+  syntax CrosslinkIntListPair ::= #crosslinkIntListPair(Crosslink, IntList)
+
+  syntax Crosslink ::= CrosslinkIntListPair "." "crosslink" [function]
+  rule  #crosslinkIntListPair(CL,_).crosslink => CL
+  syntax IntList ::= CrosslinkIntListPair "." "intList" [function]
+  rule  #crosslinkIntListPair(_,IL).intList => IL
+
+  // The return type of get_attestation_deltas and get_crosslink_deltas
+  syntax MapMapPair ::= #mapMapPair(Map, Map)
+
+  syntax Map ::= MapMapPair "." "map1" [function]
+  rule  #mapMapPair(MAP,_).map1 => MAP
+  syntax Map ::= MapMapPair "." "map2" [function]
+  rule  #mapMapPair(_,MAP).map2 => MAP
+
+
   // Type conversion functions
   //====================================================
 
@@ -569,4 +586,33 @@ def bytes_to_int(data: bytes) -> uint64:
     requires I >Int 0
   rule B *Bytes 0 => ""
 
+  syntax BitList ::= shiftRight(BitList) [function]
+  rule shiftRight(BL I) => 0 BL
+  rule shiftRight(.BitList) => .BitList
+
+  syntax BitList ::= setBitAt(BitList, Int, Int) [function]
+  rule setBitAt(I BL, INDEX, I') => I setBitAt(BL, INDEX -Int 1, I')
+    requires INDEX >Int 0
+  rule setBitAt(I BL, 0, I') => I' BL
+
+  syntax BitList ::= slice(BitList, Int, Int) [function]
+  rule slice(BL, BEGIN, END) => dropTail(drop(BL, BEGIN), END -Int BEGIN)
+    requires BEGIN >=Int 0 andBool END >=Int 0
+
+  syntax BitList ::= drop(BitList, Int) [function]
+  rule drop(I BL, BEGIN) => drop(BL, BEGIN -Int 1)
+    requires BEGIN >Int 0
+  rule drop(BL, BEGIN) => BL
+    requires BEGIN <=Int 0
+
+  syntax BitList ::= dropTail(BitList, Int) [function]
+  rule dropTail(I BL, END) => I dropTail(BL, END -Int 1)
+    requires END >Int 0
+  rule dropTail(BL, END) => .BitList
+    requires END <=Int 0
+
+  syntax Bool ::= allOnes(BitList) [function]
+  rule allOnes(1 BL) => allOnes(BL)
+  rule allOnes(0 BL) => false
+  rule allOnes(.BitList) => true
 endmodule

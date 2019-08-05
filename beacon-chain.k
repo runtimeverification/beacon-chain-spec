@@ -109,8 +109,8 @@ class ProposerSlashing(Container):
       </state>
       <block>                           //Type BeaconBlock in python spec.
         <blockSlot> -1 </blockSlot>
-        <parent-root> "" </parent-root>
-        <state-root> "" </state-root>
+        <parent-root> -1 </parent-root>
+        <state-root> -1 </state-root>
         <body>                          //Type BeaconBlockBody in python spec.
           <randao-reveal> -1 </randao-reveal>
           <block-eth1-data> .Eth1Data </block-eth1-data> // added "block-" prefix to name to resolve conflicting cell names
@@ -2047,7 +2047,7 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
        <latest-block-header>
          BHEADER  => #BeaconBlockHeader(
                        BSLOT, // block.slot
-                       PROOT, // block.parent_root
+                       "", // block.parent_root // TODO needs to be PROOT
                        "",    // Hash()
                        "",    // TODO: should be hash_tree_root(block.body) ??
                        0 )    // TODO: dummy signature

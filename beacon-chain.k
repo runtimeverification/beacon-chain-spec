@@ -1068,8 +1068,15 @@ def process_epoch(state: BeaconState) -> None:
     process_final_updates(state)
     # @after_process_final_updates
 */
-//
-  syntax KItem ::= "processEpoch" "(" ")"  // TODO: complete the definition
+  syntax KItem ::= "processEpoch" "(" ")"
+  rule <k> processEpoch() =>
+                processJustificationAndFinalization()
+             ~> processCrosslinks()
+             ~> processRewardsAndPenalties()
+             ~> processRegistryUpdates()
+             ~> processSlashings()
+             ~> processFinalUpdates()
+       ... </k>
 
 /*
 def get_matching_source_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
@@ -1323,14 +1330,14 @@ def process_justification_and_finalization(state: BeaconState) -> None:
     if all(bits[0:2]) and old_current_justified_checkpoint.epoch + 1 == current_epoch:
         state.finalized_checkpoint = old_current_justified_checkpoint
 */
-  syntax KItem ::= "processJustificationAndFinalization"
+  syntax KItem ::= "processJustificationAndFinalization" "(" ")"
 
   // too early to proceed with processing
-  rule <k> (processJustificationAndFinalization => .K) ... </k>
+  rule <k> (processJustificationAndFinalization() => .K) ... </k>
     requires getCurrentEpoch() <=Int GENESIS_EPOCH +Int 1
 
   // proceed with processing
-  rule <k> processJustificationAndFinalization
+  rule <k> processJustificationAndFinalization()
            => updateJustificationPrev(getPreviousEpoch())
            ~> updateJustificationCurr(getCurrentEpoch())
            ~> updateFinalization(PrevJustCHECKP, CurrJustCHECKP)... </k>
@@ -1422,8 +1429,8 @@ def process_crosslinks(state: BeaconState) -> None:
             if 3 * get_total_balance(state, attesting_indices) >= 2 * get_total_balance(state, crosslink_committee):
                 state.current_crosslinks[shard] = winning_crosslink
 */
-  syntax KItem ::= "processCrosslinks"
-  rule <k> processCrosslinks
+  syntax KItem ::= "processCrosslinks" "(" ")"
+  rule <k> processCrosslinks()
            => processCrosslinksForEpoch(getPreviousEpoch())
            ~> processCrosslinksForEpoch(getCurrentEpoch()) ... </k>
        <previous-crosslinks> PCL => CCL </previous-crosslinks>
@@ -1779,8 +1786,8 @@ def process_rewards_and_penalties(state: BeaconState) -> None:
         increase_balance(state, ValidatorIndex(index), rewards1[index] + rewards2[index])
         decrease_balance(state, ValidatorIndex(index), penalties1[index] + penalties2[index])
 */
-  syntax KItem ::= "processRewardsAndPenalties"
-  rule <k> processRewardsAndPenalties
+  syntax KItem ::= "processRewardsAndPenalties" "(" ")"
+  rule <k> processRewardsAndPenalties()
        => #if getCurrentEpoch() ==K GENESIS_EPOCH
           #then .K
           #else processRewardsAndPenaltiesLoop(
@@ -1830,8 +1837,8 @@ def process_registry_updates(state: BeaconState) -> None:
         if validator.activation_epoch == FAR_FUTURE_EPOCH:
             validator.activation_epoch = compute_activation_exit_epoch(get_current_epoch(state))
 */
-  syntax KItem ::= "processRegistryUpdates"
-  rule <k> processRegistryUpdates
+  syntax KItem ::= "processRegistryUpdates" "(" ")"
+  rule <k> processRegistryUpdates()
            => processRegistryUpdatesLoop1(VALIDATORS)
            ~> processActivationQueue()
          ...
@@ -1931,8 +1938,8 @@ def process_slashings(state: BeaconState) -> None:
             penalty = validator.effective_balance * min(sum(state.slashings) * 3, total_balance) // total_balance
             decrease_balance(state, ValidatorIndex(index), penalty)
 */
-  syntax KItem ::= "processSlashings"
-  rule <k> processSlashings =>
+  syntax KItem ::= "processSlashings" "(" ")"
+  rule <k> processSlashings() =>
            processSlashingsLoop(
              {keys_list(ValMap)}:>IntList,
              getCurrentEpoch(),
@@ -1995,6 +2002,8 @@ def process_final_updates(state: BeaconState) -> None:
     state.current_epoch_attestations = []
 */
 //
+  syntax KItem ::= "processFinalUpdates" "(" ")"  // TODO add definition
+
 
   // State transition function -- Block processing
   //====================================================

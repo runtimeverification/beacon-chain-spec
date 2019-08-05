@@ -16,6 +16,7 @@ export PKG_CONFIG_PATH
 DEPS_DIR:=deps
 K_SUBMODULE:=$(abspath $(DEPS_DIR)/k)
 PANDOC_TANGLE_SUBMODULE:=$(DEPS_DIR)/pandoc-tangle
+PLUGIN_SUBMODULE:=$(abspath $(DEPS_DIR)/plugin)
 
 K_RELEASE:=$(K_SUBMODULE)/k-distribution/target/release/k
 K_BIN:=$(K_RELEASE)/bin
@@ -50,6 +51,38 @@ clean:
 clean-submodules:
 	rm -rf $(DEPS_DIR)/k/submodule.timestamp $(DEPS_DIR)/k/mvn.timestamp $(DEPS_DIR)/pandoc-tangle/submodule.timestamp tests/eth2.0-specs/submodule.timestamp
 
+# Non-K Dependencies
+# ------------------
+
+libff_out:=$(LIBRARY_PATH)/libff.a
+
+libff: $(libff_out)
+
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S),Linux)
+  LIBFF_CMAKE_FLAGS=
+  LINK_PROCPS=-lprocps
+else
+  LIBFF_CMAKE_FLAGS=-DWITH_PROCPS=OFF
+  LINK_PROCPS=
+endif
+
+LIBFF_CC ?=clang-8
+LIBFF_CXX?=clang++-8
+
+$(DEPS_DIR)/libff/CMakeLists.txt:
+	@echo "== submodule: $(DEPS_DIR)/libff"
+	git submodule update --init --recursive -- $(DEPS_DIR)/libff
+
+$(libff_out): $(DEPS_DIR)/libff/CMakeLists.txt
+	cd $(DEPS_DIR)/libff/ \
+	    && mkdir -p build \
+	    && cd build \
+	    && CC=$(LIBFF_CC) CXX=$(LIBFF_CXX) cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$(BUILD_LOCAL) $(LIBFF_CMAKE_FLAGS) \
+	    && make -s -j4 \
+	    && make install
+
 # Dependencies
 # ------------
 
@@ -75,7 +108,7 @@ MAIN_MODULE:=BEACON-CHAIN
 SYNTAX_MODULE:=$(MAIN_MODULE)
 MAIN_DEFN_FILE:=beacon-chain
 KOMPILE_OPTS?=
-LLVM_KOMPILE_OPTS:=$(KOMPILE_OPTS) -ccopt -O2
+LLVM_KOMPILE_OPTS:=$(KOMPILE_OPTS)
 
 llvm_kompiled:=$(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE)-kompiled/interpreter
 haskell_kompiled:=$(DEFN_DIR)/haskell/$(MAIN_DEFN_FILE)-kompiled/definition.kore
@@ -106,11 +139,16 @@ $(DEFN_DIR)/haskell/%.k: %.k
 
 # LLVM Backend
 
-$(llvm_kompiled): $(llvm_files)
+$(llvm_kompiled): $(llvm_files) $(libff_out)
 	@echo "== kompile: $@"
 	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm                   \
 	                 --syntax-module $(SYNTAX_MODULE) $(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE).k \
 	                 --directory $(DEFN_DIR)/llvm -I $(DEFN_DIR)/llvm                      \
+	                 --hook-namespaces KRYPTO                                              \
+	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                        \
+	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp                 \
+	                 -ccopt -lprocps -ccopt -g -ccopt -std=c++11 -ccopt -O2                \
+	                 -ccopt -L$(LIBRARY_PATH)                                              \
 	                 $(LLVM_KOMPILE_OPTS)
 
 # Haskell Backend

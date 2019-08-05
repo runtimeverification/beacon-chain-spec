@@ -3,8 +3,7 @@ module TYPES
 
   // Basic Python (SSZ) types
   //====================================================
-  syntax Bytes   ::= String
-  syntax ChunkList ::= List{Bytes, ","}
+  syntax Bytes   ::= String | Hash
   syntax Uint64  ::= Int
   syntax Bytes4  ::= Int
   syntax Bytes8  ::= Int
@@ -12,7 +11,7 @@ module TYPES
   syntax Bytes48 ::= Int
   syntax Bytes96 ::= Int
   syntax Bit     ::= Int
-  syntax BasicValue ::= Int | Uint64 | Bool
+  syntax BasicValue ::= Int | Uint64 | Bool | Bytes
 
   syntax KItem ::= Pgm
   syntax Pgm ::= ".Pgm"
@@ -24,7 +23,7 @@ module TYPES
   // Custom types
   //====================================================
   syntax ValidatorIndex ::= Int | ".ValidatorIndex"     //a validator registry index
-  syntax Hash           ::= Bytes
+  syntax Hash           ::= String
   syntax Version        ::= Bytes4      //a fork version number
   syntax DomainType     ::= Bytes4      //a signature domain type
   syntax Domain         ::= Bytes8      //a signature domain
@@ -34,7 +33,6 @@ module TYPES
   // List types
   //====================================================
   syntax Uint64List ::= List{Uint64, ""}
-  syntax Bytes32List ::= List{Bytes32, ""}
   syntax Bytes48List ::= List{Bytes48, ""}
   syntax AttesterSlashingList ::= List{AttesterSlashing, ""}
   syntax AttestationList ::= List{Attestation, ""}
@@ -49,7 +47,7 @@ module TYPES
   syntax BitList ::= List{Bit, ""}
   syntax HashList ::= List{Hash, ""}
 
-  syntax TypedList ::= Uint64List | Bytes32List | Bytes48List
+  syntax TypedList ::= Uint64List | Bytes48List
        | AttesterSlashingList | AttestationList | DepositList | VoluntaryExitList | TransferList | CrosslinkList
        | Eth1DataList | PendingAttestationList | ValidatorIndexList | IntList | BitList | HashList
 
@@ -465,7 +463,7 @@ class Transfer(Container):
   syntax Container ::= Fork | Checkpoint | Validator | Crosslink | AttestationData | AttestationDataAndCustodyBit
                      | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
                      | CompactCommittee | BeaconBlockHeader | AttesterSlashing | Attestation | Deposit
-                     | DepositData | VoluntaryExit | Transfer
+                     | VoluntaryExit | Transfer
 
   syntax Value ::= BasicValue | Container | TypedList
 
@@ -599,11 +597,11 @@ def bytes_to_int(data: bytes) -> uint64:
     requires I >Int 0
   rule B *Bytes 0 => ""
 
-  syntax Int ::= len( ChunkList )                                     [function]
-               | len( ChunkList , Int )                               [function]
+  syntax Int ::= len( HashList )                                     [function]
+               | len( HashList , Int )                               [function]
   rule len(CHUNKS) => len(CHUNKS, 0)
-  rule len((_, CHUNKS => CHUNKS), I => I +Int 1)
-  rule len(.ChunkList, I) => I
+  rule len((_ CHUNKS => CHUNKS), I => I +Int 1)
+  rule len(.HashList, I) => I
 
   syntax BitList ::= shiftRight(BitList) [function]
   rule shiftRight(BL I) => 0 BL

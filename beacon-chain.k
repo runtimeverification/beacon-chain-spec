@@ -2015,7 +2015,13 @@ def process_block(state: BeaconState, block: BeaconBlock) -> None:
     process_eth1_data(state, block.body)
     process_operations(state, block.body)
 */
-//
+  syntax KItem ::= "processBlock" "(" ")"
+  rule <k> processBlock() =>
+                processBlockHeader()
+             ~> processRandao()
+             ~> processEth1Data()
+             ~> process_operations()
+       ... </k>
 
 /*
 def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
@@ -2036,7 +2042,24 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
     # Verify proposer signature
     assert bls_verify(proposer.pubkey, signing_root(block), block.signature, get_domain(state, DOMAIN_BEACON_PROPOSER))
 */
-//
+  syntax KItem ::= "processBlockHeader" "(" ")"
+  rule <k> processBlockHeader() => .K ... </k>
+       <latest-block-header>
+         BHEADER  => #BeaconBlockHeader(
+                       BSLOT, // block.slot
+                       "", // block.parent_root // TODO needs to be PROOT
+                       "",    // Hash()
+                       "",    // TODO: should be hash_tree_root(block.body) ??
+                       0 )    // TODO: dummy signature
+       </latest-block-header>
+       <slot> SLOT </slot>
+       <validators> ValMap </validators>
+       <blockSlot> BSLOT </blockSlot>
+       <parent-root> PROOT </parent-root>
+    requires BSLOT ==K SLOT
+     //andBool PROOT ==K signingRoot("") // TODO: fix dummy BHEADER
+     andBool notBool ({ValMap[getBeaconProposerIndex()]}:>Validator).slashed
+     // TODO: not verifying signatures
 
 /*
 def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
@@ -2048,7 +2071,22 @@ def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
     mix = xor(get_randao_mix(state, epoch), hash(body.randao_reveal))
     state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR] = mix
 */
-//
+  syntax KItem ::= "processRandao" "(" ")"
+  rule <k> processRandao() => .K ... </k>
+       <randao-mixes>
+         RMS => setRandaoMixAt(
+                  RMS,
+                  getCurrentEpoch() %Int EPOCHS_PER_HISTORICAL_VECTOR,
+                  "" // xor(getRandaoMix(getCurrentEpoch()), hash(R))  // TODO: this needs to be fixed
+                )
+       </randao-mixes>
+       <randao-reveal> R </randao-reveal>
+    //requires // TODO: not verifying signatures
+
+  syntax HashList ::= setRandaoMixAt(HashList, Int, Hash) [function]
+  rule setRandaoMixAt(RM RMS, I, RM') => RM setRandaoMixAt(RMS, I -Int 1, RM')
+    requires I >Int 0
+  rule setRandaoMixAt(RM RMS, 0, RM') => RM' RMS
 
 /*
 def process_eth1_data(state: BeaconState, body: BeaconBlockBody) -> None:
@@ -2056,7 +2094,25 @@ def process_eth1_data(state: BeaconState, body: BeaconBlockBody) -> None:
     if state.eth1_data_votes.count(body.eth1_data) * 2 > SLOTS_PER_ETH1_VOTING_PERIOD:
         state.eth1_data = body.eth1_data
 */
-//
+  syntax KItem ::= "processEth1Data" "(" ")"
+  rule <k> processEth1Data() => .K ... </k>
+       <eth1-data-votes> VOTES => BlockEth1 </eth1-data-votes>
+       <block-eth1-data> BlockEth1 </block-eth1-data>
+     requires countEth1(VOTES BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
+
+  syntax KItem ::= "processEth1Data" "(" ")"
+  rule <k> processEth1Data() => .K ... </k>
+       <eth1-data-votes> VOTES => VOTES BlockEth1 </eth1-data-votes>
+       <block-eth1-data> BlockEth1 </block-eth1-data>
+     requires notBool countEth1(VOTES BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
+
+  syntax Int ::= countEth1(Eth1DataList, Eth1Data) [function]
+  rule countEth1(E1D E1DL, E1D') => #if E1D ==K E1D'
+                                    #then 1 +Int countEth1(E1DL, E1D')
+                                    #else countEth1(E1DL, E1D')
+                                    #fi
+  rule countEth1(.Eth1DataList, E1D') => 0
+
 
 /*
 def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:

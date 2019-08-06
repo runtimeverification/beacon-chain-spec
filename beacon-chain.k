@@ -2020,7 +2020,7 @@ def process_block(state: BeaconState, block: BeaconBlock) -> None:
                 processBlockHeader()
              ~> processRandao()
              ~> processEth1Data()
-             ~> processOperations()
+             ~> process_operations()
        ... </k>
 
 /*
@@ -2132,9 +2132,9 @@ def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
         for operation in operations:
             function(state, operation)
 */
-  syntax KItem ::= "processOperations" "(" ")"
-  rule <k> processOperations()
-           => processOperationsAux(ProposerSlashings, AttesterSlashings, Attestations, Deposits, VoluntaryExits, Transfers) ...</k>
+  syntax KItem ::= "process_operations" "(" ")"
+  rule <k> process_operations()
+           => process_operations_aux(ProposerSlashings, AttesterSlashings, Attestations, Deposits, VoluntaryExits, Transfers) ...</k>
     <proposer-slashings> ProposerSlashings </proposer-slashings>
     <attester-slashings> AttesterSlashings </attester-slashings>
     <attestations> Attestations </attestations>
@@ -2143,25 +2143,25 @@ def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
     <transfers> Transfers </transfers>
 
   //todo more precise type instead of K for 1st arg. ProposerSlashingCellMap ?
-  syntax KItem ::= "processOperationsAux" "(" K "," AttesterSlashingList "," AttestationList
+  syntax KItem ::= "process_operations_aux" "(" K "," AttesterSlashingList "," AttestationList
                                             "," DepositList "," VoluntaryExitList "," TransferList ")"
 
   //todo throws "Internal: Uncaught exception thrown of type NoSuchElementException (key not found: #cells) should work
   /*rule (. => processProposerSlashing(INDEX))
-       ~> processOperationsAux( <proposer-slashing> <proposer-index> INDEX </proposer-index> ...</proposer-slashing> BAG => BAG, _,_,_,_,_ )*/
+       ~> process_operations_aux( <proposer-slashing> <proposer-index> INDEX </proposer-index> ...</proposer-slashing> BAG => BAG, _,_,_,_,_ )*/
   rule (. => processAttesterSlashing(AttSlashing))
-       ~> processOperationsAux(.ProposerSlashingCellMap, AttSlashing:AttesterSlashing L => L, _,_,_,_ )
+       ~> process_operations_aux(.ProposerSlashingCellMap, AttSlashing:AttesterSlashing L => L, _,_,_,_ )
   rule (. => process_attestation(Att))
-       ~> processOperationsAux(.ProposerSlashingCellMap, .AttesterSlashingList, Att:Attestation L => L, _,_,_ )
+       ~> process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, Att:Attestation L => L, _,_,_ )
   rule (. => process_deposit(DEP))
-       ~> processOperationsAux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, DEP:Deposit L => L, _,_ )
+       ~> process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, DEP:Deposit L => L, _,_ )
   rule (. => process_voluntary_exit(VolEX))
-       ~> processOperationsAux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, .DepositList,
+       ~> process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, .DepositList,
                                  VolEX:VoluntaryExit L => L, _ )
   rule (. => process_transfer(TR))
-       ~> processOperationsAux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, .DepositList,
+       ~> process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, .DepositList,
                                  .VoluntaryExitList, TR:Transfer L => L )
-  rule processOperationsAux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, _ .DepositList,
+  rule process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, _ .DepositList,
                               .VoluntaryExitList, .TransferList ) => .K
 
 /*

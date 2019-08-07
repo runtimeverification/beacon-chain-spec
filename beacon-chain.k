@@ -304,7 +304,7 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
 */
 //
   syntax Int ::= computeShuffledIndex( Int, Int, Hash ) [function]
-  rule computeShuffledIndex(INDEX, COUNT, SEED) => INDEX %Int COUNT //NOTEH mock implementation
+  rule computeShuffledIndex(INDEX, COUNT, SEED) => INDEX %Int COUNT // TODO: replace mock implementation
 
 
 /*
@@ -2001,9 +2001,79 @@ def process_final_updates(state: BeaconState) -> None:
     state.previous_epoch_attestations = state.current_epoch_attestations
     state.current_epoch_attestations = []
 */
-//
-  syntax KItem ::= "processFinalUpdates" "(" ")"  // TODO add definition
+  syntax KItem ::= "processFinalUpdates" "(" ")"
+  rule <k> processFinalUpdates()
+           => updateEffectiveBalances({keys_list(ValMap)}:>IntList, EFFECTIVE_BALANCE_INCREMENT /Int 2)             // param: HALF_INCREMENT
+           ~> updateStartShard(getCurrentEpoch())                                     // param: current_epoch
+           ~> setActiveIndexRoot(getCurrentEpoch() +Int 1 +Int ACTIVATION_EXIT_DELAY) // param: index_epoch
+           ~> setCommitteesRoot((getCurrentEpoch() +Int 1) %Int EPOCHS_PER_HISTORICAL_VECTOR) // param: committee_root_position
+           ~> resetSlashings((getCurrentEpoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)     // param: (slashings index)
+           ~> setRandaoMix((getCurrentEpoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)       // param: (rnd mixes index)
+           ~> setHistoricalRootAccumulator((getCurrentEpoch() +Int 1) %Int (SLOTS_PER_HISTORICAL_ROOT /Int SLOTS_PER_EPOCH) ==K 0)  // param: (condition)
+           ~> rotateEpochAttestations() ... </k>
+       <slot> SLOT </slot>
+       <eth1-data-votes> E1DL => #if (SLOT +Int 1) %Int SLOTS_PER_ETH1_VOTING_PERIOD ==K 0
+                                 #then .Eth1DataList
+                                 #else E1DL
+                                 #fi
+       </eth1-data-votes>
+       <validators> ValMap </validators>
 
+  syntax KItem ::= "updateEffectiveBalances" "(" IntList "," Int ")"
+  rule <k> updateEffectiveBalances(INDEX IL => IL, HALF_INCREMENT) ... </k>
+       <validators> ... INDEX |-> #Validator(_,_,
+                                    EffBal => minInt(BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE),
+                                    _,_,_,_,_)
+        ... </validators>
+       <balances> ... INDEX |-> BAL ... </balances>
+    requires BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL
+
+  rule <k> updateEffectiveBalances(INDEX IL => IL, HALF_INCREMENT) ... </k>
+       <validators> ... INDEX |-> #Validator(_,_, EffBal, _,_,_,_,_) ... </validators>
+       <balances> ... INDEX |-> BAL ... </balances>
+    requires notBool(BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL)
+
+  rule <k> updateEffectiveBalances(.IntList, _) => .K ... </k>
+
+  syntax KItem ::= "updateStartShard" "(" Int ")"
+  rule <k> updateStartShard(EP) => .K ... </k>
+       <start-shard> SHARD => (SHARD +Int getShardDelta(EP)) %Int SHARD_COUNT </start-shard>
+
+  syntax KItem ::= "setActiveIndexRoot" "(" Int ")"
+  rule <k> setActiveIndexRoot(IndexEpoch) => .K ... </k>
+       <active-index-roots> AIR  </active-index-roots>  // TODO set active index roots properly
+
+  syntax KItem ::= "setCommitteesRoot" "(" Int ")"
+  rule <k> setCommitteesRoot(CommRootPos) => .K ... </k>
+       <compact-committees-roots>
+         CRS => setCommRootsAt(CommRootPos, CRS, getCompactCommitteesRoot(getCurrentEpoch() +Int 1))
+       </compact-committees-roots>
+
+  syntax HashList ::= setCommRootsAt(Int, HashList, Hash) [function]
+  rule setCommRootsAt(Pos, CR CRS, CR') => CR setCommRootsAt(Pos -Int 1, CRS, CR') requires Pos >Int 0
+  rule setCommRootsAt(0, CR CRS, CR') => CR' CRS
+
+  syntax KItem ::= "resetSlashings" "(" Int ")"
+  rule <k> resetSlashings(SlashIndex) => .K ... </k>
+    <slashings> ... SlashIndex |-> (I => 0) ... </slashings>
+
+  syntax KItem ::= "setRandaoMix" "(" Int ")"
+  rule <k> setRandaoMix(RndMixIndex) => .K ... </k>
+    <randao-mixes> RMS => setRandaoMixAt(
+                                     RMS,
+                                     RndMixIndex,
+                                     "" // xor(getRandaoMix(getCurrentEpoch()), hash(R))  // TODO: this needs to be fixed
+                                   )
+    </randao-mixes>
+
+  syntax KItem ::= "setHistoricalRootAccumulator" "(" Bool ")"
+  rule <k> setHistoricalRootAccumulator(Condition) => .K ... </k>
+    <historical-roots> HL => HL "" </historical-roots> // TODO this needs to be fixed
+
+  syntax KItem ::= "rotateEpochAttestations" "(" ")"
+  rule <k> rotateEpochAttestations() => .K ... </k>
+       <previous-epoch-attestations> PEAS => CEAS </previous-epoch-attestations>
+       <current-epoch-attestations> CEAS => .PendingAttestationList </current-epoch-attestations>
 
   // State transition function -- Block processing
   //====================================================

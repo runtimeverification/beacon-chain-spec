@@ -11,8 +11,8 @@ import yaml
 from pyk.kast    import _notif, _warning, _fatal
 from buildConfig import *
 
-forkTerm = labelWithKeyPairs('#Fork' , [ ('previous_version' , hexIntToken)
-                                       , ('current_version'  , hexIntToken)
+forkTerm = labelWithKeyPairs('#Fork' , [ ('previous_version' , hashToken)
+                                       , ('current_version'  , hashToken)
                                        , ('epoch'            , intToken)
                                        ]
                             )
@@ -22,7 +22,7 @@ checkpointTerm = labelWithKeyPairs('#Checkpoint' , [ ('epoch' , intToken)
                                                    ]
                                   )
 
-validatorTerm = labelWithKeyPairs('#Validator' , [ ('pubkey'                       , hexIntToken)
+validatorTerm = labelWithKeyPairs('#Validator' , [ ('pubkey'                       , hashToken)
                                                  , ('withdrawal_credentials'       , hashToken)
                                                  , ('effective_balance'            , intToken)
                                                  , ('slashed'                      , boolToken)
@@ -45,7 +45,7 @@ blockheaderTerm = labelWithKeyPairs('#BeaconBlockHeader' , [ ('slot'        , in
                                                            , ('parent_root' , hashToken)
                                                            , ('state_root'  , hashToken)
                                                            , ('body_root'   , hashToken)
-                                                           , ('signature'   , hexIntToken)
+                                                           , ('signature'   , hashToken)
                                                            ]
                                    )
 
@@ -83,8 +83,8 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'SLOT_CELL'                          : (['slot']                               , intToken)
                     , 'FORK_CELL'                          : (['fork']                               , forkTerm)
                     , 'LATEST_BLOCK_HEADER_CELL'           : (['latest_block_header']                , blockheaderTerm)
-                    , 'BLOCK_ROOTS_CELL'                   : (['block_roots']                        , indexedMapOf(converter = hexIntToken))
-                    , 'STATE_ROOTS_CELL'                   : (['state_roots']                        , indexedMapOf(converter = hexIntToken))
+                    , 'BLOCK_ROOTS_CELL'                   : (['block_roots']                        , indexedMapOf(converter = hashToken))
+                    , 'STATE_ROOTS_CELL'                   : (['state_roots']                        , indexedMapOf(converter = hashToken))
                     , 'HISTORICAL_ROOTS_CELL'              : (['historical_roots']                   , listOf('Hash', converter = hashToken))
                     , 'ETH1_DATA_CELL'                     : (['eth1_data']                          , eth1dataTerm)
                     , 'ETH1_DATA_VOTES_CELL'               : (['eth1_data_votes']                    , listOf('Eth1Data', converter = eth1dataTerm))
@@ -100,7 +100,7 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'CURRENT_EPOCH_ATTESTATIONS_CELL'    : (['current_epoch_attestations']         , listOf('PendingAttestation', converter = pendingAttestationTerm))
                     , 'PREVIOUS_CROSSLINKS_CELL'           : (['previous_crosslinks']                , indexedMapOf(converter = crosslinkTerm))
                     , 'CURRENT_CROSSLINKS_CELL'            : (['current_crosslinks']                 , indexedMapOf(converter = crosslinkTerm))
-                    , 'JUSTIFICATION_BITS_CELL'            : (['justification_bits']                 , lambda inputInt: listOf('Bit', converter = intToken)([i for i in bin(int(inputInt, 16))[2:]]))
+                    , 'JUSTIFICATION_BITS_CELL'            : (['justification_bits']                 , lambda inputInt: listOf('Bit', converter = boolToken)([i for i in bin(int(inputInt, 16))[2:]]))
                     , 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL' : (['previous_justified_checkpoint']      , checkpointTerm)
                     , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'  : (['current_justified_checkpoint']       , checkpointTerm)
                     , 'FINALIZED_CHECKPOINT_CELL'          : (['finalized_checkpoint']               , checkpointTerm)

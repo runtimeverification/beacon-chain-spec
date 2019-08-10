@@ -142,8 +142,11 @@ class ProposerSlashing(Container):
 def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
     return Bytes32(a ^ b for a, b in zip(bytes1, bytes2))
 */
-  syntax Bytes32 ::= xor( Bytes32, Bytes32 ) [function]
-  rule xor(A,B) => A xorInt B
+  syntax Bytes ::= xor( Bytes, Bytes ) [function]
+  rule xor(A, B) => chrChar(ordChar(substrString(A, 0, 1)) ^Int ordChar(substrString(B, 0, 1)))
+                    +Bytes xor(substrString(A, 1, lengthString(A) -Int 1), substrString(B, 1, lengthString(B) -Int 1))
+    requires lengthString(A) >Int 0 andBool lengthString(B) >Int 0
+  rule xor("", "") => ""
 
   // Helper functions -- Crypto
   //====================================================
@@ -373,9 +376,8 @@ def compute_domain(domain_type: DomainType, fork_version: Version=Version()) -> 
     """
     return Domain(domain_type + fork_version)
 */
-// TODO fix compute_domain
-  syntax Int ::= computeDomain(Int, Version) [function]
-  rule computeDomain(Domain_Type, Fork_Version) => Domain_Type +Int Fork_Version
+  syntax Domain ::= computeDomain(DomainType, Version)                [function]
+  rule computeDomain(Domain_Type, Fork_Version) => Domain_Type +Bytes Fork_Version
 
   // Helper functions -- Beacon state accessors
   //====================================================
@@ -610,7 +612,7 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
        /*=> getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD,
                                      FirstCommittee, MaxRandomByte, SEED, I)*/
        //todo commented code should work but crashes with ClassCastException, even with one #fun.
-       => getBeaconProposerIndexLoop(0, 0, 0, 0, .IntList, 0, 0, 0)
+       => getBeaconProposerIndexLoop(0, 0, 0, 0, .IntList, 0, "", 0)
        //   )(0)
        //   )(0/*getSeed(EPOCH)*/)
        //   )(2 ^Int 8 -Int 1)
@@ -623,17 +625,18 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
     <slot> SLOT </slot>
 
   syntax ValidatorIndex ::= getBeaconProposerIndexLoop(
-                              Int, Int, Int, Int, IntList, Int, Bytes32, Int) [function]
+                              Int, Int, Int, Int, IntList, Int, Hash, Int) [function]
   rule [[ getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I)
     =>    getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                   get(FirstCommittee, (EPOCH +Int I) %Int len(FirstCommittee)) #as CandidateIndex,
-                  getByte( hash( toBytes(SEED +Int I /Int 32) ), I %Int 32) /*#as RandomByte*/,
+                  //random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
+                  getByte( hashConcat(SEED, to_bytes(I /Int 32, 8) ), I %Int 32) /*#as RandomByte*/,
                   VAL.effectiveBalance
           ) ]]
     <validators>... CandidateIndex |-> VAL ...</validators>
 
   syntax ValidatorIndex ::= getBeaconProposerIndexLoopAux(
-                              Int, Int, Int, Int, IntList, Int, Bytes32, Int,
+                              Int, Int, Int, Int, IntList, Int, Hash, Int,
                               Int, Int, Int) [function]
   rule getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                                      CandidateIndex, RandomByte, EffectiveBalance)
@@ -766,8 +769,8 @@ def get_attesting_indices(state: BeaconState,
     extractAttestingIndices(getCrosslinkCommittee(EP, SHARD), BL, .IntList)
 
   syntax IntList ::= extractAttestingIndices(IntList, BitList, IntList) [function]
-  rule extractAttestingIndices(I IL => IL, 1 BL => BL, AL => AL I)
-  rule extractAttestingIndices(I IL => IL, 0 BL => BL, AL)
+  rule extractAttestingIndices(I IL => IL, true  BL => BL, AL => AL I)
+  rule extractAttestingIndices(I IL => IL, false BL => BL, AL)
   rule extractAttestingIndices(.IntList,_, AL) => AL
 
   // Helper functions -- Beacon state mutators
@@ -1351,7 +1354,7 @@ def process_justification_and_finalization(state: BeaconState) -> None:
        <current-justified-checkpoint>
           CurrJustCHECKP => #Checkpoint(EPOCH, getBlockRoot(EPOCH))
        </current-justified-checkpoint>
-       <justification-bits> Bits => setBitAt(Bits, 1, 1) </justification-bits>
+       <justification-bits> Bits => setBitAt(Bits, 1, true) </justification-bits>
     requires getAttestingBalance(getMatchingTargetAttestations(EPOCH)) *Int 3 >=Int getTotalActiveBalance() *Int 2
   rule <k> updateJustificationPrev(EPOCH) => .K ... </k>
        <current-justified-checkpoint> CurrJustCHECKP </current-justified-checkpoint>
@@ -1363,7 +1366,7 @@ def process_justification_and_finalization(state: BeaconState) -> None:
        <current-justified-checkpoint>
           CurrJustCHECKP => #Checkpoint(EPOCH, getBlockRoot(EPOCH))
        </current-justified-checkpoint>
-       <justification-bits> Bits => setBitAt(Bits, 0, 1) </justification-bits>
+       <justification-bits> Bits => setBitAt(Bits, 0, true) </justification-bits>
     requires getAttestingBalance(getMatchingTargetAttestations(EPOCH)) *Int 3 >=Int getTotalActiveBalance() *Int 2
   rule <k> updateJustificationCurr(EPOCH) => .K ... </k>
        <current-justified-checkpoint> CurrJustCHECKP </current-justified-checkpoint>
@@ -2120,7 +2123,7 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
                        "", // block.parent_root // TODO needs to be PROOT
                        "",    // Hash()
                        "",    // TODO: should be hash_tree_root(block.body) ??
-                       0 )    // TODO: dummy signature
+                       "" )    // TODO: dummy signature
        </latest-block-header>
        <slot> SLOT </slot>
        <validators> ValMap </validators>

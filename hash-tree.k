@@ -18,15 +18,20 @@ module HASH-TREE
   // Framework functions -- Crypto
   //====================================================
 
-/* Usage in KEVM: #parseHexBytes(Sha256(#unparseByteStack(WS:WordStack)))
-  Judging by usage pattern, each char in the string is a byte.
+/* Takes a String and returns a 64-character hex-encoded string of the 32-byte SHA2-256 hash of the string.
+Input `String` is interpreted as byte array, e.g. it is NOT hex-encoded.
 */
   syntax String ::= Sha256 ( String )                                 [function, hook(KRYPTO.sha256)]
 
 /* def hash(data: bytes) -> Hash is SHA256.
 */
   syntax Hash ::= hash( Bytes )                                       [function]
-  rule hash(BYTES) => Sha256(BYTES)
+  rule hash(BYTES) => {toBinary(Sha256(BYTES))}:>Hash
+
+  syntax Bytes ::= toBinary( Bytes )                                  [function]
+  rule toBinary(S) => chrChar(String2Base(substrString(S, 0, 2), 16)) +Bytes toBinary(substrString(S, 2, lengthString(S)))
+    requires lengthString(S) >=Int 2
+  rule toBinary("") => ""
 
   // Aux functions
   //====================================================

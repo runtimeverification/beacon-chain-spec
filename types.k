@@ -49,7 +49,7 @@ module TYPES
 
   syntax ContainerList ::= AttesterSlashingList | AttestationList | DepositList | VoluntaryExitList | TransferList | CrosslinkList
        | Eth1DataList | PendingAttestationList | ValidatorIndexList
-  syntax BasicValueList ::= IntList | BitList | HashList | Bytes48List //fixme BytesN is not BasicValue
+  syntax BasicValueList ::= IntList | BitList | HashList | Bytes48List //fixme List<BytesN> is not List<BasicValue>. Review all usages of HashList, Bytes48List.
   syntax TypedList ::= BasicValueList | ContainerList
 
   // (Non-configurable) constants
@@ -467,6 +467,7 @@ class Transfer(Container):
                      | VoluntaryExit | Transfer
 
   //TypedList are not Value, because it needs separate imp[lementation for hash_tree_root
+  //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.
   syntax Value ::= BasicValue | Bytes | Container
   syntax BytesOrContainer ::= Bytes | Container
   syntax ValueOrList ::= Value | TypedList

@@ -71,8 +71,8 @@ def pack(values: Series):
         as_integer = sum([values[i] << i for i in range(len(values))])
         return as_integer.to_bytes((values.length + 7) // 8, "little")
     return b''.join([serialize_basic(value) for value in values])*/
-  //Argument is either a List or BytesN. todo - specific type
-  syntax Bytes ::= pack ( Value ) [function]
+  //Version for byte array
+  syntax Bytes ::= pack ( Bytes )                                     [function]
   rule pack(B:Bytes) => B
 
   //Version for lists
@@ -243,10 +243,11 @@ for layer in range(1, 100):
 */
   syntax Bool ::= "is_bottom_layer_kind" "(" ValueOrList ")"          [function]
   rule is_bottom_layer_kind(_:BasicValue) => true
-  rule is_bottom_layer_kind(_:Bytes48List) => true
+  rule is_bottom_layer_kind(_:Bytes) => true
   rule is_bottom_layer_kind(_:IntList) => true
   rule is_bottom_layer_kind(_:BitList) => true
   rule is_bottom_layer_kind(_:HashList) => true
+  rule is_bottom_layer_kind(_:Bytes48List) => true
 
   rule is_bottom_layer_kind(_) => false                               [owise]
 
@@ -271,84 +272,93 @@ for layer in range(1, 100):
   rule hash_tree_root(BYTES:Bytes) => hash_tree_root(BYTES, %bytes)
 
   syntax Hash ::= "hash_tree_root" "(" Value "," ElementType ")"      [function]
+
+  //hash_tree_root branch 2:
+  // elif isinstance(obj, BasicValue):
   rule hash_tree_root(VAL:BasicValue, ElemType) => hash_tree_root_part2_v2(chunkify(serialize_basic(VAL, ElemType)))
 
-  //hash_tree_root branch 1.2, container types
+  //hash_tree_root branch 1.2, container types:
+  //if isinstance(obj, Series):
+  //  ... else:
   //leaves = [hash_tree_root(value) for value in obj]
   //-----------------------------------------------
-  rule hash_tree_root(#Fork( P1, P2, P3 ) #as VAL)
+  rule hash_tree_root(#Fork( P1, P2, P3 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) .HashList))
 
-  rule hash_tree_root(#Checkpoint( P1, P2 ) #as VAL)
+  rule hash_tree_root(#Checkpoint( P1, P2 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2) .HashList))
 
-  rule hash_tree_root(#Validator( P1, P2, P3, P4, P5, P6, P7, P8 ) #as VAL)
+  rule hash_tree_root(#Validator( P1, P2, P3, P4, P5, P6, P7, P8 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64)
           hash_tree_root(P4, %bool) hash_tree_root(P5, %uint64) hash_tree_root(P6, %uint64) hash_tree_root(P7, %uint64)
           hash_tree_root(P8, %uint64) .HashList))
 
-  rule hash_tree_root(#Crosslink( P1, P2, P3, P4, P5 ) #as VAL)
+  rule hash_tree_root(#Crosslink( P1, P2, P3, P4, P5 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3, %uint64)
           hash_tree_root(P4, %uint64) hash_tree_root(P5) .HashList))
 
-  rule hash_tree_root(#AttestationData( P1, P2, P3, P4 ) #as VAL)
+  rule hash_tree_root(#AttestationData( P1, P2, P3, P4 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
           .HashList))
 
-  rule hash_tree_root(#AttestationDataAndCustodyBit( P1, P2 ) #as VAL)
+  rule hash_tree_root(#AttestationDataAndCustodyBit( P1, P2 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2, %bool) .HashList))
 
-  rule hash_tree_root(#IndexedAttestation( P1, P2, P3, P4 ) #as VAL)
+  rule hash_tree_root(#IndexedAttestation( P1, P2, P3, P4 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false)
           hash_tree_root_list(P2, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false) hash_tree_root(P3) hash_tree_root(P4)
           .HashList))
 
-  rule hash_tree_root(#PendingAttestation( P1, P2, P3, P4 ) #as VAL)
+  rule hash_tree_root(#PendingAttestation( P1, P2, P3, P4 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bool, false)
           hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4, %uint64)
           .HashList))
 
-  rule hash_tree_root(#Eth1Data( P1, P2, P3 ) #as VAL)
+  rule hash_tree_root(#Eth1Data( P1, P2, P3 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2, %uint64) hash_tree_root(P3) .HashList))
 
-  rule hash_tree_root(#HistoricalBatch( P1, P2 ) #as VAL)
+  rule hash_tree_root(#HistoricalBatch( P1, P2 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root_list(P1, SLOTS_PER_HISTORICAL_ROOT, %bytes, true)
           hash_tree_root_list(P2, SLOTS_PER_HISTORICAL_ROOT, %bytes, true) .HashList))
 
-  rule hash_tree_root(#DepositData( P1, P2, P3, P4 ) #as VAL)
+  rule hash_tree_root(#DepositData( P1, P2, P3, P4 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4)
           .HashList))
 
-  rule hash_tree_root(#CompactCommittee( P1, P2 ) #as VAL)
+  rule hash_tree_root(#CompactCommittee( P1, P2 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bytes, false)
           hash_tree_root_list(P2, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false) .HashList))
 
-  rule hash_tree_root(#BeaconBlockHeader( P1, P2, P3, P4, P5 ) #as VAL)
+  rule hash_tree_root(#BeaconBlockHeader( P1, P2, P3, P4, P5 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
           hash_tree_root(P5) .HashList))
 
-  rule hash_tree_root(#AttesterSlashing( P1, P2 ) #as VAL)
+  rule hash_tree_root(#AttesterSlashing( P1, P2 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) .HashList))
 
-  rule hash_tree_root(#Attestation( P1, P2, P3, P4 ) #as VAL)
+  rule hash_tree_root(#Attestation( P1, P2, P3, P4 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bool, false) hash_tree_root(P2)
           hash_tree_root_list(P3, MAX_VALIDATORS_PER_COMMITTEE, %bool, false) hash_tree_root(P4)
           .HashList))
 
-  rule hash_tree_root(#Deposit( P1, P2 ) #as VAL)
+  rule hash_tree_root(#Deposit( P1, P2 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root_list(P1, DEPOSIT_CONTRACT_TREE_DEPTH +Int 1, %bytes, true) hash_tree_root(P2) .HashList))
 
-  rule hash_tree_root(#VoluntaryExit( P1, P2, P3 ) #as VAL)
+  rule hash_tree_root(#VoluntaryExit( P1, P2, P3 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3) .HashList))
 
-  rule hash_tree_root(#Transfer( P1, P2, P3, P4, P5, P6, P7 ) #as VAL)
+  rule hash_tree_root(#Transfer( P1, P2, P3, P4, P5, P6, P7 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3, %uint64)
           hash_tree_root(P4, %uint64) hash_tree_root(P5, %uint64) hash_tree_root(P6) hash_tree_root(P7) .HashList))
 
+  //hash_tree_root branch 1.1, case Bytes
+  //leaves = chunkify(pack(obj))
+  //Bytes static/dynamic length = string length
+  rule hash_tree_root(VAL:Bytes, %bytes) => hash_tree_root_part2_v2(chunkify(pack(VAL)))
 
   syntax Hash ::= "hash_tree_root_list" "(" list: TypedList "," staticLen: Int "," elemType: ElementType "," fixedSize: Bool ")"
 
-  //hash_tree_root for list of basic values
+  //hash_tree_root branch 1.1, case list of basic values
   //leaves = chunkify(pack(obj))
   //-----------------------------------------------
   rule hash_tree_root_list(LIST:BasicValueList, StaticLEN, ElemType, true)
@@ -356,10 +366,6 @@ for layer in range(1, 100):
 
   rule hash_tree_root_list(LIST:BasicValueList, StaticLEN, ElemType, false)
     => hash_tree_root_part2_v1(chunkify(pack(LIST, StaticLEN, ElemType)), StaticLEN, ElemType, len(LIST))
-
-//fixme mix_in_length case for BytesN. BytesN = Vector[Byte, N], e.g. Bytes32, etc.
-//fixme Bytes also is not BasicValue.
-//byte array length = string length.
 
   //hash_tree_root branch 1.2, List/Vector types
   //leaves = [hash_tree_root(value) for value in obj]

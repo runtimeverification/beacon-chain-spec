@@ -26,13 +26,22 @@ unimplemented = lambda input: KToken('UNIMPLEMENTED << ' + str(input) + ' >>', '
 foldr = lambda func, init: lambda xs: reduce(lambda x, y: func(y, x), xs[::-1], init)
 
 def assocSort(elemSort):
-    return '_TYPES__' + elemSort + '_' + elemSort + 'List'
+    if elemSort == 'Hash':
+        elemSort = "Bytes"
+    return '_TYPES__' + elemSort + '_' + listSort(elemSort)
+
+
+def listSort(elemSort):
+    if elemSort == 'Hash':
+        return 'BytesList'
+    return elemSort + 'List'
+
 
 def assocJoin(elemSort):
     return '__' + assocSort(elemSort)
 
 def assocUnit(elemSort):
-    return '.List{"' + assocJoin(elemSort) + '"}_' + elemSort + 'List'
+    return '.List{"' + assocJoin(elemSort) + '"}_' + listSort(elemSort)
 
 def assocWithUnitAST(joinKLabel, emptyKLabel, converter = lambda x: x):
     emptyElem = KApply(emptyKLabel, [])
@@ -103,7 +112,7 @@ BEACON_CHAIN_lists = [ 'PendingAttestation'
                      ]
 
 for list_sort in BEACON_CHAIN_lists:
-    BEACON_CHAIN_symbols[assocUnit(list_sort)] = constLabel('.' + list_sort + 'List')
+    BEACON_CHAIN_symbols[assocUnit(list_sort)] = constLabel('.' + listSort(list_sort))
     BEACON_CHAIN_symbols[assocJoin(list_sort)] = lambda e, es: e + '  ' + es
 
 ALL_symbols = combineDicts(K_symbols, BEACON_CHAIN_symbols)

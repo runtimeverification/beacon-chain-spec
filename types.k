@@ -45,12 +45,12 @@ module TYPES
   syntax IntList ::= List{Int, ""}
   syntax BitList ::= List{Bit, ""}
 
-  syntax ContainerList ::= AttesterSlashingList | AttestationList | DepositList | VoluntaryExitList | TransferList | CrosslinkList
-       | Eth1DataList | PendingAttestationList | ValidatorIndexList
   syntax BasicValueList ::= IntList | BitList
   syntax BytesList ::= List{Bytes, ""}
+  syntax ContainerList ::= AttesterSlashingList | AttestationList | DepositList | VoluntaryExitList | TransferList | CrosslinkList
+       | Eth1DataList | PendingAttestationList | ValidatorIndexList
   syntax BytesOrContainerList ::= BytesList | ContainerList
-  syntax TypedList ::= BasicValueList | BytesOrContainerList //fixme rename - ValueList
+  syntax ValueList ::= BasicValueList | BytesOrContainerList
 
   // (Non-configurable) constants
   //====================================================
@@ -466,11 +466,11 @@ class Transfer(Container):
                      | CompactCommittee | BeaconBlockHeader | AttesterSlashing | Attestation | Deposit
                      | VoluntaryExit | Transfer
 
-  //TypedList are not Value, because it needs separate imp[lementation for hash_tree_root
+  //ValueList are not Value, because it needs separate imp[lementation for hash_tree_root
   //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.
   syntax BytesOrContainer ::= Bytes | Container
   syntax Value ::= BasicValue | BytesOrContainer
-  syntax ValueOrList ::= Value | TypedList
+  syntax ValueOrList ::= Value | ValueList
 
   // Type conversion functions
   //====================================================
@@ -593,7 +593,7 @@ def bytes_to_int(data: bytes) -> uint64:
     requires I >Int 0
   rule B *Bytes 0 => ""
 
-  syntax Int ::= len( TypedList )                                     [function]
+  syntax Int ::= len( ValueList )                                     [function]
 
   rule len(_ LIST:IntList) => 1 +Int len(LIST)
   rule len(.IntList) => 0

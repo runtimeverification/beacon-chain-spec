@@ -76,7 +76,7 @@ def pack(values: Series):
   rule pack(B:Bytes) => B
 
   //Version for lists
-  syntax Bytes ::= pack ( list: TypedList, staticLen: Int, elemType: ElementType )
+  syntax Bytes ::= pack ( list: ValueList, staticLen: Int, elemType: ElementType )
 
   //todo using StaticLEN here, python uses dynamic len. Static seems correct. Waiting answer on slack.
   rule pack(BL:BitList, StaticLEN, %bool) => to_bytes( toInt(BL, (StaticLEN +Int 7) /Int 8 *Int 8),
@@ -354,7 +354,7 @@ for layer in range(1, 100):
   //Bytes static/dynamic length = string length
   rule hash_tree_root(VAL:Bytes, %bytes) => hash_tree_root_part2_v2(chunkify(pack(VAL)))
 
-  syntax Hash ::= "hash_tree_root_list" "(" list: TypedList "," staticLen: Int "," elemType: ElementType "," fixedSize: Bool ")"
+  syntax Hash ::= "hash_tree_root_list" "(" list: ValueList "," staticLen: Int "," elemType: ElementType "," fixedSize: Bool ")"
 
   //hash_tree_root branch 1.1, case list of basic values
   //leaves = chunkify(pack(obj))

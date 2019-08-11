@@ -74,8 +74,8 @@ transferTerm = labelWithKeyPairs('#Transfer' , [ ('sender'    , intToken)
                                                , ('amount'    , intToken)
                                                , ('fee'       , intToken)
                                                , ('slot'      , intToken)
-                                               , ('pubkey'    , hexIntToken)
-                                               , ('signature' , hexIntToken)
+                                               , ('pubkey'    , hashToken)
+                                               , ('signature' , hashToken)
                                                ]
                                 )
 
@@ -105,9 +105,9 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'  : (['current_justified_checkpoint']       , checkpointTerm)
                     , 'FINALIZED_CHECKPOINT_CELL'          : (['finalized_checkpoint']               , checkpointTerm)
                     , 'BLOCKSLOT_CELL'                     : (['latest_block_header', 'slot']        , intToken)
-                    , 'PARENT_ROOT_CELL'                   : (['latest_block_header', 'parent_root'] , hexIntToken)
-                    , 'STATE_ROOT_CELL'                    : (['latest_block_header', 'state_root']  , hexIntToken)
-                    , 'SIGNATURE_CELL'                     : (['latest_block_header', 'signature']   , hexIntToken)
+                    , 'PARENT_ROOT_CELL'                   : (['latest_block_header', 'parent_root'] , hashToken)
+                    , 'STATE_ROOT_CELL'                    : (['latest_block_header', 'state_root']  , hashToken)
+                    , 'SIGNATURE_CELL'                     : (['latest_block_header', 'signature']   , hashToken)
                     , 'TRANSFERS_CELL'                     : (['transfers']                          , listOf('Transfer', converter = transferTerm))
                     }
 

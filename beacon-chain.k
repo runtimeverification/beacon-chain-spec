@@ -109,12 +109,12 @@ class ProposerSlashing(Container):
       </state>
       <block>                           //Type BeaconBlock in python spec.
         <blockSlot> -1 </blockSlot>
-        <parent-root> -1 </parent-root>
-        <state-root> -1 </state-root>
+        <parent-root> "" </parent-root>
+        <state-root> "" </state-root>
         <body>                          //Type BeaconBlockBody in python spec.
-          <randao-reveal> -1 </randao-reveal>
+          <randao-reveal> "" </randao-reveal>
           <block-eth1-data> .Eth1Data </block-eth1-data> // added "block-" prefix to name to resolve conflicting cell names
-          <graffiti> -1 </graffiti>
+          <graffiti> "" </graffiti>
           <proposer-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
             <proposer-slashing multiplicity="*" type="Map">
               <proposer-slashing-index> -1 </proposer-slashing-index>
@@ -129,7 +129,7 @@ class ProposerSlashing(Container):
           <voluntary-exits> .VoluntaryExitList </voluntary-exits> //List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
           <transfers> .TransferList </transfers> //List[Transfer, MAX_TRANSFERS]
         </body>
-        <signature> -1 </signature>
+        <signature> "" </signature>
       </block>
     </beacon-chain>
 

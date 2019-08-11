@@ -96,17 +96,17 @@ def chunkify(bytez):
     bytez += b'\x00' * (-len(bytez) % 32)
     return [bytez[i:i + 32] for i in range(0, len(bytez), 32)]
 */
-  syntax HashList ::= chunkify( Bytes )                               [function]
+  syntax BytesList ::= chunkify( Bytes )                               [function]
   rule chunkify(B) => chunkifyAux(padTo32(B))
 
   syntax Bytes ::= padTo32( Bytes )                                   [function]
   rule padTo32(BYTES) => BYTES +Bytes ("\x00" *Bytes ((lengthString(BYTES) +Int 31) /Int 32 -Int lengthString(BYTES)) )
 
-  syntax HashList ::= chunkifyAux( Bytes )                           [function]
+  syntax BytesList ::= chunkifyAux( Bytes )                           [function]
   rule chunkifyAux(BYTES) => substrString(BYTES, 0, 32) chunkifyAux(substrString(BYTES, 32, lengthString(BYTES)))
     requires lengthString(BYTES) >=Int 32
 
-  rule chunkifyAux("") => .HashList
+  rule chunkifyAux("") => .BytesList
 
 /*
 ZERO_BYTES32 = b'\x00' * 32
@@ -153,7 +153,7 @@ for layer in range(1, 100):
 
     return tmp[max_depth]
 */
-  syntax Hash ::= "merkleize_chunks" "(" HashList "," Int ")"        [function]
+  syntax Hash ::= "merkleize_chunks" "(" BytesList "," Int ")"        [function]
   rule merkleize_chunks(CHUNKS, PadTO)
        => merkleizeChunksLoop1(len(CHUNKS), //count
                                bit_length(maxInt(len(CHUNKS) -Int 1, 0)), //depth
@@ -166,14 +166,14 @@ for layer in range(1, 100):
   syntax Hash ::= merkleizeChunksLoop1(Int,       // count
                                        Int,       // depth
                                        Int,       // max_depth
-                                       HashList, // chunks
+                                       BytesList, // chunks
                                        Int,       // i
                                        Map        // tmp
                                        )
   rule merkleizeChunksLoop1(COUNT, DEPTH, MaxDEPTH, (CH CHUNKS => CHUNKS), I => I +Int 1,
                             TMP => merkleMerge(CH, I, COUNT, DEPTH, TMP))
 
-  rule merkleizeChunksLoop1(COUNT, DEPTH, MaxDEPTH, .HashList, I, TMP)
+  rule merkleizeChunksLoop1(COUNT, DEPTH, MaxDEPTH, .BytesList, I, TMP)
        => merkleizeChunksLoop2(DEPTH, MaxDEPTH,
                                #if (1 <<Int DEPTH =/=Int COUNT)
                                   #then merkleMerge(zerohashes(0), COUNT, COUNT, DEPTH, TMP) //merge(zerohashes[0], count)
@@ -246,8 +246,6 @@ for layer in range(1, 100):
   rule is_bottom_layer_kind(_:Bytes) => true
   rule is_bottom_layer_kind(_:IntList) => true
   rule is_bottom_layer_kind(_:BitList) => true
-  rule is_bottom_layer_kind(_:HashList) => true
-  rule is_bottom_layer_kind(_:Bytes48List) => true
 
   rule is_bottom_layer_kind(_) => false                               [owise]
 
@@ -283,73 +281,73 @@ for layer in range(1, 100):
   //leaves = [hash_tree_root(value) for value in obj]
   //-----------------------------------------------
   rule hash_tree_root(#Fork( P1, P2, P3 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) .HashList))
+    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) .BytesList))
 
   rule hash_tree_root(#Checkpoint( P1, P2 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2) .HashList))
+    => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2) .BytesList))
 
   rule hash_tree_root(#Validator( P1, P2, P3, P4, P5, P6, P7, P8 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64)
           hash_tree_root(P4, %bool) hash_tree_root(P5, %uint64) hash_tree_root(P6, %uint64) hash_tree_root(P7, %uint64)
-          hash_tree_root(P8, %uint64) .HashList))
+          hash_tree_root(P8, %uint64) .BytesList))
 
   rule hash_tree_root(#Crosslink( P1, P2, P3, P4, P5 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3, %uint64)
-          hash_tree_root(P4, %uint64) hash_tree_root(P5) .HashList))
+          hash_tree_root(P4, %uint64) hash_tree_root(P5) .BytesList))
 
   rule hash_tree_root(#AttestationData( P1, P2, P3, P4 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
-          .HashList))
+          .BytesList))
 
   rule hash_tree_root(#AttestationDataAndCustodyBit( P1, P2 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2, %bool) .HashList))
+    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2, %bool) .BytesList))
 
   rule hash_tree_root(#IndexedAttestation( P1, P2, P3, P4 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false)
           hash_tree_root_list(P2, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false) hash_tree_root(P3) hash_tree_root(P4)
-          .HashList))
+          .BytesList))
 
   rule hash_tree_root(#PendingAttestation( P1, P2, P3, P4 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bool, false)
           hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4, %uint64)
-          .HashList))
+          .BytesList))
 
   rule hash_tree_root(#Eth1Data( P1, P2, P3 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2, %uint64) hash_tree_root(P3) .HashList))
+    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2, %uint64) hash_tree_root(P3) .BytesList))
 
   rule hash_tree_root(#HistoricalBatch( P1, P2 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root_list(P1, SLOTS_PER_HISTORICAL_ROOT, %bytes, true)
-          hash_tree_root_list(P2, SLOTS_PER_HISTORICAL_ROOT, %bytes, true) .HashList))
+          hash_tree_root_list(P2, SLOTS_PER_HISTORICAL_ROOT, %bytes, true) .BytesList))
 
   rule hash_tree_root(#DepositData( P1, P2, P3, P4 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4)
-          .HashList))
+          .BytesList))
 
   rule hash_tree_root(#CompactCommittee( P1, P2 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bytes, false)
-          hash_tree_root_list(P2, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false) .HashList))
+          hash_tree_root_list(P2, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false) .BytesList))
 
   rule hash_tree_root(#BeaconBlockHeader( P1, P2, P3, P4, P5 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
-          hash_tree_root(P5) .HashList))
+          hash_tree_root(P5) .BytesList))
 
   rule hash_tree_root(#AttesterSlashing( P1, P2 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) .HashList))
+    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) .BytesList))
 
   rule hash_tree_root(#Attestation( P1, P2, P3, P4 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bool, false) hash_tree_root(P2)
           hash_tree_root_list(P3, MAX_VALIDATORS_PER_COMMITTEE, %bool, false) hash_tree_root(P4)
-          .HashList))
+          .BytesList))
 
   rule hash_tree_root(#Deposit( P1, P2 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root_list(P1, DEPOSIT_CONTRACT_TREE_DEPTH +Int 1, %bytes, true) hash_tree_root(P2) .HashList))
+    => hash_tree_root_part2_v2((hash_tree_root_list(P1, DEPOSIT_CONTRACT_TREE_DEPTH +Int 1, %bytes, true) hash_tree_root(P2) .BytesList))
 
   rule hash_tree_root(#VoluntaryExit( P1, P2, P3 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3) .HashList))
+    => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3) .BytesList))
 
   rule hash_tree_root(#Transfer( P1, P2, P3, P4, P5, P6, P7 ) #as VAL, %container)
     => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3, %uint64)
-          hash_tree_root(P4, %uint64) hash_tree_root(P5, %uint64) hash_tree_root(P6) hash_tree_root(P7) .HashList))
+          hash_tree_root(P4, %uint64) hash_tree_root(P5, %uint64) hash_tree_root(P6) hash_tree_root(P7) .BytesList))
 
   //hash_tree_root branch 1.1, case Bytes
   //leaves = chunkify(pack(obj))
@@ -371,14 +369,18 @@ for layer in range(1, 100):
   //leaves = [hash_tree_root(value) for value in obj]
   //padTo argument has to be supplied from the call context, it is the static list size.
   //-----------------------------------------------
-  rule hash_tree_root_list(LIST:ContainerList, StaticLEN, ElemType, false)
+  rule hash_tree_root_list(LIST:BytesOrContainerList, StaticLEN, ElemType, false)
     => hash_tree_root_part2_v1(chunkifyContainerList(LIST, 0), StaticLEN, ElemType, len(LIST))
 
   //Vector[Container] chunks must be padded to StaticLen.
-  rule hash_tree_root_list(LIST:ContainerList, StaticLEN, _, true)
+  rule hash_tree_root_list(LIST:BytesOrContainerList, StaticLEN, _, true)
     => hash_tree_root_part2_v2(chunkifyContainerList(LIST, StaticLEN))
 
-  syntax HashList ::= chunkifyContainerList( list: ContainerList , minLen: Int)          [function]
+
+  syntax BytesList ::= chunkifyContainerList( list: BytesOrContainerList , minLen: Int)          [function]
+
+  rule chunkifyContainerList(V:Hash L:BytesList, MinLen)
+    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(V:AttesterSlashing L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
@@ -407,13 +409,13 @@ for layer in range(1, 100):
   rule chunkifyContainerList(LIST, MinLen) => hash_tree_root(zerohashes(0)) chunkifyContainerList(LIST, MinLen -Int 1)
     requires len(LIST) ==Int 0 andBool MinLen >Int 0
 
-  rule chunkifyContainerList(LIST, MinLen) => .HashList
+  rule chunkifyContainerList(LIST, MinLen) => .BytesList
     requires len(LIST) ==Int 0 andBool MinLen <=Int 0
 
 /*  if isinstance(obj, (List, Bytes, Bitlist)):
         return mix_in_length(merkleize_chunks(leaves, pad_to=chunk_count(obj.type())), len(obj))
 */
-  syntax Hash ::= "hash_tree_root_part2_v1" "(" leaves: HashList "," staticLen: Int "," elemType: ElementType ","
+  syntax Hash ::= "hash_tree_root_part2_v1" "(" leaves: BytesList "," staticLen: Int "," elemType: ElementType ","
                                                 dynamicLen: Int ")" [function]
   rule hash_tree_root_part2_v1(LEAVES, StaticLEN, ElemType, DynamicLen)
     => mix_in_length(merkleize_chunks(LEAVES, chunk_count(StaticLEN, ElemType)), DynamicLen)
@@ -421,7 +423,7 @@ for layer in range(1, 100):
 /*  else: (from above)
         return merkleize_chunks(leaves)
 */
-  syntax Hash ::= "hash_tree_root_part2_v2" "(" HashList ")" [function]
+  syntax Hash ::= "hash_tree_root_part2_v2" "(" BytesList ")" [function]
   rule hash_tree_root_part2_v2(LEAVES) => merkleize_chunks(LEAVES, 1)
 
 /* def mix_in_length(root, length):
@@ -463,11 +465,9 @@ for layer in range(1, 100):
   rule item_length(%uint128) => 16
   rule item_length(%uint256) => 32
   rule item_length(%container) => 32
-  rule item_length(%bytes)     => 32
 
   syntax ElementType ::= "%bool" | "%uint8" | "%uint16" |"%uint32" | "%uint64" | "%uint128" | "%uint256"
-                       | "%none"
-                       | "%bytes" //todo should not be needed
+                       | "%bytes"
                        | "%container"
 
 endmodule

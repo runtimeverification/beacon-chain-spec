@@ -3,12 +3,13 @@ module TYPES
 
   // Basic Python (SSZ) types
   //====================================================
-  syntax Bytes   ::= String | Hash
+  syntax Bytes   ::= String | Hash | Bytes48
+  syntax Hash           ::= String
   syntax Uint64  ::= Int
   syntax Bytes4  ::= Bytes
   syntax Bytes8  ::= Bytes
   syntax Bytes32 ::= Bytes
-  syntax Bytes48 ::= Bytes
+  syntax Bytes48 ::= String
   syntax Bytes96 ::= Bytes
   syntax Bit     ::= Bool
   syntax BasicValue ::= Int | Uint64 | Bool
@@ -24,7 +25,6 @@ module TYPES
   // Custom types
   //====================================================
   syntax ValidatorIndex ::= Int | ".ValidatorIndex"     //a validator registry index
-  syntax Hash           ::= String
   syntax Version        ::= Bytes4      //a fork version number
   syntax DomainType     ::= Bytes4      //a signature domain type
   syntax Domain         ::= Bytes8      //a signature domain
@@ -33,7 +33,6 @@ module TYPES
 
   // List types
   //====================================================
-  syntax Bytes48List ::= List{Bytes48, ""}
   syntax AttesterSlashingList ::= List{AttesterSlashing, ""}
   syntax AttestationList ::= List{Attestation, ""}
   syntax DepositList ::= List{Deposit, ""}
@@ -45,12 +44,13 @@ module TYPES
   syntax ValidatorIndexList ::= List{ValidatorIndex, ""}
   syntax IntList ::= List{Int, ""}
   syntax BitList ::= List{Bit, ""}
-  syntax HashList ::= List{Hash, ""}
 
   syntax ContainerList ::= AttesterSlashingList | AttestationList | DepositList | VoluntaryExitList | TransferList | CrosslinkList
        | Eth1DataList | PendingAttestationList | ValidatorIndexList
-  syntax BasicValueList ::= IntList | BitList | HashList | Bytes48List //fixme List<BytesN> is not List<BasicValue>. Review all usages of HashList, Bytes48List.
-  syntax TypedList ::= BasicValueList | ContainerList
+  syntax BasicValueList ::= IntList | BitList
+  syntax BytesList ::= List{Bytes, ""}
+  syntax BytesOrContainerList ::= BytesList | ContainerList
+  syntax TypedList ::= BasicValueList | BytesOrContainerList //fixme rename - ValueList
 
   // (Non-configurable) constants
   //====================================================
@@ -342,8 +342,8 @@ class HistoricalBatch(Container):
     block_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
     state_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
   */
-  // TODO: Add constraint on length of HashList (SLOTS_PER_HISTORICAL_ROOT)
-  syntax HistoricalBatch ::= #HistoricalBatch( HashList, HashList )
+  // TODO: Add constraint on length of BytesList (SLOTS_PER_HISTORICAL_ROOT)
+  syntax HistoricalBatch ::= #HistoricalBatch( BytesList, BytesList )
 
   /*
 class DepositData(Container):
@@ -366,9 +366,9 @@ class CompactCommittee(Container):
     pubkeys: List[Bytes48, MAX_VALIDATORS_PER_COMMITTEE]
     compact_validators: List[uint64, MAX_VALIDATORS_PER_COMMITTEE]
   */
-  // TODO: Add constraint on length of Bytes48List (MAX_VALIDATORS_PER_COMMITTEE)
+  // TODO: Add constraint on length of BytesList (MAX_VALIDATORS_PER_COMMITTEE)
   // TODO: Add constraint on length of uint64List (MAX_VALIDATORS_PER_COMMITTEE)
-  syntax CompactCommittee ::= #CompactCommittee( Bytes48List, IntList )
+  syntax CompactCommittee ::= #CompactCommittee( BytesList, IntList )
 
   /*
 class BeaconBlockHeader(Container):
@@ -418,8 +418,8 @@ class Deposit(Container):
     proof: Vector[Hash, DEPOSIT_CONTRACT_TREE_DEPTH + 1]  # Merkle path to deposit data list root
     data: DepositData
   */
-  // TODO: Add constraint on length of HashList (DEPOSIT_CONTRACT_TREE_DEPTH + 1)
-  syntax Deposit ::= #Deposit( HashList, DepositData )
+  // TODO: Add constraint on length of BytesList (DEPOSIT_CONTRACT_TREE_DEPTH + 1)
+  syntax Deposit ::= #Deposit( BytesList, DepositData )
 
   syntax DepositData ::= Deposit "." "data"                           [function]
   rule #Deposit(_, DATA).data => DATA
@@ -468,8 +468,8 @@ class Transfer(Container):
 
   //TypedList are not Value, because it needs separate imp[lementation for hash_tree_root
   //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.
-  syntax Value ::= BasicValue | Bytes | Container
   syntax BytesOrContainer ::= Bytes | Container
+  syntax Value ::= BasicValue | BytesOrContainer
   syntax ValueOrList ::= Value | TypedList
 
   // Type conversion functions
@@ -597,10 +597,8 @@ def bytes_to_int(data: bytes) -> uint64:
 
   rule len(_ LIST:IntList) => 1 +Int len(LIST)
   rule len(.IntList) => 0
-  rule len(_ LIST:HashList) => 1 +Int len(LIST)
-  rule len(.HashList) => 0
-  rule len(_ LIST:Bytes48List) => 1 +Int len(LIST)
-  rule len(.Bytes48List) => 0
+  rule len(_ LIST:BytesList) => 1 +Int len(LIST)
+  rule len(.BytesList) => 0
   rule len(_ LIST:AttesterSlashingList) => 1 +Int len(LIST)
   rule len(.AttesterSlashingList) => 0
   rule len(_ LIST:AttestationList) => 1 +Int len(LIST)

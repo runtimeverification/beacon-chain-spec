@@ -78,7 +78,7 @@ class ProposerSlashing(Container):
         <latest-block-header> .BlockHeader </latest-block-header>
         <block-roots> .Map </block-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
         <state-roots> .Map </state-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-        <historical-roots> .HashList </historical-roots> //List[Hash, HISTORICAL_ROOTS_LIMIT]
+        <historical-roots> .BytesList </historical-roots> //List[Hash, HISTORICAL_ROOTS_LIMIT]
         // Eth1
         <eth1-data> .Eth1Data </eth1-data>
         <eth1-data-votes> .Eth1DataList </eth1-data-votes> //List[Eth1Data, SLOTS_PER_ETH1_VOTING_PERIOD]
@@ -88,9 +88,9 @@ class ProposerSlashing(Container):
         <balances> .Map </balances> //List[Gwei, VALIDATOR_REGISTRY_LIMIT]
         // Shuffling
         <start-shard> 0 </start-shard>
-        <randao-mixes> .HashList </randao-mixes> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
-        <active-index-roots> .HashList </active-index-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
-        <compact-committees-roots> .HashList </compact-committees-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
+        <randao-mixes> .BytesList </randao-mixes> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
+        <active-index-roots> .BytesList </active-index-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
+        <compact-committees-roots> .BytesList </compact-committees-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
         // Slashings
         <slashings> .Map </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
         // Attestations
@@ -446,7 +446,7 @@ def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
   rule [[ getRandaoMix( EPOCH ) => getRandaoMixAux( RMS, EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR )]]
     <randao-mixes> RMS </randao-mixes>
 
-  syntax Hash ::= getRandaoMixAux( HashList, Int ) [function]
+  syntax Hash ::= getRandaoMixAux( BytesList, Int ) [function]
   rule getRandaoMixAux(RM RMS, 0) => RM
   rule getRandaoMixAux(RM RMS, I) => getRandaoMixAux(RMS, I -Int 1)
     requires I >Int 0
@@ -2052,7 +2052,7 @@ def process_final_updates(state: BeaconState) -> None:
          CRS => setCommRootsAt(CommRootPos, CRS, getCompactCommitteesRoot(getCurrentEpoch() +Int 1))
        </compact-committees-roots>
 
-  syntax HashList ::= setCommRootsAt(Int, HashList, Hash) [function]
+  syntax BytesList ::= setCommRootsAt(Int, BytesList, Hash) [function]
   rule setCommRootsAt(Pos, CR CRS, CR') => CR setCommRootsAt(Pos -Int 1, CRS, CR') requires Pos >Int 0
   rule setCommRootsAt(0, CR CRS, CR') => CR' CRS
 
@@ -2156,7 +2156,7 @@ def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
        <randao-reveal> R </randao-reveal>
     //requires // TODO: not verifying signatures
 
-  syntax HashList ::= setRandaoMixAt(HashList, Int, Hash) [function]
+  syntax BytesList ::= setRandaoMixAt(BytesList, Int, Hash) [function]
   rule setRandaoMixAt(RM RMS, I, RM') => RM setRandaoMixAt(RMS, I -Int 1, RM')
     requires I >Int 0
   rule setRandaoMixAt(RM RMS, 0, RM') => RM' RMS

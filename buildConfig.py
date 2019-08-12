@@ -26,13 +26,22 @@ unimplemented = lambda input: KToken('UNIMPLEMENTED << ' + str(input) + ' >>', '
 foldr = lambda func, init: lambda xs: reduce(lambda x, y: func(y, x), xs[::-1], init)
 
 def assocSort(elemSort):
-    return '_TYPES__' + elemSort + '_' + elemSort + 'List'
+    if elemSort == 'Hash':
+        elemSort = "Bytes"
+    return '_TYPES__' + elemSort + '_' + listSort(elemSort)
+
+
+def listSort(elemSort):
+    if elemSort == 'Hash':
+        return 'BytesList'
+    return elemSort + 'List'
+
 
 def assocJoin(elemSort):
     return '__' + assocSort(elemSort)
 
 def assocUnit(elemSort):
-    return '.List{"' + assocJoin(elemSort) + '"}_' + elemSort + 'List'
+    return '.List{"' + assocJoin(elemSort) + '"}_' + listSort(elemSort)
 
 def assocWithUnitAST(joinKLabel, emptyKLabel, converter = lambda x: x):
     emptyElem = KApply(emptyKLabel, [])
@@ -103,7 +112,7 @@ BEACON_CHAIN_lists = [ 'PendingAttestation'
                      ]
 
 for list_sort in BEACON_CHAIN_lists:
-    BEACON_CHAIN_symbols[assocUnit(list_sort)] = constLabel('.' + list_sort + 'List')
+    BEACON_CHAIN_symbols[assocUnit(list_sort)] = constLabel('.' + listSort(list_sort))
     BEACON_CHAIN_symbols[assocJoin(list_sort)] = lambda e, es: e + '  ' + es
 
 ALL_symbols = combineDicts(K_symbols, BEACON_CHAIN_symbols)
@@ -169,16 +178,16 @@ init_cells = { 'K_CELL'                             : KSequence([KConstant('.Pgm
              , 'LATEST_BLOCK_HEADER_CELL'           : KConstant('.BlockHeader_TYPES_')
              , 'BLOCK_ROOTS_CELL'                   : KConstant('.Map')
              , 'STATE_ROOTS_CELL'                   : KConstant('.Map')
-             , 'HISTORICAL_ROOTS_CELL'              : listOf('Hash')([])
+             , 'HISTORICAL_ROOTS_CELL'              : listOf('Bytes')([])
              , 'ETH1_DATA_CELL'                     : KConstant('.Eth1Data_TYPES_')
              , 'ETH1_DATA_VOTES_CELL'               : listOf('Eth1Data')([])
              , 'ETH1_DEPOSIT_INDEX_CELL'            : KToken('0', 'Int')
              , 'VALIDATORS_CELL'                    : KConstant('.Map')
              , 'BALANCES_CELL'                      : KConstant('.Map')
              , 'START_SHARD_CELL'                   : KToken('0', 'Int')
-             , 'RANDAO_MIXES_CELL'                  : listOf('Hash')([])
-             , 'ACTIVE_INDEX_ROOTS_CELL'            : listOf('Hash')([])
-             , 'COMPACT_COMMITTEES_ROOTS_CELL'      : listOf('Hash')([])
+             , 'RANDAO_MIXES_CELL'                  : listOf('Bytes')([])
+             , 'ACTIVE_INDEX_ROOTS_CELL'            : listOf('Bytes')([])
+             , 'COMPACT_COMMITTEES_ROOTS_CELL'      : listOf('Bytes')([])
              , 'SLASHINGS_CELL'                     : KConstant('.Map')
              , 'PREVIOUS_EPOCH_ATTESTATION_CELL'    : listOf('PendingAttestation')([])
              , 'CURRENT_EPOCH_ATTESTATIONS_CELL'    : listOf('PendingAttestation')([])
@@ -189,18 +198,18 @@ init_cells = { 'K_CELL'                             : KSequence([KConstant('.Pgm
              , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'  : KConstant('.Checkpoint_TYPES_')
              , 'FINALIZED_CHECKPOINT_CELL'          : KConstant('.Checkpoint_TYPES_')
              , 'BLOCKSLOT_CELL'                     : KToken('-1', 'Int')
-             , 'PARENT_ROOT_CELL'                   : KToken('-1', 'Int')
-             , 'STATE_ROOT_CELL'                    : KToken('-1', 'Int')
-             , 'RANDAO_REVEAL_CELL'                 : KToken('-1', 'Int')
+             , 'PARENT_ROOT_CELL'                   : KToken('""', 'String')
+             , 'STATE_ROOT_CELL'                    : KToken('""', 'String')
+             , 'RANDAO_REVEAL_CELL'                 : KToken('""', 'String')
              , 'BLOCK-ETH1_DATA_CELL'               : KConstant('.Eth1Data_TYPES_')
-             , 'GRAFFITI_CELL'                      : KToken('-1', 'Int')
+             , 'GRAFFITI_CELL'                      : KToken('""', 'String')
              , 'PROPOSER_SLASHINGS_CELL'            : KConstant('.ProposerSlashingCellMap')
              , 'ATTESTER_SLASHINGS_CELL'            : listOf('AttesterSlashing')([])
              , 'ATTESTATIONS_CELL'                  : listOf('Attestation')([])
              , 'DEPOSITS_CELL'                      : listOf('Deposit')([])
              , 'VOLUNTARY_EXITS_CELL'               : listOf('VoluntaryExit')([])
              , 'TRANSFERS_CELL'                     : listOf('Transfer')([])
-             , 'SIGNATURE_CELL'                     : KToken('-1', 'Int')
+             , 'SIGNATURE_CELL'                     : KToken('""', 'String')
              , 'GENERATED_COUNTER_CELL'             : KToken('0', 'Int')
              }
 

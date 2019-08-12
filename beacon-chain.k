@@ -78,7 +78,7 @@ class ProposerSlashing(Container):
         <latest-block-header> .BlockHeader </latest-block-header>
         <block-roots> .Map </block-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
         <state-roots> .Map </state-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-        <historical-roots> .HashList </historical-roots> //List[Hash, HISTORICAL_ROOTS_LIMIT]
+        <historical-roots> .BytesList </historical-roots> //List[Hash, HISTORICAL_ROOTS_LIMIT]
         // Eth1
         <eth1-data> .Eth1Data </eth1-data>
         <eth1-data-votes> .Eth1DataList </eth1-data-votes> //List[Eth1Data, SLOTS_PER_ETH1_VOTING_PERIOD]
@@ -88,9 +88,9 @@ class ProposerSlashing(Container):
         <balances> .Map </balances> //List[Gwei, VALIDATOR_REGISTRY_LIMIT]
         // Shuffling
         <start-shard> 0 </start-shard>
-        <randao-mixes> .HashList </randao-mixes> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
-        <active-index-roots> .HashList </active-index-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
-        <compact-committees-roots> .HashList </compact-committees-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
+        <randao-mixes> .BytesList </randao-mixes> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
+        <active-index-roots> .BytesList </active-index-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
+        <compact-committees-roots> .BytesList </compact-committees-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
         // Slashings
         <slashings> .Map </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
         // Attestations
@@ -109,12 +109,12 @@ class ProposerSlashing(Container):
       </state>
       <block>                           //Type BeaconBlock in python spec.
         <blockSlot> -1 </blockSlot>
-        <parent-root> -1 </parent-root>
-        <state-root> -1 </state-root>
+        <parent-root> "" </parent-root>
+        <state-root> "" </state-root>
         <body>                          //Type BeaconBlockBody in python spec.
-          <randao-reveal> -1 </randao-reveal>
+          <randao-reveal> "" </randao-reveal>
           <block-eth1-data> .Eth1Data </block-eth1-data> // added "block-" prefix to name to resolve conflicting cell names
-          <graffiti> -1 </graffiti>
+          <graffiti> "" </graffiti>
           <proposer-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
             <proposer-slashing multiplicity="*" type="Map">
               <proposer-slashing-index> -1 </proposer-slashing-index>
@@ -129,7 +129,7 @@ class ProposerSlashing(Container):
           <voluntary-exits> .VoluntaryExitList </voluntary-exits> //List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
           <transfers> .TransferList </transfers> //List[Transfer, MAX_TRANSFERS]
         </body>
-        <signature> -1 </signature>
+        <signature> "" </signature>
       </block>
     </beacon-chain>
 
@@ -142,8 +142,11 @@ class ProposerSlashing(Container):
 def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
     return Bytes32(a ^ b for a, b in zip(bytes1, bytes2))
 */
-  syntax Bytes32 ::= xor( Bytes32, Bytes32 ) [function]
-  rule xor(A,B) => A xorInt B
+  syntax Bytes ::= xor( Bytes, Bytes ) [function]
+  rule xor(A, B) => chrChar(ordChar(substrString(A, 0, 1)) ^Int ordChar(substrString(B, 0, 1)))
+                    +Bytes xor(substrString(A, 1, lengthString(A) -Int 1), substrString(B, 1, lengthString(B) -Int 1))
+    requires lengthString(A) >Int 0 andBool lengthString(B) >Int 0
+  rule xor("", "") => ""
 
   // Helper functions -- Crypto
   //====================================================
@@ -373,9 +376,8 @@ def compute_domain(domain_type: DomainType, fork_version: Version=Version()) -> 
     """
     return Domain(domain_type + fork_version)
 */
-// TODO fix compute_domain
-  syntax Int ::= computeDomain(Int, Version) [function]
-  rule computeDomain(Domain_Type, Fork_Version) => Domain_Type +Int Fork_Version
+  syntax Domain ::= computeDomain(DomainType, Version)                [function]
+  rule computeDomain(Domain_Type, Fork_Version) => Domain_Type +Bytes Fork_Version
 
   // Helper functions -- Beacon state accessors
   //====================================================
@@ -444,7 +446,7 @@ def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
   rule [[ getRandaoMix( EPOCH ) => getRandaoMixAux( RMS, EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR )]]
     <randao-mixes> RMS </randao-mixes>
 
-  syntax Hash ::= getRandaoMixAux( HashList, Int ) [function]
+  syntax Hash ::= getRandaoMixAux( BytesList, Int ) [function]
   rule getRandaoMixAux(RM RMS, 0) => RM
   rule getRandaoMixAux(RM RMS, I) => getRandaoMixAux(RMS, I -Int 1)
     requires I >Int 0
@@ -610,7 +612,7 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
        /*=> getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD,
                                      FirstCommittee, MaxRandomByte, SEED, I)*/
        //todo commented code should work but crashes with ClassCastException, even with one #fun.
-       => getBeaconProposerIndexLoop(0, 0, 0, 0, .IntList, 0, 0, 0)
+       => getBeaconProposerIndexLoop(0, 0, 0, 0, .IntList, 0, "", 0)
        //   )(0)
        //   )(0/*getSeed(EPOCH)*/)
        //   )(2 ^Int 8 -Int 1)
@@ -623,17 +625,18 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
     <slot> SLOT </slot>
 
   syntax ValidatorIndex ::= getBeaconProposerIndexLoop(
-                              Int, Int, Int, Int, IntList, Int, Bytes32, Int) [function]
+                              Int, Int, Int, Int, IntList, Int, Hash, Int) [function]
   rule [[ getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I)
     =>    getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                   get(FirstCommittee, (EPOCH +Int I) %Int len(FirstCommittee)) #as CandidateIndex,
-                  getByte( hash( toBytes(SEED +Int I /Int 32) ), I %Int 32) /*#as RandomByte*/,
+                  //random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
+                  getByte( hashConcat(SEED, to_bytes(I /Int 32, 8) ), I %Int 32) /*#as RandomByte*/,
                   VAL.effectiveBalance
           ) ]]
     <validators>... CandidateIndex |-> VAL ...</validators>
 
   syntax ValidatorIndex ::= getBeaconProposerIndexLoopAux(
-                              Int, Int, Int, Int, IntList, Int, Bytes32, Int,
+                              Int, Int, Int, Int, IntList, Int, Hash, Int,
                               Int, Int, Int) [function]
   rule getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                                      CandidateIndex, RandomByte, EffectiveBalance)
@@ -766,8 +769,8 @@ def get_attesting_indices(state: BeaconState,
     extractAttestingIndices(getCrosslinkCommittee(EP, SHARD), BL, .IntList)
 
   syntax IntList ::= extractAttestingIndices(IntList, BitList, IntList) [function]
-  rule extractAttestingIndices(I IL => IL, 1 BL => BL, AL => AL I)
-  rule extractAttestingIndices(I IL => IL, 0 BL => BL, AL)
+  rule extractAttestingIndices(I IL => IL, true  BL => BL, AL => AL I)
+  rule extractAttestingIndices(I IL => IL, false BL => BL, AL)
   rule extractAttestingIndices(.IntList,_, AL) => AL
 
   // Helper functions -- Beacon state mutators
@@ -1351,7 +1354,7 @@ def process_justification_and_finalization(state: BeaconState) -> None:
        <current-justified-checkpoint>
           CurrJustCHECKP => #Checkpoint(EPOCH, getBlockRoot(EPOCH))
        </current-justified-checkpoint>
-       <justification-bits> Bits => setBitAt(Bits, 1, 1) </justification-bits>
+       <justification-bits> Bits => setBitAt(Bits, 1, true) </justification-bits>
     requires getAttestingBalance(getMatchingTargetAttestations(EPOCH)) *Int 3 >=Int getTotalActiveBalance() *Int 2
   rule <k> updateJustificationPrev(EPOCH) => .K ... </k>
        <current-justified-checkpoint> CurrJustCHECKP </current-justified-checkpoint>
@@ -1363,7 +1366,7 @@ def process_justification_and_finalization(state: BeaconState) -> None:
        <current-justified-checkpoint>
           CurrJustCHECKP => #Checkpoint(EPOCH, getBlockRoot(EPOCH))
        </current-justified-checkpoint>
-       <justification-bits> Bits => setBitAt(Bits, 0, 1) </justification-bits>
+       <justification-bits> Bits => setBitAt(Bits, 0, true) </justification-bits>
     requires getAttestingBalance(getMatchingTargetAttestations(EPOCH)) *Int 3 >=Int getTotalActiveBalance() *Int 2
   rule <k> updateJustificationCurr(EPOCH) => .K ... </k>
        <current-justified-checkpoint> CurrJustCHECKP </current-justified-checkpoint>
@@ -2049,7 +2052,7 @@ def process_final_updates(state: BeaconState) -> None:
          CRS => setCommRootsAt(CommRootPos, CRS, getCompactCommitteesRoot(getCurrentEpoch() +Int 1))
        </compact-committees-roots>
 
-  syntax HashList ::= setCommRootsAt(Int, HashList, Hash) [function]
+  syntax BytesList ::= setCommRootsAt(Int, BytesList, Hash) [function]
   rule setCommRootsAt(Pos, CR CRS, CR') => CR setCommRootsAt(Pos -Int 1, CRS, CR') requires Pos >Int 0
   rule setCommRootsAt(0, CR CRS, CR') => CR' CRS
 
@@ -2120,7 +2123,7 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
                        "", // block.parent_root // TODO needs to be PROOT
                        "",    // Hash()
                        "",    // TODO: should be hash_tree_root(block.body) ??
-                       0 )    // TODO: dummy signature
+                       "" )    // TODO: dummy signature
        </latest-block-header>
        <slot> SLOT </slot>
        <validators> ValMap </validators>
@@ -2153,7 +2156,7 @@ def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
        <randao-reveal> R </randao-reveal>
     //requires // TODO: not verifying signatures
 
-  syntax HashList ::= setRandaoMixAt(HashList, Int, Hash) [function]
+  syntax BytesList ::= setRandaoMixAt(BytesList, Int, Hash) [function]
   rule setRandaoMixAt(RM RMS, I, RM') => RM setRandaoMixAt(RMS, I -Int 1, RM')
     requires I >Int 0
   rule setRandaoMixAt(RM RMS, 0, RM') => RM' RMS

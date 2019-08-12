@@ -3,16 +3,17 @@ module TYPES
 
   // Basic Python (SSZ) types
   //====================================================
-  syntax Bytes   ::= String
-  syntax ChunkList ::= List{Bytes, ","}
+  syntax Bytes   ::= String | Hash | Bytes48
+  syntax Hash           ::= String
   syntax Uint64  ::= Int
-  syntax Bytes4  ::= Int
-  syntax Bytes8  ::= Int
-  syntax Bytes32 ::= Int
-  syntax Bytes48 ::= Int
-  syntax Bytes96 ::= Int
-  syntax Bit     ::= Int
-  syntax SSZValue ::= Int | Uint64 | Bool
+  syntax Bytes4  ::= Bytes
+  syntax Bytes8  ::= Bytes
+  syntax Bytes32 ::= Bytes
+  syntax Bytes48 ::= String
+  syntax Bytes96 ::= Bytes
+  syntax Bit     ::= Bool
+  syntax BasicValue ::= Int | Uint64 | Bool
+                      | ValidatorIndex
 
   syntax KItem ::= Pgm
   syntax Pgm ::= ".Pgm"
@@ -24,7 +25,6 @@ module TYPES
   // Custom types
   //====================================================
   syntax ValidatorIndex ::= Int | ".ValidatorIndex"     //a validator registry index
-  syntax Hash           ::= Bytes
   syntax Version        ::= Bytes4      //a fork version number
   syntax DomainType     ::= Bytes4      //a signature domain type
   syntax Domain         ::= Bytes8      //a signature domain
@@ -33,9 +33,6 @@ module TYPES
 
   // List types
   //====================================================
-  syntax Uint64List ::= List{Uint64, ""}
-  syntax Bytes32List ::= List{Bytes32, ""}
-  syntax Bytes48List ::= List{Bytes48, ""}
   syntax AttesterSlashingList ::= List{AttesterSlashing, ""}
   syntax AttestationList ::= List{Attestation, ""}
   syntax DepositList ::= List{Deposit, ""}
@@ -47,7 +44,13 @@ module TYPES
   syntax ValidatorIndexList ::= List{ValidatorIndex, ""}
   syntax IntList ::= List{Int, ""}
   syntax BitList ::= List{Bit, ""}
-  syntax HashList ::= List{Hash, ""}
+
+  syntax BasicValueList ::= IntList | BitList
+  syntax BytesList ::= List{Bytes, ""}
+  syntax ContainerList ::= AttesterSlashingList | AttestationList | DepositList | VoluntaryExitList | TransferList | CrosslinkList
+       | Eth1DataList | PendingAttestationList | ValidatorIndexList
+  syntax BytesOrContainerList ::= BytesList | ContainerList
+  syntax ValueList ::= BasicValueList | BytesOrContainerList
 
   // (Non-configurable) constants
   //====================================================
@@ -339,8 +342,8 @@ class HistoricalBatch(Container):
     block_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
     state_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
   */
-  // TODO: Add constraint on length of HashList (SLOTS_PER_HISTORICAL_ROOT)
-  syntax HistoricalBatch ::= #HistoricalBatch( HashList, HashList )
+  // TODO: Add constraint on length of BytesList (SLOTS_PER_HISTORICAL_ROOT)
+  syntax HistoricalBatch ::= #HistoricalBatch( BytesList, BytesList )
 
   /*
 class DepositData(Container):
@@ -363,9 +366,9 @@ class CompactCommittee(Container):
     pubkeys: List[Bytes48, MAX_VALIDATORS_PER_COMMITTEE]
     compact_validators: List[uint64, MAX_VALIDATORS_PER_COMMITTEE]
   */
-  // TODO: Add constraint on length of Bytes48List (MAX_VALIDATORS_PER_COMMITTEE)
+  // TODO: Add constraint on length of BytesList (MAX_VALIDATORS_PER_COMMITTEE)
   // TODO: Add constraint on length of uint64List (MAX_VALIDATORS_PER_COMMITTEE)
-  syntax CompactCommittee ::= #CompactCommittee( Bytes48List, Uint64List )
+  syntax CompactCommittee ::= #CompactCommittee( BytesList, IntList )
 
   /*
 class BeaconBlockHeader(Container):
@@ -415,8 +418,8 @@ class Deposit(Container):
     proof: Vector[Hash, DEPOSIT_CONTRACT_TREE_DEPTH + 1]  # Merkle path to deposit data list root
     data: DepositData
   */
-  // TODO: Add constraint on length of HashList (DEPOSIT_CONTRACT_TREE_DEPTH + 1)
-  syntax Deposit ::= #Deposit( HashList, DepositData )
+  // TODO: Add constraint on length of BytesList (DEPOSIT_CONTRACT_TREE_DEPTH + 1)
+  syntax Deposit ::= #Deposit( BytesList, DepositData )
 
   syntax DepositData ::= Deposit "." "data"                           [function]
   rule #Deposit(_, DATA).data => DATA
@@ -442,11 +445,6 @@ class Transfer(Container):
   */
   syntax Transfer ::= #Transfer( ValidatorIndex, ValidatorIndex, Int, Int, Int, BLSPubkey, BLSSignature ) [klabel(#Transfer), symbol]
 
-  syntax Container ::= Fork | Checkpoint | Validator | Crosslink | AttestationData | AttestationDataAndCustodyBit
-                     | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
-                     | CompactCommittee | BeaconBlockHeader | AttesterSlashing | Attestation | Deposit
-                     | DepositData | VoluntaryExit | Transfer
-
   // The return type of get_winning_crosslink_and_attesting_indices
   syntax CrosslinkIntListPair ::= #crosslinkIntListPair(Crosslink, IntList)
 
@@ -463,6 +461,16 @@ class Transfer(Container):
   syntax Map ::= MapMapPair "." "map2" [function]
   rule  #mapMapPair(_,MAP).map2 => MAP
 
+  syntax Container ::= Fork | Checkpoint | Validator | Crosslink | AttestationData | AttestationDataAndCustodyBit
+                     | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
+                     | CompactCommittee | BeaconBlockHeader | AttesterSlashing | Attestation | Deposit
+                     | VoluntaryExit | Transfer
+
+  //ValueList are not Value, because it needs separate implementation for hash_tree_root
+  //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.
+  syntax BytesOrContainer ::= Bytes | Container
+  syntax Value ::= BasicValue | BytesOrContainer
+  syntax ValueOrList ::= Value | ValueList
 
   // Type conversion functions
   //====================================================
@@ -470,25 +478,24 @@ class Transfer(Container):
   syntax Int ::= toInt( BitList , Int /*size in bits*/  )             [function]
                | toInt( BitList , Int /*size*/ , Int /*result*/ )     [function]
   rule toInt(BL, SIZE) => toInt(BL, SIZE, 1)
-  rule toInt(BIT BL => BL, SIZE => SIZE -Int 1, RES => 2 *Int RES +Int BL)
+  rule toInt(BIT BL => BL, SIZE => SIZE -Int 1, RES => 2 *Int RES +Int toInt(BIT))
     requires SIZE >Int 0
   rule toInt(.BitList, SIZE => SIZE -Int 1, RES => 2 *Int RES)
     requires SIZE >Int 0
   rule toInt(.BitList, 0, RES) => RES
 
-/*
-def int_to_bytes(n: uint64, length: uint64) -> bytes:
-    """
-    Return the ``length``-byte serialization of ``n``.
-    """
-    return n.to_bytes(length, ENDIANNESS)
+  syntax Int ::= toInt( Bool )                                        [function]
+  rule toInt(B:Bool) => #if B #then 1 #else 0 #fi
+
+/* NOTE: this implementation is LITTLE ENDIAN, as expected by Beacon Chain spec everywhere.
+
+Equivalent of python n.to_bytes(len, 'little')
+  and int_to_bytes(n, length)
 */
-  syntax Bytes ::= Int2Bytes ( Int , Int )                            [function]
-                 | Int2Bytes ( Int , Int , String )                   [function]
-  rule Int2Bytes(N, LEN) => Int2Bytes(N, LEN, "")
-  rule Int2Bytes(N => N >>Int 8, LEN => LEN -Int 1, BYTES => chrChar(N modInt (2 ^Int 8)) +String BYTES)
-    requires LEN >Int 0
-  rule Int2Bytes(0, 0, BYTES) => BYTES
+  syntax Bytes ::= "to_bytes" "(" n: Int "," length: Int ")"          [function]
+  rule to_bytes(N, LEN) => chrChar(N modInt 256) +Bytes to_bytes(N /Int 256, LEN -Int 1)
+    requires N >Int 0
+  rule to_bytes(0, 0) => ""
 
 /*
 def bytes_to_int(data: bytes) -> uint64:
@@ -504,10 +511,6 @@ def bytes_to_int(data: bytes) -> uint64:
 
   syntax Int ::= "bit_length" "(" Int ")"                             [function]
   rule bit_length(A) => log2Int(A) +Int 1
-
-  syntax Int ::= len( IntList ) [function]
-  rule len( _:Int L) => 1 +Int len(L)
-  rule len(.IntList) => 0
 
   syntax Int ::= get( IntList, Int ) [function]
   rule get( _:Int L => L, I => I -Int 1)
@@ -568,11 +571,8 @@ def bytes_to_int(data: bytes) -> uint64:
   rule sumIntList(I IL) => I +Int sumIntList(IL)
   rule sumIntList(.IntList) => 0
 
-  syntax Bytes ::= toBytes( Int ) [function] //todo remove?
-
   syntax Int ::= getByte(Hash, Int) [function]
   rule getByte(BYTES:String, I) => ordChar(substrString(BYTES, I, I +Int 1))
-  //todo question: what endianness should we use above?
 
   //IntList concatenation
   syntax IntList ::= IntList "+IntList" IntList     [function]
@@ -593,17 +593,36 @@ def bytes_to_int(data: bytes) -> uint64:
     requires I >Int 0
   rule B *Bytes 0 => ""
 
-  syntax Int ::= len( ChunkList )                                     [function]
-               | len( ChunkList , Int )                               [function]
-  rule len(CHUNKS) => len(CHUNKS, 0)
-  rule len((_, CHUNKS => CHUNKS), I => I +Int 1)
-  rule len(.ChunkList, I) => I
+  syntax Int ::= len( ValueList )                                     [function]
 
-  syntax BitList ::= shiftRight(BitList) [function]
-  rule shiftRight(BL I) => 0 BL
+  rule len(_ LIST:IntList) => 1 +Int len(LIST)
+  rule len(.IntList) => 0
+  rule len(_ LIST:BytesList) => 1 +Int len(LIST)
+  rule len(.BytesList) => 0
+  rule len(_ LIST:AttesterSlashingList) => 1 +Int len(LIST)
+  rule len(.AttesterSlashingList) => 0
+  rule len(_ LIST:AttestationList) => 1 +Int len(LIST)
+  rule len(.AttestationList) => 0
+  rule len(_ LIST:DepositList) => 1 +Int len(LIST)
+  rule len(.DepositList) => 0
+  rule len(_ LIST:VoluntaryExitList) => 1 +Int len(LIST)
+  rule len(.VoluntaryExitList) => 0
+  rule len(_ LIST:TransferList) => 1 +Int len(LIST)
+  rule len(.TransferList) => 0
+  rule len(_ LIST:CrosslinkList) => 1 +Int len(LIST)
+  rule len(.CrosslinkList) => 0
+  rule len(_ LIST:Eth1DataList) => 1 +Int len(LIST)
+  rule len(.Eth1DataList) => 0
+  rule len(_ LIST:PendingAttestationList) => 1 +Int len(LIST)
+  rule len(.PendingAttestationList) => 0
+  rule len(_ LIST:ValidatorIndexList) => 1 +Int len(LIST)
+  rule len(.ValidatorIndexList) => 0
+
+  syntax BitList ::= shiftRight(BitList)                              [function]
+  rule shiftRight(BL I) => false BL
   rule shiftRight(.BitList) => .BitList
 
-  syntax BitList ::= setBitAt(BitList, Int, Int) [function]
+  syntax BitList ::= setBitAt(bitlist: BitList, index: Int, newBit: Bool) [function]
   rule setBitAt(I BL, INDEX, I') => I setBitAt(BL, INDEX -Int 1, I')
     requires INDEX >Int 0
   rule setBitAt(I BL, 0, I') => I' BL
@@ -625,7 +644,7 @@ def bytes_to_int(data: bytes) -> uint64:
     requires END <=Int 0
 
   syntax Bool ::= allOnes(BitList) [function]
-  rule allOnes(1 BL) => allOnes(BL)
-  rule allOnes(0 BL) => false
+  rule allOnes(true BL) => allOnes(BL)
+  rule allOnes(false BL) => false
   rule allOnes(.BitList) => true
 endmodule

@@ -390,6 +390,14 @@ class BeaconBlockHeader(Container):
   syntax Hash ::= BeaconBlockHeader "." "body_root"                   [function]
   rule #BeaconBlockHeader(_,_,_,BodyRoot, _).body_root => BodyRoot
 
+/* class ProposerSlashing(Container):
+    proposer_index: ValidatorIndex
+    header_1: BeaconBlockHeader
+    header_2: BeaconBlockHeader
+*/
+syntax ProposerSlashing ::= #ProposerSlashing( proposerIndex: ValidatorIndex,
+                                               header1: BeaconBlockHeader, header2: BeaconBlockHeader )
+
   /*
 class AttesterSlashing(Container):
     attestation_1: IndexedAttestation

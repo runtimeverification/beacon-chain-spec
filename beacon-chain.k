@@ -712,7 +712,7 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
             WithdrEpoch => #if exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int getValidatorChurnLimit()
                             #then ExitQEpoch +Int 1
                             #else ExitQEpoch
-                         #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY) _) #as VALIDATORS
+                         #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY) _:Map) #as VALIDATORS
        </validators>
 
   syntax Int ::= exitQueueEpochAux ( Int ) [function]

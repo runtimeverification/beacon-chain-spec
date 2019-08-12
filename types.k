@@ -33,24 +33,27 @@ module TYPES
 
   // List types
   //====================================================
+  syntax IntList ::= List{Int, ""}
+  syntax BitList ::= List{Bit, ""}
+  syntax BasicValueList ::= IntList | BitList
+
   syntax ProposerSlashingList ::= List{ProposerSlashing, ""}
   syntax AttesterSlashingList ::= List{AttesterSlashing, ""}
   syntax AttestationList ::= List{Attestation, ""}
   syntax DepositList ::= List{Deposit, ""}
   syntax VoluntaryExitList ::= List{VoluntaryExit, ""}
   syntax TransferList ::= List{Transfer, ""}
+  syntax ValidatorList ::= List{Validator, ""}
   syntax CrosslinkList ::= List{Crosslink, ""}
   syntax Eth1DataList ::= List{Eth1Data, ""}
   syntax PendingAttestationList ::= List{PendingAttestation, ""}
-  syntax ValidatorIndexList ::= List{ValidatorIndex, ""}
-  syntax IntList ::= List{Int, ""}
-  syntax BitList ::= List{Bit, ""}
 
-  syntax BasicValueList ::= IntList | BitList
-  syntax BytesList ::= List{Bytes, ""}
   syntax ContainerList ::= ProposerSlashingList | AttesterSlashingList | AttestationList | DepositList
-       | VoluntaryExitList | TransferList | CrosslinkList
-       | Eth1DataList | PendingAttestationList | ValidatorIndexList
+       | VoluntaryExitList | TransferList | ValidatorList | CrosslinkList
+       | Eth1DataList | PendingAttestationList
+
+  syntax BytesList ::= List{Bytes, ""}
+
   syntax BytesOrContainerList ::= BytesList | ContainerList
   syntax ValueList ::= BasicValueList | BytesOrContainerList
 
@@ -625,8 +628,6 @@ def bytes_to_int(data: bytes) -> uint64:
   rule len(.Eth1DataList) => 0
   rule len(_ LIST:PendingAttestationList) => 1 +Int len(LIST)
   rule len(.PendingAttestationList) => 0
-  rule len(_ LIST:ValidatorIndexList) => 1 +Int len(LIST)
-  rule len(.ValidatorIndexList) => 0
 
   syntax BitList ::= shiftRight(BitList)                              [function]
   rule shiftRight(BL I) => false BL

@@ -1,8 +1,10 @@
 requires "types.k"
+requires "config.k"
 
 module HASH-TREE
   imports DOMAINS
   imports TYPES
+  imports CONFIG
 
   // Macros
   //====================================================
@@ -469,5 +471,48 @@ for layer in range(1, 100):
   syntax ElementType ::= "%bool" | "%uint8" | "%uint16" |"%uint32" | "%uint64" | "%uint128" | "%uint256"
                        | "%bytes"
                        | "%container"
+
+  // hash_tree_root() - BeaconBlock, stored in <block> in configuration
+  //====================================================
+  syntax Hash ::= "hash_tree_root_block" "(" ")"                      [function]
+  rule [[ hash_tree_root_block()
+       => hash_tree_root_part2_v2(hash_tree_root(SLOT, %uint64) hash_tree_root(PARENTROOT) hash_tree_root(STATEROOT)
+                                  hash_tree_root_blockBody() hash_tree_root(SIG) .BytesList) ]]
+    <blockSlot> SLOT </blockSlot>
+    <parent-root> PARENTROOT </parent-root>
+    <state-root> STATEROOT </state-root>
+    <signature> SIG </signature>
+
+  syntax Hash ::= "hash_tree_root_blockBody" "(" ")"                  [function]
+  rule [[ hash_tree_root_blockBody()
+       => hash_tree_root_part2_v2(
+            hash_tree_root(RANDAO)
+            hash_tree_root(ETH1Data, %container)
+            hash_tree_root(GRAFFITI)
+            hash_tree_root_list(mapToList(ProposerSlashingMAP, 0, .ProposerSlashingList),
+                                MAX_PROPOSER_SLASHINGS, %container, false)
+            hash_tree_root_list(AttesterSlashingLIST, MAX_ATTESTER_SLASHINGS, %container, false)
+            hash_tree_root_list(AttestationLIST, MAX_ATTESTATIONS, %container, false)
+            hash_tree_root_list(DepositLIST, MAX_DEPOSITS, %container, false)
+            hash_tree_root_list(VoluntaryExitLIST, MAX_VOLUNTARY_EXITS, %container, false)
+            hash_tree_root_list(TransferLIST, MAX_TRANSFERS, %container, false)
+            .BytesList) ]]
+    <randao-reveal> RANDAO </randao-reveal>
+    <block-eth1-data> ETH1Data </block-eth1-data>
+    <graffiti> GRAFFITI </graffiti>
+    <proposer-slashings> ProposerSlashingMAP </proposer-slashings>
+    <attester-slashings> AttesterSlashingLIST </attester-slashings>
+    <attestations> AttestationLIST </attestations>
+    <deposits> DepositLIST </deposits>
+    <voluntary-exits> VoluntaryExitLIST </voluntary-exits>
+    <transfers> TransferLIST </transfers>
+
+  syntax ContainerList ::= mapToList ( map: Map, index: Int, emptyList: ContainerList ) [function]
+
+  rule mapToList((INDEX |-> ELEM:ProposerSlashing) MAP, INDEX, EMPTY)
+       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>ProposerSlashingList
+
+  rule mapToList(.Map, _, EMPTY) => EMPTY
+
 
 endmodule

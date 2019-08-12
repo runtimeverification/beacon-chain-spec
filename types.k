@@ -33,6 +33,7 @@ module TYPES
 
   // List types
   //====================================================
+  syntax ProposerSlashingList ::= List{ProposerSlashing, ""}
   syntax AttesterSlashingList ::= List{AttesterSlashing, ""}
   syntax AttestationList ::= List{Attestation, ""}
   syntax DepositList ::= List{Deposit, ""}
@@ -47,7 +48,8 @@ module TYPES
 
   syntax BasicValueList ::= IntList | BitList
   syntax BytesList ::= List{Bytes, ""}
-  syntax ContainerList ::= AttesterSlashingList | AttestationList | DepositList | VoluntaryExitList | TransferList | CrosslinkList
+  syntax ContainerList ::= ProposerSlashingList | AttesterSlashingList | AttestationList | DepositList
+       | VoluntaryExitList | TransferList | CrosslinkList
        | Eth1DataList | PendingAttestationList | ValidatorIndexList
   syntax BytesOrContainerList ::= BytesList | ContainerList
   syntax ValueList ::= BasicValueList | BytesOrContainerList

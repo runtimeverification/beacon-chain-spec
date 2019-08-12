@@ -466,7 +466,7 @@ class Transfer(Container):
                      | CompactCommittee | BeaconBlockHeader | AttesterSlashing | Attestation | Deposit
                      | VoluntaryExit | Transfer
 
-  //ValueList are not Value, because it needs separate imp[lementation for hash_tree_root
+  //ValueList are not Value, because it needs separate implementation for hash_tree_root
   //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.
   syntax BytesOrContainer ::= Bytes | Container
   syntax Value ::= BasicValue | BytesOrContainer

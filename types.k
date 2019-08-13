@@ -486,6 +486,8 @@ class Transfer(Container):
   //ValueList are not Value, because it needs separate implementation for hash_tree_root
   //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.
   syntax BytesOrContainer ::= Bytes | Container
+  syntax BasicValueOrBytes ::= BasicValue | Bytes
+
   syntax Value ::= BasicValue | BytesOrContainer
   syntax ValueOrList ::= Value | ValueList
 

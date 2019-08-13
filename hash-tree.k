@@ -268,93 +268,98 @@ for layer in range(1, 100):
         return merkleize_chunks(leaves)
 */
   syntax Hash ::= "hash_tree_root" "(" BytesOrContainer ")"           [function]
-  rule hash_tree_root(VAL:Container) => hash_tree_root(VAL, %container)
+  rule hash_tree_root(VAL:Container) => hash_tree_root(VAL, %container, false)
   rule hash_tree_root(BYTES:Bytes) => hash_tree_root(BYTES, %bytes)
 
-  syntax Hash ::= "hash_tree_root" "(" Value "," ElementType ")"      [function]
+  syntax Hash ::= "hash_tree_root" "(" BasicValueOrBytes "," ElementType ")" [function]
 
   //hash_tree_root branch 2:
   // elif isinstance(obj, BasicValue):
   rule hash_tree_root(VAL:BasicValue, ElemType) => hash_tree_root_part2_v2(chunkify(serialize_basic(VAL, ElemType)))
 
-  //hash_tree_root branch 1.2, container types:
-  //if isinstance(obj, Series):
-  //  ... else:
-  //leaves = [hash_tree_root(value) for value in obj]
-  //-----------------------------------------------
-  rule hash_tree_root(#Fork( P1, P2, P3 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) .BytesList))
-
-  rule hash_tree_root(#Checkpoint( P1, P2 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2) .BytesList))
-
-  rule hash_tree_root(#Validator( P1, P2, P3, P4, P5, P6, P7, P8 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64)
-          hash_tree_root(P4, %bool) hash_tree_root(P5, %uint64) hash_tree_root(P6, %uint64) hash_tree_root(P7, %uint64)
-          hash_tree_root(P8, %uint64) .BytesList))
-
-  rule hash_tree_root(#Crosslink( P1, P2, P3, P4, P5 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3, %uint64)
-          hash_tree_root(P4, %uint64) hash_tree_root(P5) .BytesList))
-
-  rule hash_tree_root(#AttestationData( P1, P2, P3, P4 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
-          .BytesList))
-
-  rule hash_tree_root(#AttestationDataAndCustodyBit( P1, P2 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2, %bool) .BytesList))
-
-  rule hash_tree_root(#IndexedAttestation( P1, P2, P3, P4 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false)
-          hash_tree_root_list(P2, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false) hash_tree_root(P3) hash_tree_root(P4)
-          .BytesList))
-
-  rule hash_tree_root(#PendingAttestation( P1, P2, P3, P4 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bool, false)
-          hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4, %uint64)
-          .BytesList))
-
-  rule hash_tree_root(#Eth1Data( P1, P2, P3 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2, %uint64) hash_tree_root(P3) .BytesList))
-
-  rule hash_tree_root(#HistoricalBatch( P1, P2 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root_list(P1, SLOTS_PER_HISTORICAL_ROOT, %bytes, true)
-          hash_tree_root_list(P2, SLOTS_PER_HISTORICAL_ROOT, %bytes, true) .BytesList))
-
-  rule hash_tree_root(#DepositData( P1, P2, P3, P4 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4)
-          .BytesList))
-
-  rule hash_tree_root(#CompactCommittee( P1, P2 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bytes, false)
-          hash_tree_root_list(P2, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false) .BytesList))
-
-  rule hash_tree_root(#BeaconBlockHeader( P1, P2, P3, P4, P5 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
-          hash_tree_root(P5) .BytesList))
-
-  rule hash_tree_root(#AttesterSlashing( P1, P2 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1) hash_tree_root(P2) .BytesList))
-
-  rule hash_tree_root(#Attestation( P1, P2, P3, P4 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bool, false) hash_tree_root(P2)
-          hash_tree_root_list(P3, MAX_VALIDATORS_PER_COMMITTEE, %bool, false) hash_tree_root(P4)
-          .BytesList))
-
-  rule hash_tree_root(#Deposit( P1, P2 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root_list(P1, DEPOSIT_CONTRACT_TREE_DEPTH +Int 1, %bytes, true) hash_tree_root(P2) .BytesList))
-
-  rule hash_tree_root(#VoluntaryExit( P1, P2, P3 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3) .BytesList))
-
-  rule hash_tree_root(#Transfer( P1, P2, P3, P4, P5, P6, P7 ) #as VAL, %container)
-    => hash_tree_root_part2_v2((hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3, %uint64)
-          hash_tree_root(P4, %uint64) hash_tree_root(P5, %uint64) hash_tree_root(P6) hash_tree_root(P7) .BytesList))
-
   //hash_tree_root branch 1.1, case Bytes
   //leaves = chunkify(pack(obj))
   //Bytes static/dynamic length = string length
   rule hash_tree_root(VAL:Bytes, %bytes) => hash_tree_root_part2_v2(chunkify(pack(VAL)))
+
+  //hash_tree_root branch 1.2, container types:
+  //if isinstance(obj, Series):
+  //  ... else:
+  //leaves = [hash_tree_root(value) for value in obj]
+  //version for containers. Has the option to remove last element, used by signing_root().
+  //-----------------------------------------------
+  syntax Hash ::= "hash_tree_root" "(" Container "," ElementType "," removeLast: Bool ")"      [function]
+
+  rule hash_tree_root(#Fork( P1, P2, P3 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) .BytesList, RemLast))
+
+  rule hash_tree_root(#Checkpoint( P1, P2 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) .BytesList, RemLast))
+
+  rule hash_tree_root(#Validator( P1, P2, P3, P4, P5, P6, P7, P8 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64)
+          hash_tree_root(P4, %bool) hash_tree_root(P5, %uint64) hash_tree_root(P6, %uint64) hash_tree_root(P7, %uint64)
+          hash_tree_root(P8, %uint64) .BytesList, RemLast))
+
+  rule hash_tree_root(#Crosslink( P1, P2, P3, P4, P5 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3, %uint64)
+          hash_tree_root(P4, %uint64) hash_tree_root(P5) .BytesList, RemLast))
+
+  rule hash_tree_root(#AttestationData( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
+          .BytesList, RemLast))
+
+  rule hash_tree_root(#AttestationDataAndCustodyBit( P1, P2 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2, %bool) .BytesList, RemLast))
+
+  rule hash_tree_root(#IndexedAttestation( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false)
+          hash_tree_root_list(P2, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false) hash_tree_root(P3) hash_tree_root(P4)
+          .BytesList, RemLast))
+
+  rule hash_tree_root(#PendingAttestation( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bool, false)
+          hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4, %uint64)
+          .BytesList, RemLast))
+
+  rule hash_tree_root(#Eth1Data( P1, P2, P3 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2, %uint64) hash_tree_root(P3) .BytesList, RemLast))
+
+  rule hash_tree_root(#HistoricalBatch( P1, P2 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, SLOTS_PER_HISTORICAL_ROOT, %bytes, true)
+          hash_tree_root_list(P2, SLOTS_PER_HISTORICAL_ROOT, %bytes, true) .BytesList, RemLast))
+
+  rule hash_tree_root(#DepositData( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4)
+          .BytesList, RemLast))
+
+  rule hash_tree_root(#CompactCommittee( P1, P2 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bytes, false)
+          hash_tree_root_list(P2, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false) .BytesList, RemLast))
+
+  rule hash_tree_root(#BeaconBlockHeader( P1, P2, P3, P4, P5 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
+          hash_tree_root(P5) .BytesList, RemLast))
+
+  rule hash_tree_root(#AttesterSlashing( P1, P2 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) .BytesList, RemLast))
+
+  rule hash_tree_root(#Attestation( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bool, false) hash_tree_root(P2)
+          hash_tree_root_list(P3, MAX_VALIDATORS_PER_COMMITTEE, %bool, false) hash_tree_root(P4)
+          .BytesList, RemLast))
+
+  rule hash_tree_root(#Deposit( P1, P2 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, DEPOSIT_CONTRACT_TREE_DEPTH +Int 1, %bytes, true)
+          hash_tree_root(P2) .BytesList, RemLast))
+
+  rule hash_tree_root(#VoluntaryExit( P1, P2, P3 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3)
+          .BytesList, RemLast))
+
+  rule hash_tree_root(#Transfer( P1, P2, P3, P4, P5, P6, P7 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3, %uint64)
+          hash_tree_root(P4, %uint64) hash_tree_root(P5, %uint64) hash_tree_root(P6) hash_tree_root(P7) .BytesList, RemLast))
 
   syntax Hash ::= "hash_tree_root_list" "(" list: ValueList "," staticLen: Int "," elemType: ElementType "," fixedSize: Bool ")"
 
@@ -487,7 +492,7 @@ for layer in range(1, 100):
   rule [[ hash_tree_root_blockBody()
        => hash_tree_root_part2_v2(
             hash_tree_root(RANDAO)
-            hash_tree_root(ETH1Data, %container)
+            hash_tree_root(ETH1Data)
             hash_tree_root(GRAFFITI)
             hash_tree_root_list(mapToList(ProposerSlashingMAP, 0, .ProposerSlashingList),
                                 MAX_PROPOSER_SLASHINGS, %container, false)
@@ -534,9 +539,9 @@ for layer in range(1, 100):
             hash_tree_root_list(mapToList(PreviousCrosslinksMAP, 0, .IntList), SHARD_COUNT, %uint64, true)
             hash_tree_root_list(mapToList(CurrentCrosslinksMAP, 0, .IntList), SHARD_COUNT, %uint64, true)
             hash_tree_root_list(JustificationBits, JUSTIFICATION_BITS_LENGTH, %bool, true)
-            hash_tree_root(PreviousJustifiedCheckpoint, %uint64)
-            hash_tree_root(CurrentJustifiedCheckpoint, %uint64)
-            hash_tree_root(FinalizedCheckpoint, %uint64)
+            hash_tree_root(PreviousJustifiedCheckpoint)
+            hash_tree_root(CurrentJustifiedCheckpoint)
+            hash_tree_root(FinalizedCheckpoint)
             .BytesList) ]]
     <genesis-time> GenesisTime </genesis-time>
     <slot> Slot </slot>
@@ -564,6 +569,20 @@ for layer in range(1, 100):
     <current-justified-checkpoint> CurrentJustifiedCheckpoint </current-justified-checkpoint>
     <finalized-checkpoint> FinalizedCheckpoint </finalized-checkpoint>
 
+  // signing_root() - Same as hash_tree_root(), but ignoring last field, when it is BLSSignature.
+  //====================================================
+/* def signing_root(obj: Container):
+    # ignore last field
+    fields = [field for field in obj][:-1]
+    leaves = [hash_tree_root(f) for f in fields]
+    return merkleize_chunks(chunkify(b''.join(leaves)))
+*/
+  syntax Hash ::= "signing_root" "(" val: Container ")"               [function]
+  rule signing_root(VAL) => hash_tree_root(VAL, %container, true)
+
+  // Utility functions
+  //====================================================
+
   syntax ValueList ::= mapToList ( map: Map, index: Int, emptyList: ValueList ) [function]
 
   rule mapToList((INDEX |-> ELEM:ProposerSlashing) MAP, INDEX, EMPTY)
@@ -576,5 +595,11 @@ for layer in range(1, 100):
        => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>IntList
 
   rule mapToList(.Map, _, EMPTY) => EMPTY
+
+  // If 2nd arg is false, return the list unchanged. Else remove last element.
+  syntax BytesList ::= removeLast ( input: BytesList, removeLast: Bool ) [function]
+  rule removeLast(LIST, false) => LIST
+  rule removeLast(E1 E2 LIST:BytesList, true) => E1 removeLast(E2 LIST:BytesList, true)
+  rule removeLast(_ .BytesList, true) => .BytesList
 
 endmodule

@@ -19,13 +19,6 @@ def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
     requires lengthString(A) >Int 0 andBool lengthString(B) >Int 0
   rule xor("", "") => ""
 
-  // Helper functions -- Crypto
-  //====================================================
-
-/*
-def signing_root(object: Container) -> Hash
- */
-  syntax Bytes ::= signingRoot( Bytes ) [function]
 
   // Helper functions -- Predicates
   //====================================================
@@ -909,8 +902,8 @@ def process_slot(state: BeaconState) -> None:
 
   syntax KItem ::= "cacheBlockRoot" "(" Int ")"
   rule <k> cacheBlockRoot(SLOT) => .K ...</k>
-       <latest-block-header> BHEADER </latest-block-header>
-       <block-roots> SLOT |-> (BLOCKROOT => signingRoot("")) </block-roots> // TODO: fix dummy bytes
+       <latest-block-header> LatestBlockHEADER </latest-block-header>
+       <block-roots> SLOT |-> (_ => signing_root(LatestBlockHEADER)) </block-roots>
 
 
   // State transition function -- Epoch processing
@@ -1974,19 +1967,19 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
   syntax KItem ::= "processBlockHeader" "(" ")"
   rule <k> processBlockHeader() => .K ... </k>
        <latest-block-header>
-         BHEADER  => #BeaconBlockHeader(
-                       BlockSLOT,                   // block.slot
-                       ParentROOT,                  // block.parent_root
-                       zerohashes(0),               // Hash()
-                       hash_tree_root_blockBody(),  // hash_tree_root(block.body)
-                       defaultBytes96()  )
+         OldBlockHEADER  => #BeaconBlockHeader(
+                               BlockSLOT,                   // block.slot
+                               ParentROOT,                  // block.parent_root
+                               zerohashes(0),               // Hash()
+                               hash_tree_root_blockBody(),  // hash_tree_root(block.body)
+                               defaultBytes96()  )
        </latest-block-header>
        <slot> SLOT </slot>
        <validators> ValMap </validators>
        <blockSlot> BlockSLOT </blockSlot>
        <parent-root> ParentROOT </parent-root>
     requires BlockSLOT ==K SLOT
-     //andBool PROOT ==K signingRoot("") // TODO: fix dummy BHEADER
+     andBool ParentROOT ==K signing_root(OldBlockHEADER)
      andBool notBool ({ValMap[getBeaconProposerIndex()]}:>Validator).slashed
      // TODO: not verifying signatures
 

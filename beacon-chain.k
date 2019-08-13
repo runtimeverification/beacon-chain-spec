@@ -458,8 +458,8 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
   rule [[ getBeaconProposerIndex()
        => #fun(EPOCH
        => #fun(CommitteesPerSlot
-       //=> #fun(OFFSET
-       //=> #fun(SHARD
+       => #fun(OFFSET
+       => #fun(SHARD
        //=> #fun(FirstCommittee
        //=> #fun(MaxRandomByte
        //=> #fun(SEED
@@ -472,8 +472,8 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
        //   )(0/*getSeed(EPOCH)*/)
        //   )(2 ^Int 8 -Int 1)
        //   )(getCrosslinkCommittee(EPOCH, SHARD))
-       //   )((getStartShard(EPOCH) +Int OFFSET) %Int SHARD_COUNT)
-       //   )(CommitteesPerSlot *Int (SLOT %Int SLOTS_PER_EPOCH))
+          )((getStartShard(EPOCH) +Int OFFSET) %Int SHARD_COUNT)
+          )(CommitteesPerSlot *Int (SLOT %Int SLOTS_PER_EPOCH))
           )(getCommitteeCount(EPOCH))
           )(getCurrentEpoch())
        ]]

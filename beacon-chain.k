@@ -21,27 +21,11 @@ def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
 
   // Helper functions -- Crypto
   //====================================================
-/*
-def hash_tree_root(object: SSZSerializable) -> Hash
-*/
-  syntax Hash ::= hashTreeRoot( Bytes ) [function]
 
 /*
 def signing_root(object: Container) -> Hash
  */
   syntax Bytes ::= signingRoot( Bytes ) [function]
-
-/*
-bls_verify is a function for verifying a BLS signature
-*/
-
-/*
-bls_verify_multiple is a function for verifying a BLS signature constructed from multiple messages
-*/
-
-/*
-bls_aggregate_pubkeys is a function for aggregating multiple BLS public keys into a single aggregate key
-*/
 
   // Helper functions -- Predicates
   //====================================================
@@ -362,7 +346,7 @@ def get_seed(state: BeaconState, epoch: Epoch) -> Hash:
     active_index_root = state.active_index_roots[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
     return hash(mix + active_index_root + int_to_bytes(epoch, length=32))
 */
-  syntax Hash ::= getSeed( Int ) [function]
+  syntax Hash ::= getSeed( Int ) [function] //todo implement
 
 /*
 def get_committee_count(state: BeaconState, epoch: Epoch) -> uint64:
@@ -910,17 +894,18 @@ def process_slot(state: BeaconState) -> None:
 */
   syntax KItem ::= "processSlot" "(" ")"
   rule <k> processSlot() =>
-             processSlotAux(hashTreeRoot(""), SLOT %Int SLOTS_PER_HISTORICAL_ROOT) // TODO: fix dummy bytes
+             processSlotAux(hash_tree_root_state(), SLOT %Int SLOTS_PER_HISTORICAL_ROOT)
        ...</k>
        <slot> SLOT </slot>
 
-  syntax KItem ::= "processSlotAux" "(" Hash "," Int ")"
+  syntax KItem ::= "processSlotAux" "(" previousStateRoot: Hash "," stateRootsIndex: Int ")"
   rule <k> processSlotAux(HTROOT, SLOT) => cacheBlockRoot(SLOT) ... </k>
        <state-roots> SLOT |-> (_ => HTROOT) </state-roots>
-       <latest-block-header> #BeaconBlockHeader(_,_, BLOCKSTATEROOT =>
-                                                             #if BLOCKSTATEROOT =/=K .BlockHeader
-                                                             #then HTROOT   // TODO: fix dummy hash
-                                                             #else BLOCKSTATEROOT #fi , _,_) </latest-block-header>
+       <latest-block-header> #BeaconBlockHeader(_,_, BLOCKSTATEROOT
+                                                     => #if BLOCKSTATEROOT =/=K zerohashes(0)
+                                                          #then HTROOT
+                                                          #else BLOCKSTATEROOT
+                                                        #fi , _,_) </latest-block-header>
 
   syntax KItem ::= "cacheBlockRoot" "(" Int ")"
   rule <k> cacheBlockRoot(SLOT) => .K ...</k>
@@ -1100,13 +1085,13 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
   syntax CrosslinkList ::= getShardCrosslinks(CrosslinkList, Int, CrosslinkList) [function]
   rule [[ getShardCrosslinks(C CL => CL, SHARD, CL' => CL' C) ]]
     <current-crosslinks> SHARD |-> CURRC </current-crosslinks>
-      requires hashTreeRoot(CURRC) ==K C.parentRoot
-      //orBool hashTreeRoot(CURRC) ==K hashTreeRoot(C)  //TODO: fix hashTreeRoot condition
+      requires hash_tree_root(CURRC) ==K C.parentRoot
+      //orBool hash_tree_root(CURRC) ==K hash_tree_root(C)  //TODO: fix hash_tree_root condition
 
   rule [[ getShardCrosslinks(C CL => CL, SHARD, CL') ]]
     <current-crosslinks> SHARD |-> CURRC </current-crosslinks>
-      requires hashTreeRoot(CURRC) =/=K C.parentRoot
-      //andBool hashTreeRoot(CURRC) =/=K hashTreeRoot(C) //TODO: fix hashTreeRoot condition
+      requires hash_tree_root(CURRC) =/=K C.parentRoot
+      //andBool hash_tree_root(CURRC) =/=K hash_tree_root(C) //TODO: fix hash_tree_root condition
 
   rule getShardCrosslinks(.CrosslinkList, SHARD, CL') => CL'
 
@@ -1990,17 +1975,17 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
   rule <k> processBlockHeader() => .K ... </k>
        <latest-block-header>
          BHEADER  => #BeaconBlockHeader(
-                       BSLOT, // block.slot
-                       "", // block.parent_root // TODO needs to be PROOT
-                       "",    // Hash()
-                       "",    // TODO: should be hash_tree_root(block.body) ??
-                       "" )    // TODO: dummy signature
+                       BlockSLOT,                   // block.slot
+                       ParentROOT,                  // block.parent_root
+                       zerohashes(0),               // Hash()
+                       hash_tree_root_blockBody(),  // hash_tree_root(block.body)
+                       defaultBytes96()  )
        </latest-block-header>
        <slot> SLOT </slot>
        <validators> ValMap </validators>
-       <blockSlot> BSLOT </blockSlot>
-       <parent-root> PROOT </parent-root>
-    requires BSLOT ==K SLOT
+       <blockSlot> BlockSLOT </blockSlot>
+       <parent-root> ParentROOT </parent-root>
+    requires BlockSLOT ==K SLOT
      //andBool PROOT ==K signingRoot("") // TODO: fix dummy BHEADER
      andBool notBool ({ValMap[getBeaconProposerIndex()]}:>Validator).slashed
      // TODO: not verifying signatures
@@ -2021,10 +2006,10 @@ def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
          RMS => setRandaoMixAt(
                   RMS,
                   getCurrentEpoch() %Int EPOCHS_PER_HISTORICAL_VECTOR,
-                  "" // xor(getRandaoMix(getCurrentEpoch()), hash(R))  // TODO: this needs to be fixed
+                  {xor(getRandaoMix(getCurrentEpoch()), hash(RandaoReveal))}:>Hash
                 )
        </randao-mixes>
-       <randao-reveal> R </randao-reveal>
+       <randao-reveal> RandaoReveal </randao-reveal>
     //requires // TODO: not verifying signatures
 
   syntax BytesList ::= setRandaoMixAt(BytesList, Int, Hash) [function]
@@ -2248,10 +2233,10 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
   //after if inside `process_attestation`
   syntax KItem ::= "process_attestation_after_if" "(" Attestation "," Crosslink ")"
   rule process_attestation_after_if(ATT, ParentCrosslink ) => .K
-     //assert data.crosslink.parent_root == hash_tree_root(parent_crosslink) todo is it needed?
-    requires ATT._data.crosslink.startEpoch ==Int ParentCrosslink.endEpoch
+    requires ATT._data.crosslink.parentRoot ==K hash_tree_root(ParentCrosslink)
+     andBool ATT._data.crosslink.startEpoch ==Int ParentCrosslink.endEpoch
      andBool ATT._data.crosslink.endEpoch ==Int minInt(ATT._data.target.epoch, ParentCrosslink.endEpoch +Int MAX_EPOCHS_PER_CROSSLINK)
-     //assert data.crosslink.data_root == Hash()
+     andBool ATT._data.crosslink.dataRoot ==K zerohashes(0)
      andBool isValidIndexedAttestation(getIndexedAttestation(ATT))
 
 

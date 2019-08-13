@@ -1,8 +1,10 @@
 requires "types.k"
+requires "config.k"
 
 module HASH-TREE
   imports DOMAINS
   imports TYPES
+  imports CONFIG
 
   // Macros
   //====================================================
@@ -469,5 +471,110 @@ for layer in range(1, 100):
   syntax ElementType ::= "%bool" | "%uint8" | "%uint16" |"%uint32" | "%uint64" | "%uint128" | "%uint256"
                        | "%bytes"
                        | "%container"
+
+  // hash_tree_root() - BeaconBlock, stored in <block> in configuration
+  //====================================================
+  syntax Hash ::= "hash_tree_root_block" "(" ")"                      [function]
+  rule [[ hash_tree_root_block()
+       => hash_tree_root_part2_v2(hash_tree_root(SLOT, %uint64) hash_tree_root(PARENTROOT) hash_tree_root(STATEROOT)
+                                  hash_tree_root_blockBody() hash_tree_root(SIG) .BytesList) ]]
+    <blockSlot> SLOT </blockSlot>
+    <parent-root> PARENTROOT </parent-root>
+    <state-root> STATEROOT </state-root>
+    <signature> SIG </signature>
+
+  syntax Hash ::= "hash_tree_root_blockBody" "(" ")"                  [function]
+  rule [[ hash_tree_root_blockBody()
+       => hash_tree_root_part2_v2(
+            hash_tree_root(RANDAO)
+            hash_tree_root(ETH1Data, %container)
+            hash_tree_root(GRAFFITI)
+            hash_tree_root_list(mapToList(ProposerSlashingMAP, 0, .ProposerSlashingList),
+                                MAX_PROPOSER_SLASHINGS, %container, false)
+            hash_tree_root_list(AttesterSlashingLIST, MAX_ATTESTER_SLASHINGS, %container, false)
+            hash_tree_root_list(AttestationLIST, MAX_ATTESTATIONS, %container, false)
+            hash_tree_root_list(DepositLIST, MAX_DEPOSITS, %container, false)
+            hash_tree_root_list(VoluntaryExitLIST, MAX_VOLUNTARY_EXITS, %container, false)
+            hash_tree_root_list(TransferLIST, MAX_TRANSFERS, %container, false)
+            .BytesList) ]]
+    <randao-reveal> RANDAO </randao-reveal>
+    <block-eth1-data> ETH1Data </block-eth1-data>
+    <graffiti> GRAFFITI </graffiti>
+    <proposer-slashings> ProposerSlashingMAP </proposer-slashings>
+    <attester-slashings> AttesterSlashingLIST </attester-slashings>
+    <attestations> AttestationLIST </attestations>
+    <deposits> DepositLIST </deposits>
+    <voluntary-exits> VoluntaryExitLIST </voluntary-exits>
+    <transfers> TransferLIST </transfers>
+
+  // hash_tree_root() - BeaconState, stored in <state> in configuration
+  //====================================================
+  syntax Hash ::= "hash_tree_root_state" "(" ")"                      [function]
+  rule [[ hash_tree_root_state()
+       => hash_tree_root_part2_v2(
+            hash_tree_root(GenesisTime, %uint64)
+            hash_tree_root(Slot, %uint64)
+            hash_tree_root(FORK)
+            hash_tree_root(BLOCKHeader)
+            hash_tree_root_list(mapToList(BlockRootsMAP, 0, .BytesList), SLOTS_PER_HISTORICAL_ROOT, %bytes, true)
+            hash_tree_root_list(mapToList(StateRootsMAP, 0, .BytesList), SLOTS_PER_HISTORICAL_ROOT, %bytes, true)
+            hash_tree_root_list(HistoricalRoots, HISTORICAL_ROOTS_LIMIT, %bytes, false)
+            hash_tree_root(ETH1Data)
+            hash_tree_root_list(ETH1DataVotes, SLOTS_PER_ETH1_VOTING_PERIOD, %container, false)
+            hash_tree_root(ETH1DepositIndex, %uint64)
+            hash_tree_root_list(mapToList(ValidatorsMAP, 0, .ValidatorList), VALIDATOR_REGISTRY_LIMIT, %container, false)
+            hash_tree_root_list(mapToList(BalancesMAP, 0, .IntList), VALIDATOR_REGISTRY_LIMIT, %uint64, false)
+            hash_tree_root(StartShard, %uint64)
+            hash_tree_root_list(RandaoMixes, EPOCHS_PER_HISTORICAL_VECTOR, %bytes, true)
+            hash_tree_root_list(ActiveIndexRoots, EPOCHS_PER_HISTORICAL_VECTOR, %bytes, true)
+            hash_tree_root_list(CompactCommitteeRoots, EPOCHS_PER_HISTORICAL_VECTOR, %bytes, true)
+            hash_tree_root_list(mapToList(SlashingsMAP, 0, .IntList), EPOCHS_PER_SLASHINGS_VECTOR, %uint64, true)
+            hash_tree_root_list(PreviousEpochAttestations, MAX_ATTESTATIONS *Int SLOTS_PER_EPOCH, %container, false)
+            hash_tree_root_list(CurrentEpochAttestations, MAX_ATTESTATIONS *Int SLOTS_PER_EPOCH, %container, false)
+            hash_tree_root_list(mapToList(PreviousCrosslinksMAP, 0, .IntList), SHARD_COUNT, %uint64, true)
+            hash_tree_root_list(mapToList(CurrentCrosslinksMAP, 0, .IntList), SHARD_COUNT, %uint64, true)
+            hash_tree_root_list(JustificationBits, JUSTIFICATION_BITS_LENGTH, %bool, true)
+            hash_tree_root(PreviousJustifiedCheckpoint, %uint64)
+            hash_tree_root(CurrentJustifiedCheckpoint, %uint64)
+            hash_tree_root(FinalizedCheckpoint, %uint64)
+            .BytesList) ]]
+    <genesis-time> GenesisTime </genesis-time>
+    <slot> Slot </slot>
+    <fork> FORK </fork>
+    <latest-block-header> BLOCKHeader </latest-block-header>
+    <block-roots> BlockRootsMAP </block-roots>
+    <state-roots> StateRootsMAP </state-roots>
+    <historical-roots> HistoricalRoots </historical-roots>
+    <eth1-data> ETH1Data </eth1-data>
+    <eth1-data-votes> ETH1DataVotes </eth1-data-votes>
+    <eth1-deposit-index> ETH1DepositIndex </eth1-deposit-index>
+    <validators> ValidatorsMAP </validators>
+    <balances> BalancesMAP </balances>
+    <start-shard> StartShard </start-shard>
+    <randao-mixes> RandaoMixes </randao-mixes>
+    <active-index-roots> ActiveIndexRoots </active-index-roots>
+    <compact-committees-roots> CompactCommitteeRoots </compact-committees-roots>
+    <slashings> SlashingsMAP </slashings>
+    <previous-epoch-attestations> PreviousEpochAttestations </previous-epoch-attestations>
+    <current-epoch-attestations> CurrentEpochAttestations </current-epoch-attestations>
+    <previous-crosslinks> PreviousCrosslinksMAP </previous-crosslinks>
+    <current-crosslinks> CurrentCrosslinksMAP </current-crosslinks>
+    <justification-bits> JustificationBits </justification-bits>
+    <previous-justified-checkpoint> PreviousJustifiedCheckpoint </previous-justified-checkpoint>
+    <current-justified-checkpoint> CurrentJustifiedCheckpoint </current-justified-checkpoint>
+    <finalized-checkpoint> FinalizedCheckpoint </finalized-checkpoint>
+
+  syntax ValueList ::= mapToList ( map: Map, index: Int, emptyList: ValueList ) [function]
+
+  rule mapToList((INDEX |-> ELEM:ProposerSlashing) MAP, INDEX, EMPTY)
+       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>ProposerSlashingList
+  rule mapToList((INDEX |-> ELEM:Validator) MAP, INDEX, EMPTY)
+       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>ValidatorList
+  rule mapToList((INDEX |-> ELEM:Bytes) MAP, INDEX, EMPTY)
+       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>BytesList
+  rule mapToList((INDEX |-> ELEM:Int) MAP, INDEX, EMPTY)
+       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>IntList
+
+  rule mapToList(.Map, _, EMPTY) => EMPTY
 
 endmodule

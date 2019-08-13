@@ -203,7 +203,7 @@ init_cells = { 'K_CELL'                             : KSequence([KConstant('.Pgm
              , 'RANDAO_REVEAL_CELL'                 : KToken('""', 'String')
              , 'BLOCK-ETH1_DATA_CELL'               : KConstant('.Eth1Data_TYPES_')
              , 'GRAFFITI_CELL'                      : KToken('""', 'String')
-             , 'PROPOSER_SLASHINGS_CELL'            : KConstant('.ProposerSlashingCellMap')
+             , 'PROPOSER_SLASHINGS_CELL'            : KConstant('.Map')
              , 'ATTESTER_SLASHINGS_CELL'            : listOf('AttesterSlashing')([])
              , 'ATTESTATIONS_CELL'                  : listOf('Attestation')([])
              , 'DEPOSITS_CELL'                      : listOf('Deposit')([])

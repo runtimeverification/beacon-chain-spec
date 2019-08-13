@@ -4,135 +4,6 @@ module BEACON-CHAIN
   imports DOMAINS
   imports HASH-TREE
 
-/*
-class BeaconState(Container):
-    # Versioning
-    genesis_time: uint64
-    slot: Slot
-    fork: Fork
-    # History
-    latest_block_header: BeaconBlockHeader
-    block_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-    state_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-    historical_roots: List[Hash, HISTORICAL_ROOTS_LIMIT]
-    # Eth1
-    eth1_data: Eth1Data
-    eth1_data_votes: List[Eth1Data, SLOTS_PER_ETH1_VOTING_PERIOD]
-    eth1_deposit_index: uint64
-    # Registry
-    validators: List[Validator, VALIDATOR_REGISTRY_LIMIT]
-    balances: List[Gwei, VALIDATOR_REGISTRY_LIMIT]
-    # Shuffling
-    start_shard: Shard
-    randao_mixes: Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
-    active_index_roots: Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]  # Active index digests for light clients
-    compact_committees_roots: Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]  # Committee digests for light clients
-    # Slashings
-    slashings: Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]  # Per-epoch sums of slashed effective balances
-    # Attestations
-    previous_epoch_attestations: List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
-    current_epoch_attestations: List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
-    # Crosslinks
-    previous_crosslinks: Vector[Crosslink, SHARD_COUNT]  # Previous epoch snapshot
-    current_crosslinks: Vector[Crosslink, SHARD_COUNT]
-    # Finality
-    justification_bits: Bitvector[JUSTIFICATION_BITS_LENGTH]  # Bit set for every recent justified epoch
-    previous_justified_checkpoint: Checkpoint  # Previous epoch snapshot
-    current_justified_checkpoint: Checkpoint
-    finalized_checkpoint: Checkpoint
-
-class BeaconBlock(Container):
-    slot: Slot
-    parent_root: Hash
-    state_root: Hash
-    body: BeaconBlockBody
-    signature: BLSSignature
-
-class BeaconBlockBody(Container):
-    randao_reveal: BLSSignature
-    eth1_data: Eth1Data  # Eth1 data vote
-    graffiti: Bytes32  # Arbitrary data
-    # Operations
-    proposer_slashings: List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
-    attester_slashings: List[AttesterSlashing, MAX_ATTESTER_SLASHINGS]
-    attestations: List[Attestation, MAX_ATTESTATIONS]
-    deposits: List[Deposit, MAX_DEPOSITS]
-    voluntary_exits: List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
-    transfers: List[Transfer, MAX_TRANSFERS]
-
-class ProposerSlashing(Container):
-    proposer_index: ValidatorIndex
-    header_1: BeaconBlockHeader
-    header_2: BeaconBlockHeader
-*/
-    // TODO: Add appropriate constraints on lists below
-  configuration
-    <beacon-chain>
-      <k> $PGM:Pgm </k>
-      <state>                           //Type BeaconState in python spec.
-        // Versioning
-        <genesis-time> 0 </genesis-time>
-        <slot> 0 </slot>
-        <fork> .Fork </fork>
-        // History
-        <latest-block-header> .BlockHeader </latest-block-header>
-        <block-roots> .Map </block-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-        <state-roots> .Map </state-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-        <historical-roots> .BytesList </historical-roots> //List[Hash, HISTORICAL_ROOTS_LIMIT]
-        // Eth1
-        <eth1-data> .Eth1Data </eth1-data>
-        <eth1-data-votes> .Eth1DataList </eth1-data-votes> //List[Eth1Data, SLOTS_PER_ETH1_VOTING_PERIOD]
-        <eth1-deposit-index> 0 </eth1-deposit-index>
-        // Registry
-        <validators> .Map </validators> //List[Validator, VALIDATOR_REGISTRY_LIMIT]
-        <balances> .Map </balances> //List[Gwei, VALIDATOR_REGISTRY_LIMIT]
-        // Shuffling
-        <start-shard> 0 </start-shard>
-        <randao-mixes> .BytesList </randao-mixes> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
-        <active-index-roots> .BytesList </active-index-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
-        <compact-committees-roots> .BytesList </compact-committees-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
-        // Slashings
-        <slashings> .Map </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
-        // Attestations
-        <previous-epoch-attestations> .PendingAttestationList </previous-epoch-attestations>
-                                                       //List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
-        <current-epoch-attestations> .PendingAttestationList </current-epoch-attestations>
-                                                       //List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
-        // Crosslinks
-        <previous-crosslinks> .Map </previous-crosslinks> //Vector[Crosslink, SHARD_COUNT]
-        <current-crosslinks> .Map </current-crosslinks> //Vector[Crosslink, SHARD_COUNT]
-        // Finality
-        <justification-bits> .BitList </justification-bits> //Bitvector[JUSTIFICATION_BITS_LENGTH]
-        <previous-justified-checkpoint> .Checkpoint </previous-justified-checkpoint>
-        <current-justified-checkpoint> .Checkpoint </current-justified-checkpoint>
-        <finalized-checkpoint> .Checkpoint </finalized-checkpoint>
-      </state>
-      <block>                           //Type BeaconBlock in python spec.
-        <blockSlot> -1 </blockSlot>
-        <parent-root> "" </parent-root>
-        <state-root> "" </state-root>
-        <body>                          //Type BeaconBlockBody in python spec.
-          <randao-reveal> "" </randao-reveal>
-          <block-eth1-data> .Eth1Data </block-eth1-data> // added "block-" prefix to name to resolve conflicting cell names
-          <graffiti> "" </graffiti>
-          <proposer-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
-            <proposer-slashing multiplicity="*" type="Map">
-              <proposer-slashing-index> -1 </proposer-slashing-index>
-              <proposer-index> -1 </proposer-index>
-              <header1> .BlockHeader </header1>
-              <header2> .BlockHeader </header2>
-            </proposer-slashing>
-          </proposer-slashings>
-          <attester-slashings> .AttesterSlashingList </attester-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
-          <attestations> .AttestationList </attestations> //List[Attestation, MAX_ATTESTATIONS]
-          <deposits> .DepositList </deposits> //List[Deposit, MAX_DEPOSITS]
-          <voluntary-exits> .VoluntaryExitList </voluntary-exits> //List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
-          <transfers> .TransferList </transfers> //List[Transfer, MAX_TRANSFERS]
-        </body>
-        <signature> "" </signature>
-      </block>
-    </beacon-chain>
-
   // Helper functions -- Math
   //====================================================
 
@@ -841,7 +712,7 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
             WithdrEpoch => #if exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int getValidatorChurnLimit()
                             #then ExitQEpoch +Int 1
                             #else ExitQEpoch
-                         #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY) _) #as VALIDATORS
+                         #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY) _:Map) #as VALIDATORS
        </validators>
 
   syntax Int ::= exitQueueEpochAux ( Int ) [function]
@@ -2207,34 +2078,37 @@ def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
 */
   syntax KItem ::= "process_operations" "(" ")"
   rule <k> process_operations()
-           => process_operations_aux(ProposerSlashings, AttesterSlashings, Attestations, Deposits, VoluntaryExits, Transfers) ...</k>
-    <proposer-slashings> ProposerSlashings </proposer-slashings>
+           => process_operations_aux(0, AttesterSlashings, Attestations, Deposits, VoluntaryExits, Transfers) ...</k>
     <attester-slashings> AttesterSlashings </attester-slashings>
     <attestations> Attestations </attestations>
     <deposits> Deposits </deposits>
     <voluntary-exits> VoluntaryExits </voluntary-exits>
     <transfers> Transfers </transfers>
 
-  //todo more precise type instead of K for 1st arg. ProposerSlashingCellMap ?
-  syntax KItem ::= "process_operations_aux" "(" K "," AttesterSlashingList "," AttestationList
+  syntax KItem ::= "process_operations_aux" "(" proposerSlashingIndex: Int "," AttesterSlashingList "," AttestationList
                                             "," DepositList "," VoluntaryExitList "," TransferList ")"
 
-  //todo throws "Internal: Uncaught exception thrown of type NoSuchElementException (key not found: #cells) should work
-  /*rule (. => processProposerSlashing(INDEX))
-       ~> process_operations_aux( <proposer-slashing> <proposer-index> INDEX </proposer-index> ...</proposer-slashing> BAG => BAG, _,_,_,_,_ )*/
+  rule <k> (. => processProposerSlashing(ProposerSlashing))
+           ~> process_operations_aux( INDEX => INDEX +Int 1, _,_,_,_,_ ) ...</k>
+    <proposer-slashings>... INDEX |-> ProposerSlashing ...</proposer-slashings>
+
+  rule <k> process_operations_aux( INDEX => -1, _,_,_,_,_ ) ...</k>
+    <proposer-slashings> PSMap </proposer-slashings>
+    requires notBool INDEX in keys(PSMap)
+
   rule (. => processAttesterSlashing(AttSlashing))
-       ~> process_operations_aux(.ProposerSlashingCellMap, AttSlashing:AttesterSlashing L => L, _,_,_,_ )
+       ~> process_operations_aux(-1, AttSlashing:AttesterSlashing L => L, _,_,_,_ )
   rule (. => process_attestation(Att))
-       ~> process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, Att:Attestation L => L, _,_,_ )
+       ~> process_operations_aux(-1, .AttesterSlashingList, Att:Attestation L => L, _,_,_ )
   rule (. => process_deposit(DEP))
-       ~> process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, DEP:Deposit L => L, _,_ )
+       ~> process_operations_aux(-1, .AttesterSlashingList, .AttestationList, DEP:Deposit L => L, _,_ )
   rule (. => process_voluntary_exit(VolEX))
-       ~> process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, .DepositList,
+       ~> process_operations_aux(-1, .AttesterSlashingList, .AttestationList, .DepositList,
                                  VolEX:VoluntaryExit L => L, _ )
   rule (. => process_transfer(TR))
-       ~> process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, .DepositList,
+       ~> process_operations_aux(-1, .AttesterSlashingList, .AttestationList, .DepositList,
                                  .VoluntaryExitList, TR:Transfer L => L )
-  rule process_operations_aux(.ProposerSlashingCellMap, .AttesterSlashingList, .AttestationList, _ .DepositList,
+  rule process_operations_aux(-1, .AttesterSlashingList, .AttestationList, _ .DepositList,
                               .VoluntaryExitList, .TransferList ) => .K
 
 /*
@@ -2254,12 +2128,8 @@ def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSla
 
     slash_validator(state, proposer_slashing.proposer_index)
 */
-  syntax KItem ::= "processProposerSlashing" "(" Int /*propsoer_slashing_index*/ ")"
-  rule <k> processProposerSlashing(SlashingIndex) => slashValidator(ProposerIndex, .K) ...</k>
-       <proposer-slashing-index> SlashingIndex </proposer-slashing-index>
-         <proposer-index> ProposerIndex </proposer-index>
-         <header1> HEAD1 </header1>
-         <header2> HEAD2 </header2>
+  syntax KItem ::= "processProposerSlashing" "(" ProposerSlashing ")"
+  rule <k> processProposerSlashing(#ProposerSlashing(ProposerIndex, HEAD1, HEAD2)) => slashValidator(ProposerIndex, .K) ...</k>
        <validators> ProposerIndex |-> VAL ...</validators>
     requires computeEpochOfSlot(HEAD1._slot) ==Int computeEpochOfSlot(HEAD2._slot)
      andBool HEAD1 =/=K HEAD2

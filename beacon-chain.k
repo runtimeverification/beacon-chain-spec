@@ -646,11 +646,13 @@ def get_domain(state: BeaconState, domain_type: DomainType, message_epoch: Epoch
     fork_version = state.fork.previous_version if epoch < state.fork.epoch else state.fork.current_version
     return compute_domain(domain_type, fork_version)
 */
-// TODO: add the case requires EPOCH is None
-  syntax Domain ::= getDomain( DomainType, Int ) [function]
-  rule [[ getDomain(DTYPE, EPOCH) => computeDomain(DTYPE,
-    #if EPOCH <Int FEPOCH #then FPREV #else FCURR #fi
-  ) ]]
+  syntax Domain ::= "get_domain" "(" DomainType "," OptionInt ")" [function]
+  rule get_domain(DTYPE, OEPOCH)
+    => get_domain_aux(DTYPE, #if isNone(OEPOCH) #then getCurrentEpoch() #else intOf(OEPOCH) #fi)
+
+  syntax Domain ::= "get_domain_aux" "(" DomainType "," Int ")" [function]
+  rule [[ get_domain_aux(DTYPE, EPOCH)
+    => computeDomain(DTYPE, #if EPOCH <Int FEPOCH #then FPREV #else FCURR #fi) ]]
   <fork> #Fork(FPREV,FCURR,FEPOCH) </fork>
 
 /*

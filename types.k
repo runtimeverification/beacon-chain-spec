@@ -487,6 +487,17 @@ class Transfer(Container):
   syntax Map ::= MapMapPair "." "map2" [function]
   rule  #mapMapPair(_,MAP).map2 => MAP
 
+  // An argument type of get_domain
+  syntax OptionInt ::= #None() | #Some(Int)
+
+  syntax Bool ::= isNone(OptionInt) [function]
+  rule isNone(#None()) => true
+  rule isNone(#Some(_)) => false
+
+  syntax Int ::= intOf(OptionInt) [function]
+  rule intOf(#Some(I)) => I
+
+
   syntax Container ::= Fork | Checkpoint | Validator | Crosslink | AttestationData | AttestationDataAndCustodyBit
                      | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
                      | CompactCommittee | BeaconBlockHeader | AttesterSlashing | Attestation | Deposit

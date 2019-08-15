@@ -918,7 +918,14 @@ def state_transition(state: BeaconState, block: BeaconBlock, validate_state_root
     # Return post-state
     return state
 */
-//
+  syntax Kitem ::= "state_transition" "(" Bool ")"
+  rule <k> state_transition(VSR) => processSlots(BSLOT) ~> processBlock() ~> validate_state_root(VSR) ...</k>
+       <blockSlot> BSLOT </blockSlot>
+
+  syntax Kitem ::= "validate_state_root" "(" Bool ")"
+    rule <k> validate_state_root(VSR) => .K ...</k>
+         <state-root> BSR </state-root>
+      requires (notBool VSR) orBool (BSR ==String {hash_tree_root_state()}:>String)   
 
 /*
 def process_slots(state: BeaconState, slot: Slot) -> None:

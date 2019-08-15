@@ -346,6 +346,13 @@ class Eth1Data(Container):
   */
   syntax Eth1Data ::= #Eth1Data( Hash, Uint64, Hash ) [klabel(#Eth1Data), symbol]
 
+  syntax Hash ::= Eth1Data "." "deposit_root" [function]
+  rule #Eth1Data(DROOT, _, _).deposit_root => DROOT
+  syntax Uint64 ::= Eth1Data "." "deposit_count" [function]
+  rule #Eth1Data(_, DCOUNT, _).deposit_count => DCOUNT
+  syntax Hash ::= Eth1Data "." "block_hash" [function]
+  rule #Eth1Data(_, _, BHASH).block_hash => BHASH
+
   /*
 class HistoricalBatch(Container):
     block_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
@@ -438,6 +445,8 @@ class Deposit(Container):
   // TODO: Add constraint on length of BytesList (DEPOSIT_CONTRACT_TREE_DEPTH + 1)
   syntax Deposit ::= #Deposit( BytesList, DepositData )
 
+  syntax BytesList ::= Deposit "." "proof"                           [function]
+  rule #Deposit(PROOF, _).proof => PROOF
   syntax DepositData ::= Deposit "." "data"                           [function]
   rule #Deposit(_, DATA).data => DATA
 

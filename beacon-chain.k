@@ -2347,17 +2347,25 @@ def process_deposit(state: BeaconState, deposit: Deposit) -> None:
         index = ValidatorIndex(validator_pubkeys.index(pubkey))
         increase_balance(state, index, amount)
 */
-  //todo not implemented: is_valid_merkle_branch, bls_verify
+  // Note: bls_verify not implemented
   syntax KItem ::= "process_deposit" "(" Deposit ")"
 
   //case pubkey in validator_pubkeys
   rule <k> process_deposit(DEP) => increaseBalance(getValidatorIndexByPubkey(DEP.data.pubkey), DEP.data.amount) ...</k>
     <eth1-deposit-index> EDI => EDI +Int 1 </eth1-deposit-index>
+    <eth1-data> E1DATA </eth1-data>
     requires getValidatorIndexByPubkey(DEP.data.pubkey) =/=K .ValidatorIndex
+     andBool is_valid_merkle_branch(
+                 hash_tree_root(DEP.data),
+                 DEP.proof,
+                 DEPOSIT_CONTRACT_TREE_DEPTH +Int 1,
+                 EDI,
+                 E1DATA.deposit_root)
 
   //case pubkey not in validator_pubkeys
   rule <k> process_deposit(DEP) => .K ...</k>
     <eth1-deposit-index> EDI => EDI +Int 1 </eth1-deposit-index>
+    <eth1-data> E1DATA </eth1-data>
     <validators>
       VALIDATORS
       (.Map => size(VALIDATORS) |-> #Validator(DEP.data.pubkey,
@@ -2372,6 +2380,12 @@ def process_deposit(state: BeaconState, deposit: Deposit) -> None:
     </validators>
     <balances> .Map => size(VALIDATORS) |->  DEP.data.amount ...</balances>
     requires getValidatorIndexByPubkey(DEP.data.pubkey) ==K .ValidatorIndex
+     andBool is_valid_merkle_branch(
+                 hash_tree_root(DEP.data),
+                 DEP.proof,
+                 DEPOSIT_CONTRACT_TREE_DEPTH +Int 1,
+                 EDI,
+                 E1DATA.deposit_root)
 
   syntax ValidatorIndex ::= getValidatorIndexByPubkey( BLSPubkey )                      [function]
                           | getValidatorIndexByPubkey( BLSPubkey, Map /*Validators*/ )  [function]

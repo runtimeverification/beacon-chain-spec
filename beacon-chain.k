@@ -7,7 +7,27 @@ module BEACON-CHAIN
   // Helper functions -- Math
   //====================================================
 
-  syntax Int ::= integerSquareroot( Int ) [function]
+/*
+def integer_squareroot(n: uint64) -> uint64:
+    """
+    Return the largest integer ``x`` such that ``x**2 <= n``.
+    """
+    x = n
+    y = (x + 1) // 2
+    while y < x:
+        x = y
+        y = (x + n // x) // 2
+    return x
+*/
+  syntax Int ::= "integer_squareroot" "(" Int ")" [function]
+  rule integer_squareroot(N) => integer_squareroot_aux(N, N, (N +Int 1) /Int 2)
+    requires N >=Int 0
+
+  syntax Int ::= "integer_squareroot_aux" "(" Int "," Int "," Int ")" [function]
+  rule integer_squareroot_aux(N, X => Y, Y => (Y +Int N /Int Y) /Int 2)
+    requires Y <Int X
+  rule integer_squareroot_aux(N, X, Y) => X
+    requires Y >=Int X
 
 /*
 def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
@@ -153,9 +173,47 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
 
     return ValidatorIndex(index)
 */
-//
-  syntax Int ::= computeShuffledIndex( Int, Int, Hash ) [function]
-  rule computeShuffledIndex(INDEX, COUNT, SEED) => INDEX %Int COUNT // TODO: replace mock implementation
+  syntax Int ::= "compute_shuffled_index" "(" Int "," Int "," Hash ")" [function]
+  rule compute_shuffled_index(INDEX, COUNT, SEED) => compute_shuffled_index_loop(INDEX, COUNT, SEED, 0, SHUFFLE_ROUND_COUNT)
+
+  syntax Int ::= "compute_shuffled_index_loop" "(" Int "," Int "," Hash "," Int "," Int ")" [function]
+  rule compute_shuffled_index_loop(
+         INDEX => #if computeBit(maxInt(INDEX, computeFlip(computePivot(SEED, CurrRound, COUNT), INDEX, COUNT)),
+                                 SEED, CurrRound)
+                  #then computeFlip(computePivot(SEED, CurrRound, COUNT), INDEX, COUNT)
+                  #else INDEX
+                  #fi,
+         COUNT,
+         SEED,
+         CurrRound => CurrRound +Int 1,
+         RoundCount
+    )
+    requires CurrRound <Int RoundCount
+
+  rule compute_shuffled_index_loop(INDEX, _, _, CurrRound, RoundCount) => INDEX
+    requires CurrRound >=Int RoundCount
+
+  syntax Bool ::= computeBit(Int /* position */, Hash /* seed */, Int /* current round */ ) [function]
+  rule computeBit(Position, Seed, CurrRound)
+    => (String2Int(
+         substrString({computeSource(Position, Seed, CurrRound)}:>String,
+                      (Position %Int 256) /Int 8,
+                      (Position %Int 256) /Int 8 +Int 1)
+                 )
+         /Int 2 ^Int (Position %Int 8))  // shifting right by (position % 8)
+       %Int 2 ==K 1
+
+  syntax Hash ::= computeSource(Int /* position */, Hash /* seed */, Int /* current round */) [function]
+  rule computeSource(Position, Seed, CurrRound)
+    => hash(({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1)) +Bytes to_bytes(Position /Int 256, 4))
+
+  syntax Int ::= computeFlip(Int /* pivot */, Int /* index */, Int /* count */ ) [function]
+  rule computeFlip(Pivot, Index, Count) => (Pivot +Int Count -Int Index) %Int Count
+
+  syntax Int ::= computePivot(Hash /* seed */, Int /* current round */, Int /* index count */ ) [function]
+    rule computePivot(Seed, CurrRound, Count)
+      => String2Int(substrString({hash({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1))}:>String, 0, 8)) %Int Count
+
 
 
 /*
@@ -182,7 +240,7 @@ def compute_committee(indices: Sequence[ValidatorIndex],
 
   syntax IntList ::= computeCommitteeLoop( Int, Int, Hash, IntList, IntList )
   rule computeCommitteeLoop(I => I +Int 1, END, SEED, INDICES,
-                            RESULT => RESULT computeShuffledIndex(I, len(INDICES), SEED))
+                            RESULT => RESULT compute_shuffled_index(I, len(INDICES), SEED))
     requires I <Int END
   rule computeCommitteeLoop(I, END, _,_, RESULT) => RESULT
     requires I >=Int END
@@ -1316,7 +1374,7 @@ def get_base_reward(state: BeaconState, index: ValidatorIndex) -> Gwei:
   syntax Int ::= getBaseReward( Int ) [function]
   rule [[ getBaseReward(INDEX)
           => VAL.effectiveBalance *Int BASE_REWARD_FACTOR
-             /Int integerSquareroot(getTotalActiveBalance())
+             /Int integer_squareroot(getTotalActiveBalance())
              /Int BASE_REWARDS_PER_EPOCH ]]
     <validators> ... INDEX |-> VAL ... </validators>
 

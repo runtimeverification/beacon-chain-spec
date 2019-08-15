@@ -148,7 +148,22 @@ def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, in
             value = hash(value + branch[i])
     return value == root
 */
-//
+  syntax Bool ::= "is_valid_merkle_branch" "(" Hash "," BytesList "," Int "," Int "," Hash ")"
+  rule is_valid_merkle_branch(Leaf, Branch, Depth, Index, Root)
+       => is_valid_merkle_branch_aux(Leaf, Branch, Depth, Index, Root, 0, Leaf)
+
+  syntax Bool ::= "is_valid_merkle_branch_aux" "(" Hash "," BytesList "," Int "," Int "," Hash "," Int "," Hash ")"
+  rule is_valid_merkle_branch_aux(Leaf, Branch, Depth, Index, _,
+                                  I => I +Int 1,
+                                  Value => #if Index /Int (2 ^Int I) %Int 2 ==K 1
+                                           #then {hash(Branch[I] +Bytes Value)}:>Hash
+                                           #else {hash(Value +Bytes Branch[I])}:>Hash
+                                           #fi
+                                 )
+    requires I <Int Depth
+
+  rule is_valid_merkle_branch_aux(_, _, Depth, _, Root, I, Value) => Root ==K Value
+    requires I >=Int Depth
 
   // Helper functions -- Misc
   //====================================================

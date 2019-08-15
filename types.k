@@ -664,4 +664,9 @@ def bytes_to_int(data: bytes) -> uint64:
   rule allOnes(true BL) => allOnes(BL)
   rule allOnes(false BL) => false
   rule allOnes(.BitList) => true
+
+  syntax Bytes ::= BytesList "[" Int "]"
+  rule (H:Bytes HL:BytesList)[I] => HL[I -Int 1]
+    requires I >Int 0
+  rule (H:Bytes HL:BytesList)[0] => H
 endmodule

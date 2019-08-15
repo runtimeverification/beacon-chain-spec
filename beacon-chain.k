@@ -1218,12 +1218,12 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
   rule [[ getShardCrosslinks(C CL => CL, SHARD, CL' => CL' C) ]]
     <current-crosslinks> SHARD |-> CURRC </current-crosslinks>
       requires hash_tree_root(CURRC) ==K C.parentRoot
-      //orBool hash_tree_root(CURRC) ==K hash_tree_root(C)  //TODO: fix hash_tree_root condition
+        orBool hash_tree_root(CURRC) ==K hash_tree_root(C)
 
   rule [[ getShardCrosslinks(C CL => CL, SHARD, CL') ]]
     <current-crosslinks> SHARD |-> CURRC </current-crosslinks>
       requires hash_tree_root(CURRC) =/=K C.parentRoot
-      //andBool hash_tree_root(CURRC) =/=K hash_tree_root(C) //TODO: fix hash_tree_root condition
+       andBool hash_tree_root(CURRC) =/=K hash_tree_root(C)
 
   rule getShardCrosslinks(.CrosslinkList, SHARD, CL') => CL'
 
@@ -1991,7 +1991,7 @@ def process_final_updates(state: BeaconState) -> None:
   rule <k> processFinalUpdates()
            => updateEffectiveBalances({keys_list(ValMap)}:>IntList, EFFECTIVE_BALANCE_INCREMENT /Int 2)             // param: HALF_INCREMENT
            ~> updateStartShard(getCurrentEpoch())                                     // param: current_epoch
-           ~> setActiveIndexRoot(getCurrentEpoch() +Int 1 +Int ACTIVATION_EXIT_DELAY) // param: index_epoch
+           ~> setActiveIndexRoots(getCurrentEpoch() +Int 1 +Int ACTIVATION_EXIT_DELAY) // param: index_epoch
            ~> setCommitteesRoot((getCurrentEpoch() +Int 1) %Int EPOCHS_PER_HISTORICAL_VECTOR) // param: committee_root_position
            ~> resetSlashings((getCurrentEpoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)     // param: (slashings index)
            ~> setRandaoMix((getCurrentEpoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)       // param: (rnd mixes index)
@@ -2025,9 +2025,18 @@ def process_final_updates(state: BeaconState) -> None:
   rule <k> updateStartShard(EP) => .K ... </k>
        <start-shard> SHARD => (SHARD +Int getShardDelta(EP)) %Int SHARD_COUNT </start-shard>
 
-  syntax KItem ::= "setActiveIndexRoot" "(" Int ")"
-  rule <k> setActiveIndexRoot(IndexEpoch) => .K ... </k>
-       <active-index-roots> AIR  </active-index-roots>  // TODO set active index roots properly
+  syntax KItem ::= "setActiveIndexRoots" "(" Int ")"
+  rule <k> setActiveIndexRoots(IndexEpoch) => .K ... </k>
+       <active-index-roots> AIR
+         => setRootAtIndex(AIR,
+                           IndexEpoch %Int EPOCHS_PER_HISTORICAL_VECTOR,
+                           hash_tree_root_list(getActiveValidatorIndices(IndexEpoch), VALIDATOR_REGISTRY_LIMIT, %uint64, false))
+       </active-index-roots>
+
+  syntax BytesList ::= setRootAtIndex(BytesList, Int, Bytes) [function]
+  rule setRootAtIndex(I BL, INDEX, I') => I setRootAtIndex(BL, INDEX -Int 1, I')
+    requires INDEX >Int 0
+  rule setRootAtIndex(I BL, 0, I') => I' BL
 
   syntax KItem ::= "setCommitteesRoot" "(" Int ")"
   rule <k> setCommitteesRoot(CommRootPos) => .K ... </k>
@@ -2048,13 +2057,21 @@ def process_final_updates(state: BeaconState) -> None:
     <randao-mixes> RMS => setRandaoMixAt(
                                      RMS,
                                      RndMixIndex,
-                                     "" // xor(getRandaoMix(getCurrentEpoch()), hash(R))  // TODO: this needs to be fixed
+                                     getRandaoMix(getCurrentEpoch())
                                    )
     </randao-mixes>
 
   syntax KItem ::= "setHistoricalRootAccumulator" "(" Bool ")"
   rule <k> setHistoricalRootAccumulator(Condition) => .K ... </k>
-    <historical-roots> HL => HL "" </historical-roots> // TODO this needs to be fixed
+    <historical-roots>
+      HL => #if Condition
+            #then HL // hash_tree_root(#HistoricalBatch({values(BRS)}:>BytesList, {values(SRS)}:>BytesList))
+            // todo: throws an exception: "Could not compute least upper bound for rewrite sort. Possible candidates: []"
+            #else HL
+            #fi
+    </historical-roots>
+    <block-roots> BRS </block-roots>
+    <state-roots> SRS </state-roots>
 
   syntax KItem ::= "rotateEpochAttestations" "(" ")"
   rule <k> rotateEpochAttestations() => .K ... </k>
@@ -2526,9 +2543,7 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
         orBool getCurrentEpoch() >=Int SenderVAL.withdrawableEpoch
         orBool getBalance(SENDER) >=Int AMOUNT +Int FEE +Int MAX_EFFECTIVE_BALANCE
       )
-      //todo needs hash() first
-      //assert state.validators[transfer.sender].withdrawal_credentials == BLS_WITHDRAWAL_PREFIX + hash(transfer.pubkey)[1:]
-      //assert bls_verify(transfer.pubkey, signing_root(transfer), transfer.signature, get_domain(state, DOMAIN_TRANSFER))
+     andBool SenderVAL.withdrawalCredentials ==K Int2String(BLS_WITHDRAWAL_PREFIX) +Bytes substrString({hash(PUBKEY)}:>String, 1, lengthString({hash(PUBKEY)}:>String))
 
   syntax KItem ::= "process_transfer_post_assert" "(" ValidatorIndex "," ValidatorIndex ")"
   rule process_transfer_post_assert(SENDER, RECIPIENT) => .K

@@ -954,7 +954,14 @@ def is_valid_genesis_state(state: BeaconState) -> bool:
         return False
     return True
 */
-//
+  syntax Bool ::= "is_valid_genesis_state" "(" ")" [function]
+  rule [[ is_valid_genesis_state()
+       => #if Gtime <Int MIN_GENESIS_TIME
+              orBool len(getActiveValidatorIndices(GENESIS_EPOCH)) <Int MIN_GENESIS_ACTIVE_VALIDATOR_COUNT
+          #then false
+          #else true
+          #fi ]]
+       <genesis-time> Gtime </genesis-time>
 
 
   // Beacon chain state transition function

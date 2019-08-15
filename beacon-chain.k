@@ -229,8 +229,6 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
     rule computePivot(Seed, CurrRound, Count)
       => String2Int(substrString({hash({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1))}:>String, 0, 8)) %Int Count
 
-
-
 /*
 def compute_committee(indices: Sequence[ValidatorIndex],
                       seed: Hash,
@@ -412,7 +410,13 @@ def get_seed(state: BeaconState, epoch: Epoch) -> Hash:
     active_index_root = state.active_index_roots[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
     return hash(mix + active_index_root + int_to_bytes(epoch, length=32))
 */
-  syntax Hash ::= getSeed( Int ) [function] //todo implement
+  syntax Hash ::= "get_seed" "(" Int ")" [function]
+  rule [[ get_seed(Epoch)
+    => hash(
+         getRandaoMix(Epoch +Int EPOCHS_PER_HISTORICAL_VECTOR -Int MIN_SEED_LOOKAHEAD) +Bytes
+         (AIRS[Epoch %Int EPOCHS_PER_HISTORICAL_VECTOR] +Bytes to_bytes(Epoch, 32))
+       ) ]]
+    <active-index-roots> AIRS </active-index-roots>
 
 /*
 def get_committee_count(state: BeaconState, epoch: Epoch) -> uint64:
@@ -448,7 +452,7 @@ def get_crosslink_committee(state: BeaconState, epoch: Epoch, shard: Shard) -> S
   rule getCrosslinkCommittee(EPOCH, SHARD)
     => computeCommittee(
           getActiveValidatorIndices(EPOCH),
-          getSeed(EPOCH),
+          get_seed(EPOCH),
           (SHARD +Int SHARD_COUNT -Int getStartShard(EPOCH)) %Int SHARD_COUNT,
           getCommitteeCount(EPOCH)
     )
@@ -535,7 +539,7 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
        //todo commented code should work but crashes with ClassCastException, even with one #fun.
        => getBeaconProposerIndexLoop(0, 0, 0, 0, .IntList, 0, "", 0)
        //   )(0)
-       //   )(0/*getSeed(EPOCH)*/)
+       //   )(0/*get_seed(EPOCH)*/)
        //   )(2 ^Int 8 -Int 1)
        //   )(getCrosslinkCommittee(EPOCH, SHARD))
           )((getStartShard(EPOCH) +Int OFFSET) %Int SHARD_COUNT)

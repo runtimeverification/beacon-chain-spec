@@ -1,3 +1,8 @@
+/*
+ * Notes:
+ *   - bls_verify is not implemented (as discussed). Signature verification is not done.
+ */
+
 requires "hash-tree.k"
 
 module BEACON-CHAIN
@@ -608,8 +613,57 @@ def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
             committees[shard].compact_validators.append(compact_validator)
     return hash_tree_root(Vector[CompactCommittee, SHARD_COUNT](committees))
 */
-  syntax Hash ::= getCompactCommitteesRoot(Int)
-  rule getCompactCommitteesRoot(EPOCH) => 0 // TODO: fix dummy implementation
+  syntax Hash ::= "get_compact_committees_root" "(" Int ")" [function]
+  rule get_compact_committees_root(EPOCH)
+    => hash_tree_root_list(
+         computeCompactCommitteesComLoop(
+           EPOCH, getStartShard(EPOCH), 0, getCommitteeCount(EPOCH), initCompCommListOfSize(SHARD_COUNT)),
+           SHARD_COUNT,
+           %container,
+           true)
+
+  syntax CompactCommitteeList ::= computeCompactCommitteesComLoop(Int, Int, Int, Int, CompactCommitteeList) [function]
+  rule computeCompactCommitteesComLoop(
+         Epoch, StartShard,
+         CommNum => CommNum +Int 1,
+         CommCount,
+         CommitteeList => computeCompactCommitteesIndLoop(
+                            (StartShard +Int CommNum) %Int SHARD_COUNT,
+                            getCrosslinkCommittee(Epoch, (StartShard +Int CommNum) %Int SHARD_COUNT),
+                            CommitteeList))
+    requires CommNum <Int CommCount
+
+  rule computeCompactCommitteesComLoop(_,_, CommNum, CommCount, CommitteeList) => CommitteeList
+    requires CommNum >=Int CommCount
+
+  syntax CompactCommitteeList ::=computeCompactCommitteesIndLoop(Int, IntList, CompactCommitteeList) [function]
+  rule [[ computeCompactCommitteesIndLoop(
+            Shard,
+            I IL => IL,
+            CommitteeList => setCommAtShard(CommitteeList,
+                                            Shard,
+                                            updateCompComm(CommitteeList[Shard],
+                                                           VAL.pubkey,
+                                                           computeCompactValidatorIndex(
+                                                             I,
+                                                             #if VAL.slashed #then 1 #else 0 #fi,
+                                                             VAL.effectiveBalance /Int EFFECTIVE_BALANCE_INCREMENT))))
+       ]]
+       <validators> I |-> VAL </validators>
+
+  rule computeCompactCommitteesIndLoop(_, .IntList, CommitteeList) => CommitteeList
+
+  syntax Int ::= computeCompactValidatorIndex(Int, Int, Int)  [function]
+  rule computeCompactValidatorIndex(I, Slashed, CompBal)
+    => (I *Int (2 ^Int 16)) +Int (Slashed *Int (2 ^Int 15)) +Int CompBal
+
+  syntax CompactCommittee ::= updateCompComm(CompactCommittee, BLSPubkey, Int) [function]
+  rule updateCompComm(#CompactCommittee(PKS, IL), PK, I) => #CompactCommittee(PKS PK, IL I)
+
+  syntax CompactCommitteeList ::= setCommAtShard(CompactCommitteeList, Int, CompactCommittee) [function]
+  rule setCommAtShard(C CL, SHARD, C') => C setCommAtShard(CL, SHARD -Int 1, C')
+    requires SHARD >Int 0
+  rule setCommAtShard(C CL, 0, C') => C' CL
 
 
 /*
@@ -925,7 +979,7 @@ def state_transition(state: BeaconState, block: BeaconBlock, validate_state_root
   syntax Kitem ::= "validate_state_root" "(" Bool ")"
     rule <k> validate_state_root(VSR) => .K ...</k>
          <state-root> BSR </state-root>
-      requires (notBool VSR) orBool (BSR ==String {hash_tree_root_state()}:>String)   
+      requires (notBool VSR) orBool (BSR ==String {hash_tree_root_state()}:>String)
 
 /*
 def process_slots(state: BeaconState, slot: Slot) -> None:
@@ -1113,7 +1167,6 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
     winning_attestations = [a for a in attestations if a.data.crosslink == winning_crosslink]
     return winning_crosslink, get_unslashed_attesting_indices(state, winning_attestations)
 */
-//
   syntax CrosslinkIntListPair ::= getWinningCrosslinkAndAttestingIndices(Int, Int) [function]
 
   // attestations == getMatchingShardSourceAttestations(EPOCH,SHARD)
@@ -1621,11 +1674,6 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   rule updateBasePenalties(Penalties, INDEX)
        => Penalties[INDEX <- {Penalties[INDEX]}:>Int +Int (BASE_REWARDS_PER_EPOCH *Int getBaseReward(INDEX))]
 
-  syntax Map ::= initMapOfSize(Int) [function]
-  rule initMapOfSize(I) => (I -Int 1 |-> 0) initMapOfSize(I -Int 1)
-    requires I >Int 0
-  rule initMapOfSize(0) => .Map
-
   syntax Int ::= numOfValidators() [function]
   rule [[ numOfValidators() => size(ValMap) ]]
        <validators> ValMap </validators>
@@ -1984,7 +2032,7 @@ def process_final_updates(state: BeaconState) -> None:
   syntax KItem ::= "setCommitteesRoot" "(" Int ")"
   rule <k> setCommitteesRoot(CommRootPos) => .K ... </k>
        <compact-committees-roots>
-         CRS => setCommRootsAt(CommRootPos, CRS, getCompactCommitteesRoot(getCurrentEpoch() +Int 1))
+         CRS => setCommRootsAt(CommRootPos, CRS, get_compact_committees_root(getCurrentEpoch() +Int 1))
        </compact-committees-roots>
 
   syntax BytesList ::= setCommRootsAt(Int, BytesList, Hash) [function]
@@ -2067,7 +2115,6 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
     requires BlockSLOT ==K SLOT
      andBool ParentROOT ==K signing_root(OldBlockHEADER)
      andBool notBool ({ValMap[getBeaconProposerIndex()]}:>Validator).slashed
-     // TODO: not verifying signatures
 
 /*
 def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
@@ -2089,7 +2136,6 @@ def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
                 )
        </randao-mixes>
        <randao-reveal> RandaoReveal </randao-reveal>
-    //requires // TODO: not verifying signatures
 
   syntax BytesList ::= setRandaoMixAt(BytesList, Int, Hash) [function]
   rule setRandaoMixAt(RM RMS, I, RM') => RM setRandaoMixAt(RMS, I -Int 1, RM')
@@ -2360,7 +2406,6 @@ def process_deposit(state: BeaconState, deposit: Deposit) -> None:
         index = ValidatorIndex(validator_pubkeys.index(pubkey))
         increase_balance(state, index, amount)
 */
-  // Note: bls_verify not implemented
   syntax KItem ::= "process_deposit" "(" Deposit ")"
 
   //case pubkey in validator_pubkeys

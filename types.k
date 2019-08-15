@@ -51,10 +51,11 @@ module TYPES
   syntax CrosslinkList ::= List{Crosslink, ""}
   syntax Eth1DataList ::= List{Eth1Data, ""}
   syntax PendingAttestationList ::= List{PendingAttestation, ""}
+  syntax CompactCommitteeList ::= List{CompactCommittee, ""}
 
   syntax ContainerList ::= ProposerSlashingList | AttesterSlashingList | AttestationList | DepositList
        | VoluntaryExitList | TransferList | ValidatorList | CrosslinkList
-       | Eth1DataList | PendingAttestationList
+       | Eth1DataList | PendingAttestationList | CompactCommitteeList
 
   syntax BytesList ::= List{Bytes, ""}
 
@@ -386,6 +387,11 @@ class CompactCommittee(Container):
   // TODO: Add constraint on length of uint64List (MAX_VALIDATORS_PER_COMMITTEE)
   syntax CompactCommittee ::= #CompactCommittee( BytesList, IntList )
 
+  syntax BytesList ::= CompactCommittee "." "pubkeys"                 [function]
+  rule #CompactCommittee(PUBKEYS, _).pubkeys => PUBKEYS
+  syntax IntList ::= CompactCommittee "." "compact_validators"        [function]
+  rule #CompactCommittee(_, CVALS).compact_validators => CVALS
+
   /*
 class BeaconBlockHeader(Container):
     slot: Slot
@@ -689,4 +695,21 @@ def bytes_to_int(data: bytes) -> uint64:
   rule (H:Bytes HL:BytesList)[I] => HL[I -Int 1]
     requires I >Int 0
   rule (H:Bytes HL:BytesList)[0] => H
+
+  syntax CompactCommittee ::= CompactCommitteeList "[" Int "]"
+  rule (H:CompactCommittee HL:CompactCommitteeList)[I] => HL[I -Int 1]
+    requires I >Int 0
+  rule (H:CompactCommittee HL:CompactCommitteeList)[0] => H
+
+  syntax Map ::= initMapOfSize(Int) [function]
+  rule initMapOfSize(I) => (I -Int 1 |-> 0) initMapOfSize(I -Int 1)
+    requires I >Int 0
+  rule initMapOfSize(0) => .Map
+
+  syntax CompactCommitteeList ::= initCompCommListOfSize(Int) [function]
+  rule initCompCommListOfSize(I) => #CompactCommittee(.BytesList, .IntList) initCompCommListOfSize(I -Int 1)
+    requires I >Int 0
+  rule initCompCommListOfSize(0) => .CompactCommitteeList
+
+
 endmodule

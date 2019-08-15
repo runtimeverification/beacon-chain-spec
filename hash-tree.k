@@ -413,6 +413,9 @@ for layer in range(1, 100):
   rule chunkifyContainerList(V:PendingAttestation L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
+  rule chunkifyContainerList(V:CompactCommittee L, MinLen)
+    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
+
   rule chunkifyContainerList(LIST, MinLen) => hash_tree_root(zerohashes(0)) chunkifyContainerList(LIST, MinLen -Int 1)
     requires len(LIST) ==Int 0 andBool MinLen >Int 0
 

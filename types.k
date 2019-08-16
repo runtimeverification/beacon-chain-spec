@@ -507,7 +507,7 @@ class Transfer(Container):
 
   syntax Container ::= Fork | Checkpoint | Validator | Crosslink | AttestationData | AttestationDataAndCustodyBit
                      | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
-                     | CompactCommittee | BeaconBlockHeader | AttesterSlashing | Attestation | Deposit
+                     | CompactCommittee | BeaconBlockHeader | ProposerSlashing | AttesterSlashing | Attestation | Deposit
                      | VoluntaryExit | Transfer
 
   //ValueList are not Value, because it needs separate implementation for hash_tree_root

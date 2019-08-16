@@ -341,6 +341,9 @@ for layer in range(1, 100):
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
           hash_tree_root(P5) .BytesList, RemLast))
 
+  rule hash_tree_root(#ProposerSlashing( P1, P2, P3 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) .BytesList, RemLast))
+
   rule hash_tree_root(#AttesterSlashing( P1, P2 ) #as VAL, %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) .BytesList, RemLast))
 

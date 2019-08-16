@@ -45,6 +45,7 @@ module TYPES
   syntax AttesterSlashingList ::= List{AttesterSlashing, ""}
   syntax AttestationList ::= List{Attestation, ""}
   syntax DepositList ::= List{Deposit, ""}
+  syntax DepositDataList ::= List{DepositData, ""}
   syntax VoluntaryExitList ::= List{VoluntaryExit, ""}
   syntax TransferList ::= List{Transfer, ""}
   syntax ValidatorList ::= List{Validator, ""}
@@ -53,7 +54,7 @@ module TYPES
   syntax PendingAttestationList ::= List{PendingAttestation, ""}
   syntax CompactCommitteeList ::= List{CompactCommittee, ""}
 
-  syntax ContainerList ::= ProposerSlashingList | AttesterSlashingList | AttestationList | DepositList
+  syntax ContainerList ::= ProposerSlashingList | AttesterSlashingList | AttestationList | DepositList | DepositDataList
        | VoluntaryExitList | TransferList | ValidatorList | CrosslinkList
        | Eth1DataList | PendingAttestationList | CompactCommitteeList
 
@@ -650,6 +651,8 @@ def bytes_to_int(data: bytes) -> uint64:
   rule len(.AttestationList) => 0
   rule len(_ LIST:DepositList) => 1 +Int len(LIST)
   rule len(.DepositList) => 0
+  rule len(_ LIST:DepositDataList) => 1 +Int len(LIST)
+  rule len(.DepositDataList) => 0
   rule len(_ LIST:VoluntaryExitList) => 1 +Int len(LIST)
   rule len(.VoluntaryExitList) => 0
   rule len(_ LIST:TransferList) => 1 +Int len(LIST)
@@ -671,19 +674,35 @@ def bytes_to_int(data: bytes) -> uint64:
   rule setBitAt(I BL, 0, I') => I' BL
 
   syntax BitList ::= slice(BitList, Int, Int) [function]
-  rule slice(BL, BEGIN, END) => dropTail(drop(BL, BEGIN), END -Int BEGIN)
+  rule slice(BL:BitList, BEGIN, END) => dropTail(drop(BL, BEGIN), END -Int BEGIN)
     requires BEGIN >=Int 0 andBool END >=Int 0
 
   syntax BitList ::= drop(BitList, Int) [function]
-  rule drop(I BL, BEGIN) => drop(BL, BEGIN -Int 1)
+  rule drop(I BL:BitList, BEGIN) => drop(BL, BEGIN -Int 1)
     requires BEGIN >Int 0
-  rule drop(BL, BEGIN) => BL
+  rule drop(BL:BitList, BEGIN) => BL
     requires BEGIN <=Int 0
 
   syntax BitList ::= dropTail(BitList, Int) [function]
-  rule dropTail(I BL, END) => I dropTail(BL, END -Int 1)
+  rule dropTail(I BL:BitList, END) => I dropTail(BL, END -Int 1)
     requires END >Int 0
-  rule dropTail(BL, END) => .BitList
+  rule dropTail(BL:BitList, END) => .BitList
+    requires END <=Int 0
+
+  syntax DepositDataList ::= slice(DepositDataList, Int, Int) [function]
+  rule slice(BL:DepositDataList, BEGIN, END) => dropTail(drop(BL, BEGIN), END -Int BEGIN)
+    requires BEGIN >=Int 0 andBool END >=Int 0
+
+  syntax DepositDataList ::= drop(DepositDataList, Int) [function]
+  rule drop(I BL:DepositDataList, BEGIN) => drop(BL, BEGIN -Int 1)
+    requires BEGIN >Int 0
+  rule drop(BL:DepositDataList, BEGIN) => BL
+    requires BEGIN <=Int 0
+
+  syntax DepositDataList ::= dropTail(DepositDataList, Int) [function]
+  rule dropTail(I BL:DepositDataList, END) => I dropTail(BL, END -Int 1)
+    requires END >Int 0
+  rule dropTail(BL:DepositDataList, END) => .DepositDataList
     requires END <=Int 0
 
   syntax Bool ::= allOnes(BitList) [function]
@@ -710,6 +729,5 @@ def bytes_to_int(data: bytes) -> uint64:
   rule initCompCommListOfSize(I) => #CompactCommittee(.BytesList, .IntList) initCompCommListOfSize(I -Int 1)
     requires I >Int 0
   rule initCompCommListOfSize(0) => .CompactCommitteeList
-
 
 endmodule

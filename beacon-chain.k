@@ -944,7 +944,69 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
         state.compact_committees_roots[index] = committee_root
     return state
 */
-//
+  syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Hash "," Int "," DepositList ")"
+  rule <k> initialize_beacon_state_from_eth1(E1BH, E1TS, Deposits)
+           => processEth1Deposits(Deposits, getDataList(Deposits), 0)
+           ~> processEth1Activations(size(ValMap), 0)
+           ~> populateEth1Roots(
+                hash_tree_root_list(getActiveValidatorIndices(GENESIS_EPOCH), VALIDATOR_REGISTRY_LIMIT, %uint64, false),
+                get_compact_committees_root(GENESIS_EPOCH),
+                0, EPOCHS_PER_HISTORICAL_VECTOR)
+       ... </k>
+       <genesis-time> _ => E1TS -Int E1TS %Int SECONDS_PER_DAY +Int 2 *Int SECONDS_PER_DAY </genesis-time>
+       <eth1-data> _ => #Eth1Data("", len(Deposits), E1BH) </eth1-data>  // deposit root unspecified, hence the ""
+       <latest-block-header> // unspecified roots and hence all the ""
+         _ => #BeaconBlockHeader(0, "", "", hash_tree_root(#BeaconBlockHeader(0,"","","","")), "")
+       </latest-block-header>
+       <validators> ValMap </validators>
+
+  syntax KItem ::= "processEth1Deposits" "(" DepositList "," DepositDataList "," Int ")"
+  rule <k> (. => process_deposit(Dep))
+           ~> processEth1Deposits(Dep Deposits => Deposits, Leaf Leaves => Leaves, INDEX => INDEX +Int 1)
+       ... </k>
+       <eth1-data> // todo: does this precisely capture Python's '*leaves[:index + 1]'?
+         E1Data => setDepositRoot(E1Data, hash_tree_root_list(slice(Leaves, 0, INDEX +Int 1), 2 ^Int DEPOSIT_CONTRACT_TREE_DEPTH, %container, false))
+       </eth1-data>
+
+  rule <k> processEth1Deposits(.DepositList, .DepositDataList, _) => .K ... </k>
+
+  syntax Eth1Data ::= setDepositRoot(Eth1Data, Hash) [function]
+  rule setDepositRoot(#Eth1Data(DROOT, COUNT, BHASH), NewDROOT) => #Eth1Data(NewDROOT, COUNT, BHASH)
+
+  syntax DepositDataList ::= getDataList(DepositList) [function]
+  rule getDataList(Dep Deps) => Dep.data getDataList(Deps)
+  rule getDataList(.DepositList) => .DepositDataList
+
+  syntax KItem ::= "processEth1Activations" "(" Int "," Int ")"
+  rule <k> processEth1Activations(COUNT, INDEX => INDEX +Int 1)
+       ... </k>
+       <balances> INDEX |-> BAL </balances>
+       <validators> INDEX |-> #Validator(_,_,
+                                 (_ => minInt(BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE)),
+                                 _,
+                                 (AEE => #if MAX_EFFECTIVE_BALANCE <=Int BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT
+                                         #then GENESIS_EPOCH
+                                         #else AEE
+                                         #fi),
+                                 (AE  => #if MAX_EFFECTIVE_BALANCE <=Int BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT
+                                         #then GENESIS_EPOCH
+                                         #else AE
+                                         #fi),
+                                 _,_)
+       </validators>
+    requires INDEX <Int COUNT
+
+  rule <k> processEth1Activations(COUNT, INDEX) => .K ... </k>
+    requires INDEX >=Int COUNT
+
+  syntax KItem ::= "populateEth1Roots" "(" Hash "," Hash "," Int "," Int ")"
+  rule <k> populateEth1Roots(AIRoot, CCRoot, Index => Index +Int 1, Count) ... </k>
+       <active-index-roots> AIRoots => setRootAt(Index, AIRoots, AIRoot) </active-index-roots>
+       <compact-committees-roots> CCRoots=> setRootAt(Index, CCRoots, CCRoot) </compact-committees-roots>
+    requires Index <Int Count
+
+  rule <k> populateEth1Roots(_, _, Index, Count) => .K ... </k>
+    requires Index >=Int Count
 
 /*
 def is_valid_genesis_state(state: BeaconState) -> bool:
@@ -2048,12 +2110,12 @@ def process_final_updates(state: BeaconState) -> None:
   syntax KItem ::= "setCommitteesRoot" "(" Int ")"
   rule <k> setCommitteesRoot(CommRootPos) => .K ... </k>
        <compact-committees-roots>
-         CRS => setCommRootsAt(CommRootPos, CRS, get_compact_committees_root(getCurrentEpoch() +Int 1))
+         CRS => setRootAt(CommRootPos, CRS, get_compact_committees_root(getCurrentEpoch() +Int 1))
        </compact-committees-roots>
 
-  syntax BytesList ::= setCommRootsAt(Int, BytesList, Hash) [function]
-  rule setCommRootsAt(Pos, CR CRS, CR') => CR setCommRootsAt(Pos -Int 1, CRS, CR') requires Pos >Int 0
-  rule setCommRootsAt(0, CR CRS, CR') => CR' CRS
+  syntax BytesList ::= setRootAt(Int, BytesList, Hash) [function]
+  rule setRootAt(Pos, CR CRS, CR') => CR setRootAt(Pos -Int 1, CRS, CR') requires Pos >Int 0
+  rule setRootAt(0, CR CRS, CR') => CR' CRS
 
   syntax KItem ::= "resetSlashings" "(" Int ")"
   rule <k> resetSlashings(SlashIndex) => .K ... </k>

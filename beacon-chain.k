@@ -955,8 +955,8 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
        <genesis-time> _ => E1TS -Int E1TS %Int SECONDS_PER_DAY +Int 2 *Int SECONDS_PER_DAY </genesis-time>
        <eth1-data> _ => #Eth1Data("", len(Deposits), E1BH) </eth1-data>  // deposit root unspecified, hence the ""
        <latest-block-header> // unspecified roots and hence all the ""
-              //todo hash_tree_root(BeaconBlockBody())
-         _ => #BeaconBlockHeader(0, "", "", hash_tree_root(#BeaconBlockHeader(0,"","","","")), "")
+              //BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody()))
+         _ => #BeaconBlockHeader(0, zerohashes(0), zerohashes(0), hash_tree_root_blockBodyEmpty(), defaultBytes96())
        </latest-block-header>
        <validators> ValMap </validators>
 

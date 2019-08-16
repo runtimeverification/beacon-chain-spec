@@ -114,8 +114,8 @@ module TYPES
   rule GENESIS_SLOT => 0                                      [macro]
   syntax Int ::= "GENESIS_EPOCH"
   rule GENESIS_EPOCH => 0                                     [macro]
-  syntax Int ::= "BLS_WITHDRAWAL_PREFIX"
-  rule BLS_WITHDRAWAL_PREFIX => 0                             [macro]
+  syntax Bytes ::= "BLS_WITHDRAWAL_PREFIX"
+  rule BLS_WITHDRAWAL_PREFIX => "\x00"                        [macro]
 
   // Configuration -- Time parameters
   //====================================================

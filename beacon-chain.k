@@ -615,6 +615,7 @@ def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
 */
   syntax Hash ::= "get_compact_committees_root" "(" Int ")" [function]
   rule get_compact_committees_root(EPOCH)
+      //Vector[CompactCommittee, SHARD_COUNT]
     => hash_tree_root_list(
          computeCompactCommitteesComLoop(
            EPOCH, getStartShard(EPOCH), 0, getCommitteeCount(EPOCH), initCompCommListOfSize(SHARD_COUNT)),
@@ -949,6 +950,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
            => processEth1Deposits(Deposits, getDataList(Deposits), 0)
            ~> processEth1Activations(size(ValMap), 0)
            ~> populateEth1Roots(
+                // List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT]
                 hash_tree_root_list(getActiveValidatorIndices(GENESIS_EPOCH), VALIDATOR_REGISTRY_LIMIT, %uint64, false),
                 get_compact_committees_root(GENESIS_EPOCH),
                 0, EPOCHS_PER_HISTORICAL_VECTOR)
@@ -956,6 +958,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
        <genesis-time> _ => E1TS -Int E1TS %Int SECONDS_PER_DAY +Int 2 *Int SECONDS_PER_DAY </genesis-time>
        <eth1-data> _ => #Eth1Data("", len(Deposits), E1BH) </eth1-data>  // deposit root unspecified, hence the ""
        <latest-block-header> // unspecified roots and hence all the ""
+              //todo hash_tree_root(BeaconBlockBody())
          _ => #BeaconBlockHeader(0, "", "", hash_tree_root(#BeaconBlockHeader(0,"","","","")), "")
        </latest-block-header>
        <validators> ValMap </validators>
@@ -965,7 +968,9 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
            ~> processEth1Deposits(Dep Deposits => Deposits, Leaf Leaves => Leaves, INDEX => INDEX +Int 1)
        ... </k>
        <eth1-data> // todo: does this precisely capture Python's '*leaves[:index + 1]'?
-         E1Data => setDepositRoot(E1Data, hash_tree_root_list(slice(Leaves, 0, INDEX +Int 1), 2 ^Int DEPOSIT_CONTRACT_TREE_DEPTH, %container, false))
+         E1Data => setDepositRoot(E1Data,
+            //List[DepositData, 2**DEPOSIT_CONTRACT_TREE_DEPTH]
+            hash_tree_root_list(slice(Leaves, 0, INDEX +Int 1), 2 ^Int DEPOSIT_CONTRACT_TREE_DEPTH, %container, false))
        </eth1-data>
 
   rule <k> processEth1Deposits(.DepositList, .DepositDataList, _) => .K ... </k>
@@ -1048,7 +1053,7 @@ def state_transition(state: BeaconState, block: BeaconBlock, validate_state_root
   syntax Kitem ::= "validate_state_root" "(" Bool ")"
     rule <k> validate_state_root(VSR) => .K ...</k>
          <state-root> BSR </state-root>
-      requires (notBool VSR) orBool (BSR ==String {hash_tree_root_state()}:>String)
+      requires (notBool VSR) orBool (BSR ==K hash_tree_root_state())
 
 /*
 def process_slots(state: BeaconState, slot: Slot) -> None:
@@ -2099,6 +2104,7 @@ def process_final_updates(state: BeaconState) -> None:
        <active-index-roots> AIR
          => setRootAtIndex(AIR,
                            IndexEpoch %Int EPOCHS_PER_HISTORICAL_VECTOR,
+                           //List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT]
                            hash_tree_root_list(getActiveValidatorIndices(IndexEpoch), VALIDATOR_REGISTRY_LIMIT, %uint64, false))
        </active-index-roots>
 
@@ -2612,7 +2618,8 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
         orBool getCurrentEpoch() >=Int SenderVAL.withdrawableEpoch
         orBool getBalance(SENDER) >=Int AMOUNT +Int FEE +Int MAX_EFFECTIVE_BALANCE
       )
-     andBool SenderVAL.withdrawalCredentials ==K Int2String(BLS_WITHDRAWAL_PREFIX) +Bytes substrString({hash(PUBKEY)}:>String, 1, lengthString({hash(PUBKEY)}:>String))
+     andBool SenderVAL.withdrawalCredentials ==K
+        BLS_WITHDRAWAL_PREFIX +Bytes substrString({hash(PUBKEY)}:>String, 1, lengthString({hash(PUBKEY)}:>String))
 
   syntax KItem ::= "process_transfer_post_assert" "(" ValidatorIndex "," ValidatorIndex ")"
   rule process_transfer_post_assert(SENDER, RECIPIENT) => .K

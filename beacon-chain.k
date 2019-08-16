@@ -1,3 +1,8 @@
+/*
+ * Notes:
+ *   - bls_verify is not implemented (as discussed). Signature verification is not done.
+ */
+
 requires "hash-tree.k"
 
 module BEACON-CHAIN
@@ -7,7 +12,27 @@ module BEACON-CHAIN
   // Helper functions -- Math
   //====================================================
 
-  syntax Int ::= integerSquareroot( Int ) [function]
+/*
+def integer_squareroot(n: uint64) -> uint64:
+    """
+    Return the largest integer ``x`` such that ``x**2 <= n``.
+    """
+    x = n
+    y = (x + 1) // 2
+    while y < x:
+        x = y
+        y = (x + n // x) // 2
+    return x
+*/
+  syntax Int ::= "integer_squareroot" "(" Int ")" [function]
+  rule integer_squareroot(N) => integer_squareroot_aux(N, N, (N +Int 1) /Int 2)
+    requires N >=Int 0
+
+  syntax Int ::= "integer_squareroot_aux" "(" Int "," Int "," Int ")" [function]
+  rule integer_squareroot_aux(N, X => Y, Y => (Y +Int N /Int Y) /Int 2)
+    requires Y <Int X
+  rule integer_squareroot_aux(N, X, Y) => X
+    requires Y >=Int X
 
 /*
 def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
@@ -128,7 +153,22 @@ def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, in
             value = hash(value + branch[i])
     return value == root
 */
-//
+  syntax Bool ::= "is_valid_merkle_branch" "(" Hash "," BytesList "," Int "," Int "," Hash ")" [function]
+  rule is_valid_merkle_branch(Leaf, Branch, Depth, Index, Root)
+       => is_valid_merkle_branch_aux(Branch, Depth, Index, Root, 0, Leaf)
+
+  syntax Bool ::= "is_valid_merkle_branch_aux" "(" BytesList "," Int "," Int "," Hash "," Int "," Hash ")" [function]
+  rule is_valid_merkle_branch_aux(Branch, Depth, Index, _,
+                                  I => I +Int 1,
+                                  Value => #if Index /Int (2 ^Int I) %Int 2 ==K 1
+                                           #then {hash(Branch[I] +Bytes Value)}:>Hash
+                                           #else {hash(Value +Bytes Branch[I])}:>Hash
+                                           #fi
+                                 )
+    requires I <Int Depth
+
+  rule is_valid_merkle_branch_aux(_, Depth, _, Root, I, Value) => Root ==String Value
+    requires I >=Int Depth
 
   // Helper functions -- Misc
   //====================================================
@@ -153,10 +193,46 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
 
     return ValidatorIndex(index)
 */
-//
-  syntax Int ::= computeShuffledIndex( Int, Int, Hash ) [function]
-  rule computeShuffledIndex(INDEX, COUNT, SEED) => INDEX %Int COUNT // TODO: replace mock implementation
+  syntax Int ::= "compute_shuffled_index" "(" Int "," Int "," Hash ")" [function]
+  rule compute_shuffled_index(INDEX, COUNT, SEED) => compute_shuffled_index_loop(INDEX, COUNT, SEED, 0, SHUFFLE_ROUND_COUNT)
 
+  syntax Int ::= "compute_shuffled_index_loop" "(" Int "," Int "," Hash "," Int "," Int ")" [function]
+  rule compute_shuffled_index_loop(
+         INDEX => #if computeBit(maxInt(INDEX, computeFlip(computePivot(SEED, CurrRound, COUNT), INDEX, COUNT)),
+                                 SEED, CurrRound)
+                  #then computeFlip(computePivot(SEED, CurrRound, COUNT), INDEX, COUNT)
+                  #else INDEX
+                  #fi,
+         COUNT,
+         SEED,
+         CurrRound => CurrRound +Int 1,
+         RoundCount
+    )
+    requires CurrRound <Int RoundCount
+
+  rule compute_shuffled_index_loop(INDEX, _, _, CurrRound, RoundCount) => INDEX
+    requires CurrRound >=Int RoundCount
+
+  syntax Bool ::= computeBit(Int /* position */, Hash /* seed */, Int /* current round */ ) [function]
+  rule computeBit(Position, Seed, CurrRound)
+    => (String2Int(
+         substrString({computeSource(Position, Seed, CurrRound)}:>String,
+                      (Position %Int 256) /Int 8,
+                      (Position %Int 256) /Int 8 +Int 1)
+                 )
+         /Int 2 ^Int (Position %Int 8))  // shifting right by (position % 8)
+       %Int 2 ==K 1
+
+  syntax Hash ::= computeSource(Int /* position */, Hash /* seed */, Int /* current round */) [function]
+  rule computeSource(Position, Seed, CurrRound)
+    => hash(({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1)) +Bytes to_bytes(Position /Int 256, 4))
+
+  syntax Int ::= computeFlip(Int /* pivot */, Int /* index */, Int /* count */ ) [function]
+  rule computeFlip(Pivot, Index, Count) => (Pivot +Int Count -Int Index) %Int Count
+
+  syntax Int ::= computePivot(Hash /* seed */, Int /* current round */, Int /* index count */ ) [function]
+    rule computePivot(Seed, CurrRound, Count)
+      => String2Int(substrString({hash({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1))}:>String, 0, 8)) %Int Count
 
 /*
 def compute_committee(indices: Sequence[ValidatorIndex],
@@ -182,7 +258,7 @@ def compute_committee(indices: Sequence[ValidatorIndex],
 
   syntax IntList ::= computeCommitteeLoop( Int, Int, Hash, IntList, IntList )
   rule computeCommitteeLoop(I => I +Int 1, END, SEED, INDICES,
-                            RESULT => RESULT computeShuffledIndex(I, len(INDICES), SEED))
+                            RESULT => RESULT compute_shuffled_index(I, len(INDICES), SEED))
     requires I <Int END
   rule computeCommitteeLoop(I, END, _,_, RESULT) => RESULT
     requires I >=Int END
@@ -339,7 +415,13 @@ def get_seed(state: BeaconState, epoch: Epoch) -> Hash:
     active_index_root = state.active_index_roots[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
     return hash(mix + active_index_root + int_to_bytes(epoch, length=32))
 */
-  syntax Hash ::= getSeed( Int ) [function] //todo implement
+  syntax Hash ::= "get_seed" "(" Int ")" [function]
+  rule [[ get_seed(Epoch)
+    => hash(
+         getRandaoMix(Epoch +Int EPOCHS_PER_HISTORICAL_VECTOR -Int MIN_SEED_LOOKAHEAD) +Bytes
+         (AIRS[Epoch %Int EPOCHS_PER_HISTORICAL_VECTOR] +Bytes to_bytes(Epoch, 32))
+       ) ]]
+    <active-index-roots> AIRS </active-index-roots>
 
 /*
 def get_committee_count(state: BeaconState, epoch: Epoch) -> uint64:
@@ -375,7 +457,7 @@ def get_crosslink_committee(state: BeaconState, epoch: Epoch, shard: Shard) -> S
   rule getCrosslinkCommittee(EPOCH, SHARD)
     => computeCommittee(
           getActiveValidatorIndices(EPOCH),
-          getSeed(EPOCH),
+          get_seed(EPOCH),
           (SHARD +Int SHARD_COUNT -Int getStartShard(EPOCH)) %Int SHARD_COUNT,
           getCommitteeCount(EPOCH)
     )
@@ -462,7 +544,7 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
        //todo commented code should work but crashes with ClassCastException, even with one #fun.
        => getBeaconProposerIndexLoop(0, 0, 0, 0, .IntList, 0, "", 0)
        //   )(0)
-       //   )(0/*getSeed(EPOCH)*/)
+       //   )(0/*get_seed(EPOCH)*/)
        //   )(2 ^Int 8 -Int 1)
        //   )(getCrosslinkCommittee(EPOCH, SHARD))
           )((getStartShard(EPOCH) +Int OFFSET) %Int SHARD_COUNT)
@@ -531,8 +613,58 @@ def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
             committees[shard].compact_validators.append(compact_validator)
     return hash_tree_root(Vector[CompactCommittee, SHARD_COUNT](committees))
 */
-  syntax Hash ::= getCompactCommitteesRoot(Int)
-  rule getCompactCommitteesRoot(EPOCH) => 0 // TODO: fix dummy implementation
+  syntax Hash ::= "get_compact_committees_root" "(" Int ")" [function]
+  rule get_compact_committees_root(EPOCH)
+      //Vector[CompactCommittee, SHARD_COUNT]
+    => hash_tree_root_list(
+         computeCompactCommitteesComLoop(
+           EPOCH, getStartShard(EPOCH), 0, getCommitteeCount(EPOCH), initCompCommListOfSize(SHARD_COUNT)),
+           SHARD_COUNT,
+           %container,
+           true)
+
+  syntax CompactCommitteeList ::= computeCompactCommitteesComLoop(Int, Int, Int, Int, CompactCommitteeList) [function]
+  rule computeCompactCommitteesComLoop(
+         Epoch, StartShard,
+         CommNum => CommNum +Int 1,
+         CommCount,
+         CommitteeList => computeCompactCommitteesIndLoop(
+                            (StartShard +Int CommNum) %Int SHARD_COUNT,
+                            getCrosslinkCommittee(Epoch, (StartShard +Int CommNum) %Int SHARD_COUNT),
+                            CommitteeList))
+    requires CommNum <Int CommCount
+
+  rule computeCompactCommitteesComLoop(_,_, CommNum, CommCount, CommitteeList) => CommitteeList
+    requires CommNum >=Int CommCount
+
+  syntax CompactCommitteeList ::=computeCompactCommitteesIndLoop(Int, IntList, CompactCommitteeList) [function]
+  rule [[ computeCompactCommitteesIndLoop(
+            Shard,
+            I IL => IL,
+            CommitteeList => setCommAtShard(CommitteeList,
+                                            Shard,
+                                            updateCompComm(CommitteeList[Shard],
+                                                           VAL.pubkey,
+                                                           computeCompactValidatorIndex(
+                                                             I,
+                                                             #if VAL.slashed #then 1 #else 0 #fi,
+                                                             VAL.effectiveBalance /Int EFFECTIVE_BALANCE_INCREMENT))))
+       ]]
+       <validators> I |-> VAL </validators>
+
+  rule computeCompactCommitteesIndLoop(_, .IntList, CommitteeList) => CommitteeList
+
+  syntax Int ::= computeCompactValidatorIndex(Int, Int, Int)  [function]
+  rule computeCompactValidatorIndex(I, Slashed, CompBal)
+    => (I *Int (2 ^Int 16)) +Int (Slashed *Int (2 ^Int 15)) +Int CompBal
+
+  syntax CompactCommittee ::= updateCompComm(CompactCommittee, BLSPubkey, Int) [function]
+  rule updateCompComm(#CompactCommittee(PKS, IL), PK, I) => #CompactCommittee(PKS PK, IL I)
+
+  syntax CompactCommitteeList ::= setCommAtShard(CompactCommitteeList, Int, CompactCommittee) [function]
+  rule setCommAtShard(C CL, SHARD, C') => C setCommAtShard(CL, SHARD -Int 1, C')
+    requires SHARD >Int 0
+  rule setCommAtShard(C CL, 0, C') => C' CL
 
 
 /*
@@ -569,11 +701,13 @@ def get_domain(state: BeaconState, domain_type: DomainType, message_epoch: Epoch
     fork_version = state.fork.previous_version if epoch < state.fork.epoch else state.fork.current_version
     return compute_domain(domain_type, fork_version)
 */
-// TODO: add the case requires EPOCH is None
-  syntax Domain ::= getDomain( DomainType, Int ) [function]
-  rule [[ getDomain(DTYPE, EPOCH) => computeDomain(DTYPE,
-    #if EPOCH <Int FEPOCH #then FPREV #else FCURR #fi
-  ) ]]
+  syntax Domain ::= "get_domain" "(" DomainType "," OptionInt ")" [function]
+  rule get_domain(DTYPE, OEPOCH)
+    => get_domain_aux(DTYPE, #if isNone(OEPOCH) #then getCurrentEpoch() #else intOf(OEPOCH) #fi)
+
+  syntax Domain ::= "get_domain_aux" "(" DomainType "," Int ")" [function]
+  rule [[ get_domain_aux(DTYPE, EPOCH)
+    => computeDomain(DTYPE, #if EPOCH <Int FEPOCH #then FPREV #else FCURR #fi) ]]
   <fork> #Fork(FPREV,FCURR,FEPOCH) </fork>
 
 /*
@@ -811,7 +945,73 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
         state.compact_committees_roots[index] = committee_root
     return state
 */
-//
+  syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Hash "," Int "," DepositList ")"
+  rule <k> initialize_beacon_state_from_eth1(E1BH, E1TS, Deposits)
+           => processEth1Deposits(Deposits, getDataList(Deposits), 0)
+           ~> processEth1Activations(size(ValMap), 0)
+           ~> populateEth1Roots(
+                // List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT]
+                hash_tree_root_list(getActiveValidatorIndices(GENESIS_EPOCH), VALIDATOR_REGISTRY_LIMIT, %uint64, false),
+                get_compact_committees_root(GENESIS_EPOCH),
+                0, EPOCHS_PER_HISTORICAL_VECTOR)
+       ... </k>
+       <genesis-time> _ => E1TS -Int E1TS %Int SECONDS_PER_DAY +Int 2 *Int SECONDS_PER_DAY </genesis-time>
+       <eth1-data> _ => #Eth1Data("", len(Deposits), E1BH) </eth1-data>  // deposit root unspecified, hence the ""
+       <latest-block-header> // unspecified roots and hence all the ""
+              //todo hash_tree_root(BeaconBlockBody())
+         _ => #BeaconBlockHeader(0, "", "", hash_tree_root(#BeaconBlockHeader(0,"","","","")), "")
+       </latest-block-header>
+       <validators> ValMap </validators>
+
+  syntax KItem ::= "processEth1Deposits" "(" DepositList "," DepositDataList "," Int ")"
+  rule <k> (. => process_deposit(Dep))
+           ~> processEth1Deposits(Dep Deposits => Deposits, Leaf Leaves => Leaves, INDEX => INDEX +Int 1)
+       ... </k>
+       <eth1-data> // todo: does this precisely capture Python's '*leaves[:index + 1]'?
+         E1Data => setDepositRoot(E1Data,
+            //List[DepositData, 2**DEPOSIT_CONTRACT_TREE_DEPTH]
+            hash_tree_root_list(slice(Leaves, 0, INDEX +Int 1), 2 ^Int DEPOSIT_CONTRACT_TREE_DEPTH, %container, false))
+       </eth1-data>
+
+  rule <k> processEth1Deposits(.DepositList, .DepositDataList, _) => .K ... </k>
+
+  syntax Eth1Data ::= setDepositRoot(Eth1Data, Hash) [function]
+  rule setDepositRoot(#Eth1Data(DROOT, COUNT, BHASH), NewDROOT) => #Eth1Data(NewDROOT, COUNT, BHASH)
+
+  syntax DepositDataList ::= getDataList(DepositList) [function]
+  rule getDataList(Dep Deps) => Dep.data getDataList(Deps)
+  rule getDataList(.DepositList) => .DepositDataList
+
+  syntax KItem ::= "processEth1Activations" "(" Int "," Int ")"
+  rule <k> processEth1Activations(COUNT, INDEX => INDEX +Int 1)
+       ... </k>
+       <balances> INDEX |-> BAL </balances>
+       <validators> INDEX |-> #Validator(_,_,
+                                 (_ => minInt(BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE)),
+                                 _,
+                                 (AEE => #if MAX_EFFECTIVE_BALANCE <=Int BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT
+                                         #then GENESIS_EPOCH
+                                         #else AEE
+                                         #fi),
+                                 (AE  => #if MAX_EFFECTIVE_BALANCE <=Int BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT
+                                         #then GENESIS_EPOCH
+                                         #else AE
+                                         #fi),
+                                 _,_)
+       </validators>
+    requires INDEX <Int COUNT
+
+  rule <k> processEth1Activations(COUNT, INDEX) => .K ... </k>
+    requires INDEX >=Int COUNT
+
+  syntax KItem ::= "populateEth1Roots" "(" Hash "," Hash "," Int "," Int ")"
+  rule <k> populateEth1Roots(AIRoot, CCRoot, Index => Index +Int 1, Count) ... </k>
+       <active-index-roots> AIRoots => setRootAt(Index, AIRoots, AIRoot) </active-index-roots>
+       <compact-committees-roots> CCRoots=> setRootAt(Index, CCRoots, CCRoot) </compact-committees-roots>
+    requires Index <Int Count
+
+  rule <k> populateEth1Roots(_, _, Index, Count) => .K ... </k>
+    requires Index >=Int Count
 
 /*
 def is_valid_genesis_state(state: BeaconState) -> bool:
@@ -821,7 +1021,14 @@ def is_valid_genesis_state(state: BeaconState) -> bool:
         return False
     return True
 */
-//
+  syntax Bool ::= "is_valid_genesis_state" "(" ")" [function]
+  rule [[ is_valid_genesis_state()
+       => #if Gtime <Int MIN_GENESIS_TIME
+              orBool len(getActiveValidatorIndices(GENESIS_EPOCH)) <Int MIN_GENESIS_ACTIVE_VALIDATOR_COUNT
+          #then false
+          #else true
+          #fi ]]
+       <genesis-time> Gtime </genesis-time>
 
 
   // Beacon chain state transition function
@@ -839,7 +1046,14 @@ def state_transition(state: BeaconState, block: BeaconBlock, validate_state_root
     # Return post-state
     return state
 */
-//
+  syntax Kitem ::= "state_transition" "(" Bool ")"
+  rule <k> state_transition(VSR) => processSlots(BSLOT) ~> processBlock() ~> validate_state_root(VSR) ...</k>
+       <blockSlot> BSLOT </blockSlot>
+
+  syntax Kitem ::= "validate_state_root" "(" Bool ")"
+    rule <k> validate_state_root(VSR) => .K ...</k>
+         <state-root> BSR </state-root>
+      requires (notBool VSR) orBool (BSR ==K hash_tree_root_state())
 
 /*
 def process_slots(state: BeaconState, slot: Slot) -> None:
@@ -1027,7 +1241,6 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
     winning_attestations = [a for a in attestations if a.data.crosslink == winning_crosslink]
     return winning_crosslink, get_unslashed_attesting_indices(state, winning_attestations)
 */
-//
   syntax CrosslinkIntListPair ::= getWinningCrosslinkAndAttestingIndices(Int, Int) [function]
 
   // attestations == getMatchingShardSourceAttestations(EPOCH,SHARD)
@@ -1079,12 +1292,12 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
   rule [[ getShardCrosslinks(C CL => CL, SHARD, CL' => CL' C) ]]
     <current-crosslinks> SHARD |-> CURRC </current-crosslinks>
       requires hash_tree_root(CURRC) ==K C.parentRoot
-      //orBool hash_tree_root(CURRC) ==K hash_tree_root(C)  //TODO: fix hash_tree_root condition
+        orBool hash_tree_root(CURRC) ==K hash_tree_root(C)
 
   rule [[ getShardCrosslinks(C CL => CL, SHARD, CL') ]]
     <current-crosslinks> SHARD |-> CURRC </current-crosslinks>
       requires hash_tree_root(CURRC) =/=K C.parentRoot
-      //andBool hash_tree_root(CURRC) =/=K hash_tree_root(C) //TODO: fix hash_tree_root condition
+       andBool hash_tree_root(CURRC) =/=K hash_tree_root(C)
 
   rule getShardCrosslinks(.CrosslinkList, SHARD, CL') => CL'
 
@@ -1316,7 +1529,7 @@ def get_base_reward(state: BeaconState, index: ValidatorIndex) -> Gwei:
   syntax Int ::= getBaseReward( Int ) [function]
   rule [[ getBaseReward(INDEX)
           => VAL.effectiveBalance *Int BASE_REWARD_FACTOR
-             /Int integerSquareroot(getTotalActiveBalance())
+             /Int integer_squareroot(getTotalActiveBalance())
              /Int BASE_REWARDS_PER_EPOCH ]]
     <validators> ... INDEX |-> VAL ... </validators>
 
@@ -1534,11 +1747,6 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   syntax Map ::= updateBasePenalties(Map, Int) [function]
   rule updateBasePenalties(Penalties, INDEX)
        => Penalties[INDEX <- {Penalties[INDEX]}:>Int +Int (BASE_REWARDS_PER_EPOCH *Int getBaseReward(INDEX))]
-
-  syntax Map ::= initMapOfSize(Int) [function]
-  rule initMapOfSize(I) => (I -Int 1 |-> 0) initMapOfSize(I -Int 1)
-    requires I >Int 0
-  rule initMapOfSize(0) => .Map
 
   syntax Int ::= numOfValidators() [function]
   rule [[ numOfValidators() => size(ValMap) ]]
@@ -1857,7 +2065,7 @@ def process_final_updates(state: BeaconState) -> None:
   rule <k> processFinalUpdates()
            => updateEffectiveBalances({keys_list(ValMap)}:>IntList, EFFECTIVE_BALANCE_INCREMENT /Int 2)             // param: HALF_INCREMENT
            ~> updateStartShard(getCurrentEpoch())                                     // param: current_epoch
-           ~> setActiveIndexRoot(getCurrentEpoch() +Int 1 +Int ACTIVATION_EXIT_DELAY) // param: index_epoch
+           ~> setActiveIndexRoots(getCurrentEpoch() +Int 1 +Int ACTIVATION_EXIT_DELAY) // param: index_epoch
            ~> setCommitteesRoot((getCurrentEpoch() +Int 1) %Int EPOCHS_PER_HISTORICAL_VECTOR) // param: committee_root_position
            ~> resetSlashings((getCurrentEpoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)     // param: (slashings index)
            ~> setRandaoMix((getCurrentEpoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)       // param: (rnd mixes index)
@@ -1891,19 +2099,29 @@ def process_final_updates(state: BeaconState) -> None:
   rule <k> updateStartShard(EP) => .K ... </k>
        <start-shard> SHARD => (SHARD +Int getShardDelta(EP)) %Int SHARD_COUNT </start-shard>
 
-  syntax KItem ::= "setActiveIndexRoot" "(" Int ")"
-  rule <k> setActiveIndexRoot(IndexEpoch) => .K ... </k>
-       <active-index-roots> AIR  </active-index-roots>  // TODO set active index roots properly
+  syntax KItem ::= "setActiveIndexRoots" "(" Int ")"
+  rule <k> setActiveIndexRoots(IndexEpoch) => .K ... </k>
+       <active-index-roots> AIR
+         => setRootAtIndex(AIR,
+                           IndexEpoch %Int EPOCHS_PER_HISTORICAL_VECTOR,
+                           //List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT]
+                           hash_tree_root_list(getActiveValidatorIndices(IndexEpoch), VALIDATOR_REGISTRY_LIMIT, %uint64, false))
+       </active-index-roots>
+
+  syntax BytesList ::= setRootAtIndex(BytesList, Int, Bytes) [function]
+  rule setRootAtIndex(I BL, INDEX, I') => I setRootAtIndex(BL, INDEX -Int 1, I')
+    requires INDEX >Int 0
+  rule setRootAtIndex(I BL, 0, I') => I' BL
 
   syntax KItem ::= "setCommitteesRoot" "(" Int ")"
   rule <k> setCommitteesRoot(CommRootPos) => .K ... </k>
        <compact-committees-roots>
-         CRS => setCommRootsAt(CommRootPos, CRS, getCompactCommitteesRoot(getCurrentEpoch() +Int 1))
+         CRS => setRootAt(CommRootPos, CRS, get_compact_committees_root(getCurrentEpoch() +Int 1))
        </compact-committees-roots>
 
-  syntax BytesList ::= setCommRootsAt(Int, BytesList, Hash) [function]
-  rule setCommRootsAt(Pos, CR CRS, CR') => CR setCommRootsAt(Pos -Int 1, CRS, CR') requires Pos >Int 0
-  rule setCommRootsAt(0, CR CRS, CR') => CR' CRS
+  syntax BytesList ::= setRootAt(Int, BytesList, Hash) [function]
+  rule setRootAt(Pos, CR CRS, CR') => CR setRootAt(Pos -Int 1, CRS, CR') requires Pos >Int 0
+  rule setRootAt(0, CR CRS, CR') => CR' CRS
 
   syntax KItem ::= "resetSlashings" "(" Int ")"
   rule <k> resetSlashings(SlashIndex) => .K ... </k>
@@ -1914,13 +2132,21 @@ def process_final_updates(state: BeaconState) -> None:
     <randao-mixes> RMS => setRandaoMixAt(
                                      RMS,
                                      RndMixIndex,
-                                     "" // xor(getRandaoMix(getCurrentEpoch()), hash(R))  // TODO: this needs to be fixed
+                                     getRandaoMix(getCurrentEpoch())
                                    )
     </randao-mixes>
 
   syntax KItem ::= "setHistoricalRootAccumulator" "(" Bool ")"
   rule <k> setHistoricalRootAccumulator(Condition) => .K ... </k>
-    <historical-roots> HL => HL "" </historical-roots> // TODO this needs to be fixed
+    <historical-roots>
+      HL => #if Condition
+            #then HL // hash_tree_root(#HistoricalBatch({values(BRS)}:>BytesList, {values(SRS)}:>BytesList))
+            // todo: throws an exception: "Could not compute least upper bound for rewrite sort. Possible candidates: []"
+            #else HL
+            #fi
+    </historical-roots>
+    <block-roots> BRS </block-roots>
+    <state-roots> SRS </state-roots>
 
   syntax KItem ::= "rotateEpochAttestations" "(" ")"
   rule <k> rotateEpochAttestations() => .K ... </k>
@@ -1981,7 +2207,6 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
     requires BlockSLOT ==K SLOT
      andBool ParentROOT ==K signing_root(OldBlockHEADER)
      andBool notBool ({ValMap[getBeaconProposerIndex()]}:>Validator).slashed
-     // TODO: not verifying signatures
 
 /*
 def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
@@ -2003,7 +2228,6 @@ def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
                 )
        </randao-mixes>
        <randao-reveal> RandaoReveal </randao-reveal>
-    //requires // TODO: not verifying signatures
 
   syntax BytesList ::= setRandaoMixAt(BytesList, Int, Hash) [function]
   rule setRandaoMixAt(RM RMS, I, RM') => RM setRandaoMixAt(RMS, I -Int 1, RM')
@@ -2274,17 +2498,24 @@ def process_deposit(state: BeaconState, deposit: Deposit) -> None:
         index = ValidatorIndex(validator_pubkeys.index(pubkey))
         increase_balance(state, index, amount)
 */
-  //todo not implemented: is_valid_merkle_branch, bls_verify
   syntax KItem ::= "process_deposit" "(" Deposit ")"
 
   //case pubkey in validator_pubkeys
   rule <k> process_deposit(DEP) => increaseBalance(getValidatorIndexByPubkey(DEP.data.pubkey), DEP.data.amount) ...</k>
     <eth1-deposit-index> EDI => EDI +Int 1 </eth1-deposit-index>
+    <eth1-data> E1DATA </eth1-data>
     requires getValidatorIndexByPubkey(DEP.data.pubkey) =/=K .ValidatorIndex
+     andBool is_valid_merkle_branch(
+                 hash_tree_root(DEP.data),
+                 DEP.proof,
+                 DEPOSIT_CONTRACT_TREE_DEPTH +Int 1,
+                 EDI,
+                 E1DATA.deposit_root)
 
   //case pubkey not in validator_pubkeys
   rule <k> process_deposit(DEP) => .K ...</k>
     <eth1-deposit-index> EDI => EDI +Int 1 </eth1-deposit-index>
+    <eth1-data> E1DATA </eth1-data>
     <validators>
       VALIDATORS
       (.Map => size(VALIDATORS) |-> #Validator(DEP.data.pubkey,
@@ -2299,6 +2530,12 @@ def process_deposit(state: BeaconState, deposit: Deposit) -> None:
     </validators>
     <balances> .Map => size(VALIDATORS) |->  DEP.data.amount ...</balances>
     requires getValidatorIndexByPubkey(DEP.data.pubkey) ==K .ValidatorIndex
+     andBool is_valid_merkle_branch(
+                 hash_tree_root(DEP.data),
+                 DEP.proof,
+                 DEPOSIT_CONTRACT_TREE_DEPTH +Int 1,
+                 EDI,
+                 E1DATA.deposit_root)
 
   syntax ValidatorIndex ::= getValidatorIndexByPubkey( BLSPubkey )                      [function]
                           | getValidatorIndexByPubkey( BLSPubkey, Map /*Validators*/ )  [function]
@@ -2381,9 +2618,8 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
         orBool getCurrentEpoch() >=Int SenderVAL.withdrawableEpoch
         orBool getBalance(SENDER) >=Int AMOUNT +Int FEE +Int MAX_EFFECTIVE_BALANCE
       )
-      //todo needs hash() first
-      //assert state.validators[transfer.sender].withdrawal_credentials == BLS_WITHDRAWAL_PREFIX + hash(transfer.pubkey)[1:]
-      //assert bls_verify(transfer.pubkey, signing_root(transfer), transfer.signature, get_domain(state, DOMAIN_TRANSFER))
+     andBool SenderVAL.withdrawalCredentials ==K
+        BLS_WITHDRAWAL_PREFIX +Bytes substrString({hash(PUBKEY)}:>String, 1, lengthString({hash(PUBKEY)}:>String))
 
   syntax KItem ::= "process_transfer_post_assert" "(" ValidatorIndex "," ValidatorIndex ")"
   rule process_transfer_post_assert(SENDER, RECIPIENT) => .K

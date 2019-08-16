@@ -45,16 +45,18 @@ module TYPES
   syntax AttesterSlashingList ::= List{AttesterSlashing, ""}
   syntax AttestationList ::= List{Attestation, ""}
   syntax DepositList ::= List{Deposit, ""}
+  syntax DepositDataList ::= List{DepositData, ""}
   syntax VoluntaryExitList ::= List{VoluntaryExit, ""}
   syntax TransferList ::= List{Transfer, ""}
   syntax ValidatorList ::= List{Validator, ""}
   syntax CrosslinkList ::= List{Crosslink, ""}
   syntax Eth1DataList ::= List{Eth1Data, ""}
   syntax PendingAttestationList ::= List{PendingAttestation, ""}
+  syntax CompactCommitteeList ::= List{CompactCommittee, ""}
 
-  syntax ContainerList ::= ProposerSlashingList | AttesterSlashingList | AttestationList | DepositList
+  syntax ContainerList ::= ProposerSlashingList | AttesterSlashingList | AttestationList | DepositList | DepositDataList
        | VoluntaryExitList | TransferList | ValidatorList | CrosslinkList
-       | Eth1DataList | PendingAttestationList
+       | Eth1DataList | PendingAttestationList | CompactCommitteeList
 
   syntax BytesList ::= List{Bytes, ""}
 
@@ -112,8 +114,8 @@ module TYPES
   rule GENESIS_SLOT => 0                                      [macro]
   syntax Int ::= "GENESIS_EPOCH"
   rule GENESIS_EPOCH => 0                                     [macro]
-  syntax Int ::= "BLS_WITHDRAWAL_PREFIX"
-  rule BLS_WITHDRAWAL_PREFIX => 0                             [macro]
+  syntax Bytes ::= "BLS_WITHDRAWAL_PREFIX"
+  rule BLS_WITHDRAWAL_PREFIX => "\x00"                        [macro]
 
   // Configuration -- Time parameters
   //====================================================
@@ -346,6 +348,13 @@ class Eth1Data(Container):
   */
   syntax Eth1Data ::= #Eth1Data( Hash, Uint64, Hash ) [klabel(#Eth1Data), symbol]
 
+  syntax Hash ::= Eth1Data "." "deposit_root" [function]
+  rule #Eth1Data(DROOT, _, _).deposit_root => DROOT
+  syntax Uint64 ::= Eth1Data "." "deposit_count" [function]
+  rule #Eth1Data(_, DCOUNT, _).deposit_count => DCOUNT
+  syntax Hash ::= Eth1Data "." "block_hash" [function]
+  rule #Eth1Data(_, _, BHASH).block_hash => BHASH
+
   /*
 class HistoricalBatch(Container):
     block_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
@@ -378,6 +387,11 @@ class CompactCommittee(Container):
   // TODO: Add constraint on length of BytesList (MAX_VALIDATORS_PER_COMMITTEE)
   // TODO: Add constraint on length of uint64List (MAX_VALIDATORS_PER_COMMITTEE)
   syntax CompactCommittee ::= #CompactCommittee( BytesList, IntList )
+
+  syntax BytesList ::= CompactCommittee "." "pubkeys"                 [function]
+  rule #CompactCommittee(PUBKEYS, _).pubkeys => PUBKEYS
+  syntax IntList ::= CompactCommittee "." "compact_validators"        [function]
+  rule #CompactCommittee(_, CVALS).compact_validators => CVALS
 
   /*
 class BeaconBlockHeader(Container):
@@ -438,6 +452,8 @@ class Deposit(Container):
   // TODO: Add constraint on length of BytesList (DEPOSIT_CONTRACT_TREE_DEPTH + 1)
   syntax Deposit ::= #Deposit( BytesList, DepositData )
 
+  syntax BytesList ::= Deposit "." "proof"                           [function]
+  rule #Deposit(PROOF, _).proof => PROOF
   syntax DepositData ::= Deposit "." "data"                           [function]
   rule #Deposit(_, DATA).data => DATA
 
@@ -478,9 +494,20 @@ class Transfer(Container):
   syntax Map ::= MapMapPair "." "map2" [function]
   rule  #mapMapPair(_,MAP).map2 => MAP
 
+  // An argument type of get_domain
+  syntax OptionInt ::= #None() | #Some(Int)
+
+  syntax Bool ::= isNone(OptionInt) [function]
+  rule isNone(#None()) => true
+  rule isNone(#Some(_)) => false
+
+  syntax Int ::= intOf(OptionInt) [function]
+  rule intOf(#Some(I)) => I
+
+
   syntax Container ::= Fork | Checkpoint | Validator | Crosslink | AttestationData | AttestationDataAndCustodyBit
                      | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
-                     | CompactCommittee | BeaconBlockHeader | AttesterSlashing | Attestation | Deposit
+                     | CompactCommittee | BeaconBlockHeader | ProposerSlashing | AttesterSlashing | Attestation | Deposit
                      | VoluntaryExit | Transfer
 
   //ValueList are not Value, because it needs separate implementation for hash_tree_root
@@ -618,22 +645,31 @@ def bytes_to_int(data: bytes) -> uint64:
   rule len(.IntList) => 0
   rule len(_ LIST:BytesList) => 1 +Int len(LIST)
   rule len(.BytesList) => 0
+
+  rule len(_ LIST:ProposerSlashingList) => 1 +Int len(LIST)
+  rule len(.ProposerSlashingList) => 0
   rule len(_ LIST:AttesterSlashingList) => 1 +Int len(LIST)
   rule len(.AttesterSlashingList) => 0
   rule len(_ LIST:AttestationList) => 1 +Int len(LIST)
   rule len(.AttestationList) => 0
   rule len(_ LIST:DepositList) => 1 +Int len(LIST)
   rule len(.DepositList) => 0
+  rule len(_ LIST:DepositDataList) => 1 +Int len(LIST)
+  rule len(.DepositDataList) => 0
   rule len(_ LIST:VoluntaryExitList) => 1 +Int len(LIST)
   rule len(.VoluntaryExitList) => 0
   rule len(_ LIST:TransferList) => 1 +Int len(LIST)
   rule len(.TransferList) => 0
+  rule len(_ LIST:ValidatorList) => 1 +Int len(LIST)
+  rule len(.ValidatorList) => 0
   rule len(_ LIST:CrosslinkList) => 1 +Int len(LIST)
   rule len(.CrosslinkList) => 0
   rule len(_ LIST:Eth1DataList) => 1 +Int len(LIST)
   rule len(.Eth1DataList) => 0
   rule len(_ LIST:PendingAttestationList) => 1 +Int len(LIST)
   rule len(.PendingAttestationList) => 0
+  rule len(_ LIST:CompactCommitteeList) => 1 +Int len(LIST)
+  rule len(.CompactCommitteeList) => 0
 
   syntax BitList ::= shiftRight(BitList)                              [function]
   rule shiftRight(BL I) => false BL
@@ -645,23 +681,60 @@ def bytes_to_int(data: bytes) -> uint64:
   rule setBitAt(I BL, 0, I') => I' BL
 
   syntax BitList ::= slice(BitList, Int, Int) [function]
-  rule slice(BL, BEGIN, END) => dropTail(drop(BL, BEGIN), END -Int BEGIN)
+  rule slice(BL:BitList, BEGIN, END) => dropTail(drop(BL, BEGIN), END -Int BEGIN)
     requires BEGIN >=Int 0 andBool END >=Int 0
 
   syntax BitList ::= drop(BitList, Int) [function]
-  rule drop(I BL, BEGIN) => drop(BL, BEGIN -Int 1)
+  rule drop(I BL:BitList, BEGIN) => drop(BL, BEGIN -Int 1)
     requires BEGIN >Int 0
-  rule drop(BL, BEGIN) => BL
+  rule drop(BL:BitList, BEGIN) => BL
     requires BEGIN <=Int 0
 
   syntax BitList ::= dropTail(BitList, Int) [function]
-  rule dropTail(I BL, END) => I dropTail(BL, END -Int 1)
+  rule dropTail(I BL:BitList, END) => I dropTail(BL, END -Int 1)
     requires END >Int 0
-  rule dropTail(BL, END) => .BitList
+  rule dropTail(BL:BitList, END) => .BitList
+    requires END <=Int 0
+
+  syntax DepositDataList ::= slice(DepositDataList, Int, Int) [function]
+  rule slice(BL:DepositDataList, BEGIN, END) => dropTail(drop(BL, BEGIN), END -Int BEGIN)
+    requires BEGIN >=Int 0 andBool END >=Int 0
+
+  syntax DepositDataList ::= drop(DepositDataList, Int) [function]
+  rule drop(I BL:DepositDataList, BEGIN) => drop(BL, BEGIN -Int 1)
+    requires BEGIN >Int 0
+  rule drop(BL:DepositDataList, BEGIN) => BL
+    requires BEGIN <=Int 0
+
+  syntax DepositDataList ::= dropTail(DepositDataList, Int) [function]
+  rule dropTail(I BL:DepositDataList, END) => I dropTail(BL, END -Int 1)
+    requires END >Int 0
+  rule dropTail(BL:DepositDataList, END) => .DepositDataList
     requires END <=Int 0
 
   syntax Bool ::= allOnes(BitList) [function]
   rule allOnes(true BL) => allOnes(BL)
   rule allOnes(false BL) => false
   rule allOnes(.BitList) => true
+
+  syntax Bytes ::= BytesList "[" Int "]"
+  rule (H:Bytes HL:BytesList)[I] => HL[I -Int 1]
+    requires I >Int 0
+  rule (H:Bytes HL:BytesList)[0] => H
+
+  syntax CompactCommittee ::= CompactCommitteeList "[" Int "]"
+  rule (H:CompactCommittee HL:CompactCommitteeList)[I] => HL[I -Int 1]
+    requires I >Int 0
+  rule (H:CompactCommittee HL:CompactCommitteeList)[0] => H
+
+  syntax Map ::= initMapOfSize(Int) [function]
+  rule initMapOfSize(I) => (I -Int 1 |-> 0) initMapOfSize(I -Int 1)
+    requires I >Int 0
+  rule initMapOfSize(0) => .Map
+
+  syntax CompactCommitteeList ::= initCompCommListOfSize(Int) [function]
+  rule initCompCommListOfSize(I) => #CompactCommittee(.BytesList, .IntList) initCompCommListOfSize(I -Int 1)
+    requires I >Int 0
+  rule initCompCommListOfSize(0) => .CompactCommitteeList
+
 endmodule

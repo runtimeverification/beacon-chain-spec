@@ -341,6 +341,9 @@ for layer in range(1, 100):
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
           hash_tree_root(P5) .BytesList, RemLast))
 
+  rule hash_tree_root(#ProposerSlashing( P1, P2, P3 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) .BytesList, RemLast))
+
   rule hash_tree_root(#AttesterSlashing( P1, P2 ) #as VAL, %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) .BytesList, RemLast))
 
@@ -389,6 +392,9 @@ for layer in range(1, 100):
   rule chunkifyContainerList(V:Hash L:BytesList, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
+  rule chunkifyContainerList(V:ProposerSlashing L, MinLen)
+    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
+
   rule chunkifyContainerList(V:AttesterSlashing L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
@@ -398,10 +404,16 @@ for layer in range(1, 100):
   rule chunkifyContainerList(V:Deposit L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
+  rule chunkifyContainerList(V:DepositData L, MinLen)
+    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
+
   rule chunkifyContainerList(V:VoluntaryExit L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(V:Transfer L, MinLen)
+    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
+
+  rule chunkifyContainerList(V:Validator L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(V:Crosslink L, MinLen)
@@ -411,6 +423,9 @@ for layer in range(1, 100):
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(V:PendingAttestation L, MinLen)
+    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
+
+  rule chunkifyContainerList(V:CompactCommittee L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(LIST, MinLen) => hash_tree_root(zerohashes(0)) chunkifyContainerList(LIST, MinLen -Int 1)

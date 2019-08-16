@@ -3,7 +3,7 @@ module TYPES
 
   // Basic Python (SSZ) types
   //====================================================
-  syntax Bytes   ::= String | Hash | Bytes48
+  syntax Bytes   ::= String | Hash | Bytes48 | Bytes96
   syntax Hash    ::= String
   syntax Uint64  ::= Int
   syntax Bytes4  ::= Bytes
@@ -11,9 +11,9 @@ module TYPES
   syntax Bytes32 ::= Bytes
   syntax Bytes48 ::= String
 
-  syntax Bytes96 ::= Bytes
+  syntax Bytes96 ::= String
   syntax Bytes96 ::= defaultBytes96()                                 [function]
-  rule defaultBytes96() => "\x00" *Bytes 96
+  rule defaultBytes96() => {"\x00" *Bytes 96}:>String
 
   syntax Bit     ::= Bool
   syntax BasicValue ::= Int | Uint64 | Bool

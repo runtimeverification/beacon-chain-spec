@@ -645,6 +645,9 @@ def bytes_to_int(data: bytes) -> uint64:
   rule len(.IntList) => 0
   rule len(_ LIST:BytesList) => 1 +Int len(LIST)
   rule len(.BytesList) => 0
+
+  rule len(_ LIST:ProposerSlashingList) => 1 +Int len(LIST)
+  rule len(.ProposerSlashingList) => 0
   rule len(_ LIST:AttesterSlashingList) => 1 +Int len(LIST)
   rule len(.AttesterSlashingList) => 0
   rule len(_ LIST:AttestationList) => 1 +Int len(LIST)
@@ -657,12 +660,16 @@ def bytes_to_int(data: bytes) -> uint64:
   rule len(.VoluntaryExitList) => 0
   rule len(_ LIST:TransferList) => 1 +Int len(LIST)
   rule len(.TransferList) => 0
+  rule len(_ LIST:ValidatorList) => 1 +Int len(LIST)
+  rule len(.ValidatorList) => 0
   rule len(_ LIST:CrosslinkList) => 1 +Int len(LIST)
   rule len(.CrosslinkList) => 0
   rule len(_ LIST:Eth1DataList) => 1 +Int len(LIST)
   rule len(.Eth1DataList) => 0
   rule len(_ LIST:PendingAttestationList) => 1 +Int len(LIST)
   rule len(.PendingAttestationList) => 0
+  rule len(_ LIST:CompactCommitteeList) => 1 +Int len(LIST)
+  rule len(.CompactCommitteeList) => 0
 
   syntax BitList ::= shiftRight(BitList)                              [function]
   rule shiftRight(BL I) => false BL

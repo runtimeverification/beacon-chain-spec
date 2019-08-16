@@ -389,6 +389,9 @@ for layer in range(1, 100):
   rule chunkifyContainerList(V:Hash L:BytesList, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
+  rule chunkifyContainerList(V:ProposerSlashing L, MinLen)
+    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
+
   rule chunkifyContainerList(V:AttesterSlashing L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
@@ -398,10 +401,16 @@ for layer in range(1, 100):
   rule chunkifyContainerList(V:Deposit L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
+  rule chunkifyContainerList(V:DepositData L, MinLen)
+    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
+
   rule chunkifyContainerList(V:VoluntaryExit L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(V:Transfer L, MinLen)
+    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
+
+  rule chunkifyContainerList(V:Validator L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(V:Crosslink L, MinLen)

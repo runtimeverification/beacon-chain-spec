@@ -68,7 +68,6 @@ def pack(values: Series):
     elif isinstance(values, Bitvector):
         as_integer = sum([values[i] << i for i in range(len(values))])
         return as_integer.to_bytes((values.length + 7) // 8, "little")
-    //todo question asked about apaprently variable-len packing here
     elif isinstance(values, Bitlist):
         as_integer = sum([values[i] << i for i in range(len(values))])
         return as_integer.to_bytes((values.length + 7) // 8, "little")
@@ -80,7 +79,7 @@ def pack(values: Series):
   //Version for lists
   syntax Bytes ::= pack ( list: ValueList, staticLen: Int, elemType: ElementType )
 
-  //todo using StaticLEN here, python uses dynamic len. Static seems correct. Waiting answer on slack.
+  //Using StaticLEN here. Python code above also uses static length in "values.length".
   rule pack(BL:BitList, StaticLEN, %bool) => to_bytes( toInt(BL, (StaticLEN +Int 7) /Int 8 *Int 8),
                                                        (StaticLEN +Int 7) /Int 8 )
 

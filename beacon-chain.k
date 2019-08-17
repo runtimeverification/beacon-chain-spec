@@ -954,7 +954,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
        ... </k>
        <genesis-time> _ => E1TS -Int E1TS %Int SECONDS_PER_DAY +Int 2 *Int SECONDS_PER_DAY </genesis-time>
        <eth1-data> _ => #Eth1Data("", len(Deposits), E1BH) </eth1-data>  // deposit root unspecified, hence the ""
-       <latest-block-header> // unspecified roots and hence all the ""
+       <latest-block-header>
               //BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody()))
          _ => #BeaconBlockHeader(0, zerohashes(0), zerohashes(0), hash_tree_root_blockBodyEmpty(), defaultBytes96())
        </latest-block-header>
@@ -964,7 +964,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
   rule <k> (. => process_deposit(Dep))
            ~> processEth1Deposits(Dep Deposits => Deposits, Leaf Leaves => Leaves, INDEX => INDEX +Int 1)
        ... </k>
-       <eth1-data> // todo: does this precisely capture Python's '*leaves[:index + 1]'?
+       <eth1-data>
          E1Data => setDepositRoot(E1Data,
             //List[DepositData, 2**DEPOSIT_CONTRACT_TREE_DEPTH]
             hash_tree_root_list(slice(Leaves, 0, INDEX +Int 1), 2 ^Int DEPOSIT_CONTRACT_TREE_DEPTH, %container, false))
@@ -2064,7 +2064,7 @@ def process_final_updates(state: BeaconState) -> None:
            ~> setCommitteesRoot((get_current_epoch() +Int 1) %Int EPOCHS_PER_HISTORICAL_VECTOR) // param: committee_root_position
            ~> resetSlashings((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)     // param: (slashings index)
            ~> setRandaoMix((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)       // param: (rnd mixes index)
-           ~> setHistoricalRootAccumulator((get_current_epoch() +Int 1) %Int (SLOTS_PER_HISTORICAL_ROOT /Int SLOTS_PER_EPOCH) ==K 0)  // param: (condition)
+           ~> setHistoricalRootAccumulator()
            ~> rotateEpochAttestations() ... </k>
        <slot> SLOT </slot>
        <eth1-data-votes> E1DL => #if (SLOT +Int 1) %Int SLOTS_PER_ETH1_VOTING_PERIOD ==K 0
@@ -2131,17 +2131,22 @@ def process_final_updates(state: BeaconState) -> None:
                                    )
     </randao-mixes>
 
-  syntax KItem ::= "setHistoricalRootAccumulator" "(" Bool ")"
-  rule <k> setHistoricalRootAccumulator(Condition) => .K ... </k>
+/*    if next_epoch % (SLOTS_PER_HISTORICAL_ROOT // SLOTS_PER_EPOCH) == 0:
+        historical_batch = HistoricalBatch(block_roots=state.block_roots, state_roots=state.state_roots)
+        state.historical_roots.append(hash_tree_root(historical_batch))
+*/
+  syntax KItem ::= setHistoricalRootAccumulator()
+  rule <k> setHistoricalRootAccumulator() => .K ... </k>
     <historical-roots>
-      HL => #if Condition
-            #then HL // hash_tree_root(#HistoricalBatch({values(BRS)}:>BytesList, {values(SRS)}:>BytesList))
-            // todo: throws an exception: "Could not compute least upper bound for rewrite sort. Possible candidates: []"
-            #else HL
+      HL:BytesList
+         => #if (get_current_epoch() +Int 1) %Int (SLOTS_PER_HISTORICAL_ROOT /Int SLOTS_PER_EPOCH) ==Int 0
+              #then HL +BytesList hash_tree_root(#HistoricalBatch({mapToList(BlockRoots, 0, .BytesList)}:>BytesList,
+                                                                  {mapToList(StateRoots, 0, .BytesList)}:>BytesList ))
+              #else HL
             #fi
     </historical-roots>
-    <block-roots> BRS </block-roots>
-    <state-roots> SRS </state-roots>
+    <block-roots> BlockRoots </block-roots>
+    <state-roots> StateRoots </state-roots>
 
   syntax KItem ::= "rotateEpochAttestations" "(" ")"
   rule <k> rotateEpochAttestations() => .K ... </k>

@@ -612,19 +612,6 @@ for layer in range(1, 100):
   // Utility functions
   //====================================================
 
-  syntax ValueList ::= mapToList ( map: Map, index: Int, emptyList: ValueList ) [function]
-
-  rule mapToList((INDEX |-> ELEM:ProposerSlashing) MAP, INDEX, EMPTY)
-       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>ProposerSlashingList
-  rule mapToList((INDEX |-> ELEM:Validator) MAP, INDEX, EMPTY)
-       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>ValidatorList
-  rule mapToList((INDEX |-> ELEM:Bytes) MAP, INDEX, EMPTY)
-       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>BytesList
-  rule mapToList((INDEX |-> ELEM:Int) MAP, INDEX, EMPTY)
-       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>IntList
-
-  rule mapToList(.Map, _, EMPTY) => EMPTY
-
   // If 2nd arg is false, return the list unchanged. Else remove last element.
   syntax BytesList ::= removeLast ( input: BytesList, removeLast: Bool ) [function]
   rule removeLast(LIST, false) => LIST

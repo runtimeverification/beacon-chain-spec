@@ -617,6 +617,10 @@ def bytes_to_int(data: bytes) -> uint64:
   rule IL1 +IntList I IL2 => (IL1 I) +IntList IL2
   rule IL  +IntList .IntList => IL
 
+  //BytesList and Bytes concatenation. For some reason (parsing?) rule RHS cannot be used directly in other rules.
+  syntax BytesList ::= BytesList "+BytesList" Bytes                   [function]
+  rule BL1 +BytesList B => BL1 B
+
   //IntList merging (no duplicates)
   //Note: if the input lists duplicate-free, the resulting list will also be duplicate-free
   syntax IntList ::= IntList "++IntList" IntList     [function]
@@ -631,6 +635,7 @@ def bytes_to_int(data: bytes) -> uint64:
     requires I >Int 0
   rule B *Bytes 0 => ""
 
+  //Dynamic length of a ValueList.
   syntax Int ::= len( ValueList )                                     [function]
 
   rule len(_ LIST:IntList) => 1 +Int len(LIST)
@@ -662,6 +667,20 @@ def bytes_to_int(data: bytes) -> uint64:
   rule len(.PendingAttestationList) => 0
   rule len(_ LIST:CompactCommitteeList) => 1 +Int len(LIST)
   rule len(.CompactCommitteeList) => 0
+
+  //Converts K-Map representation of a python List/Vector to a K-ValueList. Only implemented for used types.
+  syntax ValueList ::= mapToList ( map: Map, index: Int, emptyList: ValueList ) [function]
+
+  rule mapToList((INDEX |-> ELEM:ProposerSlashing) MAP, INDEX, EMPTY)
+       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>ProposerSlashingList
+  rule mapToList((INDEX |-> ELEM:Validator) MAP, INDEX, EMPTY)
+       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>ValidatorList
+  rule mapToList((INDEX |-> ELEM:Bytes) MAP, INDEX, EMPTY)
+       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>BytesList
+  rule mapToList((INDEX |-> ELEM:Int) MAP, INDEX, EMPTY)
+       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>IntList
+
+  rule mapToList(.Map, _, EMPTY) => EMPTY
 
   syntax BitList ::= shiftRight(BitList)                              [function]
   rule shiftRight(BL I) => false BL
@@ -729,11 +748,4 @@ def bytes_to_int(data: bytes) -> uint64:
     requires I >Int 0
   rule initCompCommListOfSize(0) => .CompactCommitteeList
 
-  syntax BytesList ::= bytesValues(Map) [function]
-  rule bytesValues( (_ |-> B:Bytes) M:Map ) => B bytesValues(M)
-  rule bytesValues( .Map ) => .BytesList
-
-  syntax BytesList ::= BytesList "." "append" "(" Bytes ")" [function]
-  rule (B:Bytes BL:BytesList).append(B') => B (BL.append(B'))
-  rule (.BytesList).append(B') => B' .BytesList
 endmodule

@@ -8,6 +8,8 @@ Building
 
 These dependencies are pulled from [KEVM](https://github.com/kframework/evm-semantics), but with `git-lfs` added.
 
+#### Linux
+
 ```sh
 apt install --yes                                                           \
     autoconf bison clang-8.0 cmake curl flex gcc git-lfs libboost-test-dev  \
@@ -16,6 +18,26 @@ apt install --yes                                                           \
     make maven opam openjdk-8-jdk pandoc pkg-config python3 python-pygments \
     python-recommonmark python-sphinx time zlib1g-dev protobuf-compiler     \
     libprotobuf-dev
+
+git submodule update --init --recursive
+
+./deps/k/llvm-backend/src/main/native/llvm-backend/install-rust
+```
+
+#### MacOS
+
+In addition to the dependencies listed at [KEVM](https://github.com/kframework/evm-semantics), install:
+
+```sh
+brew install jemalloc llvm libyaml
+```
+
+and rust to use K's LLVM backend:
+
+```sh
+git submodule update --init --recursive
+
+./deps/k/llvm-backend/src/main/native/llvm-backend/install-rust
 ```
 
 Build K and K's dependencies.

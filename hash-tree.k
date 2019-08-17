@@ -527,6 +527,21 @@ for layer in range(1, 100):
     <voluntary-exits> VoluntaryExitLIST </voluntary-exits>
     <transfers> TransferLIST </transfers>
 
+  //Default value for BeaconBlockBody.
+  syntax Hash ::= "hash_tree_root_blockBodyEmpty" "(" ")"             [function]
+  rule hash_tree_root_blockBodyEmpty()
+       => hash_tree_root_part2_v2(
+            hash_tree_root(defaultBytes96())
+            hash_tree_root(#Eth1Data(zerohashes(0), 0, zerohashes(0)))
+            hash_tree_root(zerohashes(0))
+            hash_tree_root_list(.ProposerSlashingList, MAX_PROPOSER_SLASHINGS, %container, false)
+            hash_tree_root_list(.AttesterSlashingList, MAX_ATTESTER_SLASHINGS, %container, false)
+            hash_tree_root_list(.AttestationList, MAX_ATTESTATIONS, %container, false)
+            hash_tree_root_list(.DepositList, MAX_DEPOSITS, %container, false)
+            hash_tree_root_list(.VoluntaryExitList, MAX_VOLUNTARY_EXITS, %container, false)
+            hash_tree_root_list(.TransferList, MAX_TRANSFERS, %container, false)
+            .BytesList)
+
   // hash_tree_root() - BeaconState, stored in <state> in configuration
   //====================================================
   syntax Hash ::= "hash_tree_root_state" "(" ")"                      [function]

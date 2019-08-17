@@ -954,7 +954,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
        ... </k>
        <genesis-time> _ => E1TS -Int E1TS %Int SECONDS_PER_DAY +Int 2 *Int SECONDS_PER_DAY </genesis-time>
        <eth1-data> _ => #Eth1Data("", len(Deposits), E1BH) </eth1-data>  // deposit root unspecified, hence the ""
-       <latest-block-header> // unspecified roots and hence all the ""
+       <latest-block-header>
               //BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody()))
          _ => #BeaconBlockHeader(0, zerohashes(0), zerohashes(0), hash_tree_root_blockBodyEmpty(), defaultBytes96())
        </latest-block-header>
@@ -964,7 +964,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
   rule <k> (. => process_deposit(Dep))
            ~> processEth1Deposits(Dep Deposits => Deposits, Leaf Leaves => Leaves, INDEX => INDEX +Int 1)
        ... </k>
-       <eth1-data> // todo: does this precisely capture Python's '*leaves[:index + 1]'?
+       <eth1-data>
          E1Data => setDepositRoot(E1Data,
             //List[DepositData, 2**DEPOSIT_CONTRACT_TREE_DEPTH]
             hash_tree_root_list(slice(Leaves, 0, INDEX +Int 1), 2 ^Int DEPOSIT_CONTRACT_TREE_DEPTH, %container, false))
@@ -2134,9 +2134,9 @@ def process_final_updates(state: BeaconState) -> None:
   syntax KItem ::= "setHistoricalRootAccumulator" "(" Bool ")"
   rule <k> setHistoricalRootAccumulator(Condition) => .K ... </k>
     <historical-roots>
-      HL => #if Condition
-            #then HL // hash_tree_root(#HistoricalBatch({values(BRS)}:>BytesList, {values(SRS)}:>BytesList))
-            // todo: throws an exception: "Could not compute least upper bound for rewrite sort. Possible candidates: []"
+      HL:BytesList
+         => #if Condition
+            #then HL.append(hash_tree_root(#HistoricalBatch(bytesValues(BRS), bytesValues(SRS))))
             #else HL
             #fi
     </historical-roots>

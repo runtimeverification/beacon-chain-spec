@@ -737,4 +737,11 @@ def bytes_to_int(data: bytes) -> uint64:
     requires I >Int 0
   rule initCompCommListOfSize(0) => .CompactCommitteeList
 
+  syntax BytesList ::= bytesValues(Map) [function]
+  rule bytesValues( (_ |-> B:Bytes) M:Map ) => B bytesValues(M)
+  rule bytesValues( .Map ) => .BytesList
+
+  syntax BytesList ::= BytesList "." "append" "(" Bytes ")" [function]
+  rule (B:Bytes BL:BytesList).append(B') => B (BL.append(B'))
+  rule (.BytesList).append(B') => B' .BytesList
 endmodule

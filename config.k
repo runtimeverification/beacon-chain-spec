@@ -58,7 +58,6 @@ class BeaconBlockBody(Container):
     voluntary_exits: List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
     transfers: List[Transfer, MAX_TRANSFERS]
 */
-    // TODO: Add appropriate constraints on lists below
   configuration
     <beacon-chain>
       <k> $PGM:Pgm </k>

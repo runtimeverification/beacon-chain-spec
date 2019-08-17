@@ -311,7 +311,6 @@ class IndexedAttestation(Container):
     data: AttestationData
     signature: BLSSignature
   */
-  // TODO: Add constraint on length of ValidatorIndexList (MAX_VALIDATORS_PER_COMMITTEE)
   syntax IndexedAttestation ::= #IndexedAttestation( IntList, IntList, AttestationData, BLSSignature )
 
   syntax IntList ::= IndexedAttestation "." "custodyBit0Indices"      [function]
@@ -328,7 +327,6 @@ class PendingAttestation(Container):
     inclusion_delay: Slot
     proposer_index: ValidatorIndex
   */
-  // TODO: Add constraint on length of BitList (MAX_VALIDATORS_PER_COMMITTEE)
   syntax PendingAttestation ::= #PendingAttestation( BitList, AttestationData, Int, ValidatorIndex ) [klabel(#PendingAttestation), symbol]
 
   syntax BitList ::= PendingAttestation "." "aggregationBits"         [function]
@@ -360,7 +358,6 @@ class HistoricalBatch(Container):
     block_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
     state_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
   */
-  // TODO: Add constraint on length of BytesList (SLOTS_PER_HISTORICAL_ROOT)
   syntax HistoricalBatch ::= #HistoricalBatch( BytesList, BytesList )
 
   /*
@@ -384,8 +381,6 @@ class CompactCommittee(Container):
     pubkeys: List[Bytes48, MAX_VALIDATORS_PER_COMMITTEE]
     compact_validators: List[uint64, MAX_VALIDATORS_PER_COMMITTEE]
   */
-  // TODO: Add constraint on length of BytesList (MAX_VALIDATORS_PER_COMMITTEE)
-  // TODO: Add constraint on length of uint64List (MAX_VALIDATORS_PER_COMMITTEE)
   syntax CompactCommittee ::= #CompactCommittee( BytesList, IntList )
 
   syntax BytesList ::= CompactCommittee "." "pubkeys"                 [function]
@@ -435,7 +430,6 @@ class Attestation(Container):
     custody_bits: Bitlist[MAX_VALIDATORS_PER_COMMITTEE]
     signature: BLSSignature
   */
-  // TODO: Add constraint on lengths of both BitList lists (MAX_VALIDATORS_PER_COMMITTEE)
   syntax Attestation ::= #Attestation( BitList, AttestationData, BitList, BLSSignature )
 
   syntax BitList ::= Attestation "." "aggregation_bits"               [function]
@@ -449,7 +443,6 @@ class Deposit(Container):
     proof: Vector[Hash, DEPOSIT_CONTRACT_TREE_DEPTH + 1]  # Merkle path to deposit data list root
     data: DepositData
   */
-  // TODO: Add constraint on length of BytesList (DEPOSIT_CONTRACT_TREE_DEPTH + 1)
   syntax Deposit ::= #Deposit( BytesList, DepositData )
 
   syntax BytesList ::= Deposit "." "proof"                           [function]
@@ -576,7 +569,6 @@ def bytes_to_int(data: bytes) -> uint64:
   rule maxAux(I IL => IL, MAX => #if I <Int MAX #then MAX #else I #fi )
   rule maxAux(.IntList, MAX) => MAX
 
-  // TODO: optimize into a tail recursive version (?)
   syntax IntList ::= sortIntList(IntList) [function]
   rule sortIntList(.IntList) => .IntList
   rule sortIntList(I IL) => minIndex(IL,I) sortIntList(listExcept(I IL, minIndex(IL, I)))

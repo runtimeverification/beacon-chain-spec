@@ -40,10 +40,10 @@ git submodule update --init --recursive
 ./deps/k/llvm-backend/src/main/native/llvm-backend/install-rust
 ```
 
-Build K and K's dependencies.
+Build K and K's dependencies, and build local version of `libsecp256k1`.
 
 ```sh
-make deps
+make deps libsecp256k1
 ```
 
 ### Building

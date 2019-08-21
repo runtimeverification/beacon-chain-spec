@@ -37,10 +37,11 @@ TEST_DIR:=tests
 ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-spec-tests
 
 .PHONY: all clean \
-	    deps deps-k deps-tangle deps-tests \
-	    defn defn-llvm defn-haskell \
-	    build build-llvm build-haskell \
-	    test test-split test-python-config test-operations-minimal
+        libff libsecp256k1 \
+        deps deps-k deps-tangle deps-tests \
+        defn defn-llvm defn-haskell \
+        build build-llvm build-haskell \
+        test test-split test-python-config test-operations-minimal
 .SECONDARY:
 
 all: build
@@ -54,9 +55,22 @@ clean-submodules:
 # Non-K Dependencies
 # ------------------
 
+libsecp256k1_out:=$(LIBRARY_PATH)/pkgconfig/libsecp256k1.pc
 libff_out:=$(LIBRARY_PATH)/libff.a
 
+libsecp256k1: $(libsecp256k1_out)
 libff: $(libff_out)
+
+$(DEPS_DIR)/secp256k1/autogen.sh:
+	@echo "== submodule: $(DEPS_DIR)/secp256k1"
+	git submodule update --init --recursive -- $(DEPS_DIR)/secp256k1
+
+$(libsecp256k1_out): $(DEPS_DIR)/secp256k1/autogen.sh
+	cd $(DEPS_DIR)/secp256k1/ \
+	    && ./autogen.sh \
+	    && ./configure --enable-module-recovery --prefix="$(BUILD_LOCAL)" \
+	    && make -s -j4 \
+	    && make install
 
 UNAME_S := $(shell uname -s)
 

@@ -5,12 +5,9 @@ BUILD_DIR:=.build
 DEFN_DIR:=$(BUILD_DIR)/defn
 BUILD_LOCAL:=$(CURDIR)/$(BUILD_DIR)/local
 LIBRARY_PATH:=$(BUILD_LOCAL)/lib
-C_INCLUDE_PATH:=$(BUILD_LOCAL)/include
-CPLUS_INCLUDE_PATH:=$(BUILD_LOCAL)/include
+INCLUDE_PATH:=$(BUILD_LOCAL)/include
 PKG_CONFIG_PATH:=$(LIBRARY_PATH)/pkgconfig
 export LIBRARY_PATH
-export C_INCLUDE_PATH
-export CPLUS_INCLUDE_PATH
 export PKG_CONFIG_PATH
 
 DEPS_DIR:=deps
@@ -162,7 +159,7 @@ $(llvm_kompiled): $(llvm_files) $(libff_out)
 	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                        \
 	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp                 \
 	                 -ccopt -lprocps -ccopt -g -ccopt -std=c++11 -ccopt -O2                \
-	                 -ccopt -L$(LIBRARY_PATH) -I$(C_INCLUDE_PATH)                          \
+	                 -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                     \
 	                 $(LLVM_KOMPILE_OPTS)
 
 # Haskell Backend

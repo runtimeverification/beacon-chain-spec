@@ -162,7 +162,7 @@ $(llvm_kompiled): $(llvm_files) $(libff_out)
 	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                        \
 	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp                 \
 	                 -ccopt -lprocps -ccopt -g -ccopt -std=c++11 -ccopt -O2                \
-	                 -ccopt -L$(LIBRARY_PATH)                                              \
+	                 -ccopt -L$(LIBRARY_PATH) -I$(C_INCLUDE_PATH)                          \
 	                 $(LLVM_KOMPILE_OPTS)
 
 # Haskell Backend

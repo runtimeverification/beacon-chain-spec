@@ -35,8 +35,11 @@ def integer_squareroot(n: uint64) -> uint64:
     requires Y >=Int X
 
 /*
-def xor(bytes1: Bytes32, bytes2: Bytes32) -> Bytes32:
-    return Bytes32(a ^ b for a, b in zip(bytes1, bytes2))
+def xor(bytes_1: Bytes32, bytes_2: Bytes32) -> Bytes32:
+    """
+    Return the exclusive-or of two 32-byte strings.
+    """
+    return Bytes32(a ^ b for a, b in zip(bytes_1, bytes_2))
 */
   syntax Bytes ::= xor( Bytes, Bytes ) [function]
   rule xor(A, B) => chrChar(ordChar(substrString(A, 0, 1)) ^Int ordChar(substrString(B, 0, 1)))
@@ -98,7 +101,7 @@ def is_slashable_attestation_data(data_1: AttestationData, data_2: AttestationDa
 /*
 def is_valid_indexed_attestation(state: BeaconState, indexed_attestation: IndexedAttestation) -> bool:
     """
-    Verify validity of ``indexed_attestation``.
+    Check if ``indexed_attestation`` has valid indices and signature.
     """
     bit_0_indices = indexed_attestation.custody_bit_0_indices
     bit_1_indices = indexed_attestation.custody_bit_1_indices
@@ -410,14 +413,14 @@ def get_seed(state: BeaconState, epoch: Epoch) -> Hash:
     """
     Return the seed at ``epoch``.
     """
-    mix = get_randao_mix(state, Epoch(epoch + EPOCHS_PER_HISTORICAL_VECTOR - MIN_SEED_LOOKAHEAD))  # Avoid underflow
+    mix = get_randao_mix(state, Epoch(epoch + EPOCHS_PER_HISTORICAL_VECTOR - MIN_SEED_LOOKAHEAD - 1))  # Avoid underflow
     active_index_root = state.active_index_roots[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
     return hash(mix + active_index_root + int_to_bytes(epoch, length=32))
 */
   syntax Hash ::= "get_seed" "(" Int ")" [function]
   rule [[ get_seed(Epoch)
     => hash(
-         get_randao_mix(Epoch +Int EPOCHS_PER_HISTORICAL_VECTOR -Int MIN_SEED_LOOKAHEAD) +Bytes
+         get_randao_mix(Epoch +Int EPOCHS_PER_HISTORICAL_VECTOR -Int MIN_SEED_LOOKAHEAD -Int 1) +Bytes
          (AIRS[Epoch %Int EPOCHS_PER_HISTORICAL_VECTOR] +Bytes to_bytes(Epoch, 32))
        ) ]]
     <active-index-roots> AIRS </active-index-roots>
@@ -670,10 +673,10 @@ def get_total_balance(state: BeaconState, indices: Set[ValidatorIndex]) -> Gwei:
     """
     Return the combined effective balance of the ``indices``. (1 Gwei minimum to avoid divisions by zero.)
     """
-    return Gwei(max(sum([state.validators[index].effective_balance for index in indices]), 1))
+    return Gwei(max(1, sum([state.validators[index].effective_balance for index in indices])))
 */
   syntax Int ::= "get_total_balance" "(" IntList ")" [function]
-  rule get_total_balance(INDICES) => maxInt(getTotalBalancePure(INDICES, 0), 1)
+  rule get_total_balance(INDICES) => maxInt(1, getTotalBalancePure(INDICES, 0))
 
   syntax Int ::= getTotalBalancePure( IntList, Int ) [function]
   rule [[ getTotalBalancePure(I IL => IL, S => S +Int VAL.effectiveBalance) ]]
@@ -1090,7 +1093,7 @@ def process_slot(state: BeaconState) -> None:
     previous_state_root = hash_tree_root(state)
     state.state_roots[state.slot % SLOTS_PER_HISTORICAL_ROOT] = previous_state_root
     # Cache latest block header state root
-    if state.latest_block_header.state_root == Hash():
+    if state.latest_block_header.state_root == Bytes32():
         state.latest_block_header.state_root = previous_state_root
     # Cache block root
     previous_block_root = signing_root(state.latest_block_header)
@@ -1194,7 +1197,7 @@ def get_unslashed_attesting_indices(state: BeaconState,
     output = set()  # type: Set[ValidatorIndex]
     for a in attestations:
         output = output.union(get_attesting_indices(state, a.data, a.aggregation_bits))
-    return set(filter(lambda index: not state.validators[index].slashed, list(output)))
+    return set(filter(lambda index: not state.validators[index].slashed, output))
 */
   syntax IntList ::= "get_unslashed_attesting_indices" "(" PendingAttestationList ")" [function]
   rule get_unslashed_attesting_indices(PAL) => filterOutSlashedIndices(getAttestingIndicesLoop(PAL, .IntList))
@@ -1225,10 +1228,10 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
                                                 epoch: Epoch,
                                                 shard: Shard) -> Tuple[Crosslink, Set[ValidatorIndex]]:
     attestations = [a for a in get_matching_source_attestations(state, epoch) if a.data.crosslink.shard == shard]
-    crosslinks = list(filter(
+    crosslinks = filter(
         lambda c: hash_tree_root(state.current_crosslinks[shard]) in (c.parent_root, hash_tree_root(c)),
         [a.data.crosslink for a in attestations]
-    ))
+    )
     # Winning crosslink has the crosslink data root with the most balance voting for it (ties broken lexicographically)
     winning_crosslink = max(crosslinks, key=lambda c: (
         get_attesting_balance(state, [a for a in attestations if a.data.crosslink == c]), c.data_root
@@ -1990,7 +1993,9 @@ def process_slashings(state: BeaconState) -> None:
     total_balance = get_total_active_balance(state)
     for index, validator in enumerate(state.validators):
         if validator.slashed and epoch + EPOCHS_PER_SLASHINGS_VECTOR // 2 == validator.withdrawable_epoch:
-            penalty = validator.effective_balance * min(sum(state.slashings) * 3, total_balance) // total_balance
+            increment = EFFECTIVE_BALANCE_INCREMENT  # Factored out from penalty numerator to avoid uint64 overflow
+            penalty_numerator = validator.effective_balance // increment * min(sum(state.slashings) * 3, total_balance)
+            penalty = penalty_numerator // total_balance * increment
             decrease_balance(state, ValidatorIndex(index), penalty)
 */
   syntax KItem ::= "process_slashings" "(" ")"
@@ -2004,7 +2009,7 @@ def process_slashings(state: BeaconState) -> None:
        <validators> ValMap </validators>
 
   syntax KItem ::= "processSlashingsLoop" "(" IntList "," Int "," Int ")"
-  rule <k> (. => decrease_balance(INDEX, VAL.effectiveBalance *Int minInt(sumSlashings() *Int 3, TotalBalance) /Int TotalBalance))
+  rule <k> (. => decrease_balance(INDEX, (VAL.effectiveBalance /Int EFFECTIVE_BALANCE_INCREMENT *Int minInt(sumSlashings() *Int 3, TotalBalance)) /Int TotalBalance *Int EFFECTIVE_BALANCE_INCREMENT))
            ~> processSlashingsLoop(INDEX IL => IL, EP, TotalBalance)
        ... </k>
        <validators> ... INDEX |-> VAL ... </validators>
@@ -2034,8 +2039,6 @@ def process_final_updates(state: BeaconState) -> None:
         HALF_INCREMENT = EFFECTIVE_BALANCE_INCREMENT // 2
         if balance < validator.effective_balance or validator.effective_balance + 3 * HALF_INCREMENT < balance:
             validator.effective_balance = min(balance - balance % EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE)
-    # Update start shard
-    state.start_shard = Shard((state.start_shard + get_shard_delta(state, current_epoch)) % SHARD_COUNT)
     # Set active index root
     index_epoch = Epoch(next_epoch + ACTIVATION_EXIT_DELAY)
     index_root_position = index_epoch % EPOCHS_PER_HISTORICAL_VECTOR
@@ -2052,6 +2055,8 @@ def process_final_updates(state: BeaconState) -> None:
     if next_epoch % (SLOTS_PER_HISTORICAL_ROOT // SLOTS_PER_EPOCH) == 0:
         historical_batch = HistoricalBatch(block_roots=state.block_roots, state_roots=state.state_roots)
         state.historical_roots.append(hash_tree_root(historical_batch))
+    # Update start shard
+    state.start_shard = Shard((state.start_shard + get_shard_delta(state, current_epoch)) % SHARD_COUNT)
     # Rotate current/previous epoch attestations
     state.previous_epoch_attestations = state.current_epoch_attestations
     state.current_epoch_attestations = []
@@ -2059,12 +2064,12 @@ def process_final_updates(state: BeaconState) -> None:
   syntax KItem ::= "process_final_updates" "(" ")"
   rule <k> process_final_updates()
            => updateEffectiveBalances({keys_list(ValMap)}:>IntList, EFFECTIVE_BALANCE_INCREMENT /Int 2)             // param: HALF_INCREMENT
-           ~> updateStartShard(get_current_epoch())                                     // param: current_epoch
            ~> setActiveIndexRoots(get_current_epoch() +Int 1 +Int ACTIVATION_EXIT_DELAY) // param: index_epoch
            ~> setCommitteesRoot((get_current_epoch() +Int 1) %Int EPOCHS_PER_HISTORICAL_VECTOR) // param: committee_root_position
            ~> resetSlashings((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)     // param: (slashings index)
            ~> setRandaoMix((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)       // param: (rnd mixes index)
            ~> setHistoricalRootAccumulator()
+           ~> updateStartShard(get_current_epoch())                                     // param: current_epoch
            ~> rotateEpochAttestations() ... </k>
        <slot> SLOT </slot>
        <eth1-data-votes> E1DL => #if (SLOT +Int 1) %Int SLOTS_PER_ETH1_VOTING_PERIOD ==K 0
@@ -2181,8 +2186,9 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
     state.latest_block_header = BeaconBlockHeader(
         slot=block.slot,
         parent_root=block.parent_root,
-        state_root=Hash(),  # Overwritten in the next `process_slot` call
+        # state_root: zeroed, overwritten in the next `process_slot` call
         body_root=hash_tree_root(block.body),
+        # signature is always zeroed
     )
     # Verify proposer is not slashed
     proposer = state.validators[get_beacon_proposer_index(state)]
@@ -2196,9 +2202,9 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
          OldBlockHEADER  => #BeaconBlockHeader(
                                BlockSLOT,                   // block.slot
                                ParentROOT,                  // block.parent_root
-                               zerohashes(0),               // Hash()
+                               zerohashes(0),               // zeroed
                                hash_tree_root_blockBody(),  // hash_tree_root(block.body)
-                               defaultBytes96()  )
+                               defaultBytes96()  )          // zeroed
        </latest-block-header>
        <slot> SLOT </slot>
        <validators> ValMap </validators>
@@ -2385,6 +2391,9 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
     attestation_slot = get_attestation_data_slot(state, data)
     assert attestation_slot + MIN_ATTESTATION_INCLUSION_DELAY <= state.slot <= attestation_slot + SLOTS_PER_EPOCH
 
+    committee = get_crosslink_committee(state, data.target.epoch, data.crosslink.shard)
+    assert len(attestation.aggregation_bits) == len(attestation.custody_bits) == len(committee)
+
     pending_attestation = PendingAttestation(
         data=data,
         aggregation_bits=attestation.aggregation_bits,
@@ -2405,7 +2414,7 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
     assert data.crosslink.parent_root == hash_tree_root(parent_crosslink)
     assert data.crosslink.start_epoch == parent_crosslink.end_epoch
     assert data.crosslink.end_epoch == min(data.target.epoch, parent_crosslink.end_epoch + MAX_EPOCHS_PER_CROSSLINK)
-    assert data.crosslink.data_root == Hash()  # [to be removed in phase 1]
+    assert data.crosslink.data_root == Bytes32()  # [to be removed in phase 1]
 
     # Check signature
     assert is_valid_indexed_attestation(state, get_indexed_attestation(state, attestation))
@@ -2421,6 +2430,8 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
     requires ATT._data.crosslink.shard <Int SHARD_COUNT
      andBool SetItem(ATT._data.target.epoch) in SetItem(get_previous_epoch()) SetItem(get_current_epoch())
      andBool get_attestation_data_slot(ATT._data) +Int MIN_ATTESTATION_INCLUSION_DELAY <=Int SLOT
+     andBool len(ATT.aggregation_bits) ==K len(ATT.custody_bits)
+     andBool len(ATT.custody_bits) ==K len(get_crosslink_committee(ATT._data.target.epoch, ATT._data.crosslink.shard))
      andBool SLOT <=Int get_attestation_data_slot(ATT._data) +Int SLOTS_PER_EPOCH
 
   //logic starting from if statement inside `process_attestation`

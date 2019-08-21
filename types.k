@@ -41,6 +41,8 @@ module TYPES
   syntax BitList ::= List{Bit, ""}
   syntax BasicValueList ::= IntList | BitList
 
+  syntax BLSPubkeyList ::= List{BLSPubkey, ""}
+
   syntax ProposerSlashingList ::= List{ProposerSlashing, ""}
   syntax AttesterSlashingList ::= List{AttesterSlashing, ""}
   syntax AttestationList ::= List{Attestation, ""}
@@ -60,7 +62,7 @@ module TYPES
 
   syntax BytesList ::= List{Bytes, ""}
 
-  syntax BytesOrContainerList ::= BytesList | ContainerList
+  syntax BytesOrContainerList ::= BytesList | BLSPubkeyList | ContainerList
   syntax ValueList ::= BasicValueList | BytesOrContainerList
 
   // (Non-configurable) constants
@@ -119,6 +121,8 @@ module TYPES
 
   // Configuration -- Time parameters
   //====================================================
+  syntax Int ::= "SECONDS_PER_SLOT"
+  rule SECONDS_PER_SLOT => 6                                  [macro]
   syntax Int ::= "MIN_ATTESTATION_INCLUSION_DELAY"
   rule MIN_ATTESTATION_INCLUSION_DELAY => 2 ^Int 0            [macro]
   syntax Int ::= "SLOTS_PER_EPOCH"
@@ -378,12 +382,12 @@ class DepositData(Container):
 
   /*
 class CompactCommittee(Container):
-    pubkeys: List[Bytes48, MAX_VALIDATORS_PER_COMMITTEE]
+    pubkeys: List[BLSPubkey, MAX_VALIDATORS_PER_COMMITTEE]
     compact_validators: List[uint64, MAX_VALIDATORS_PER_COMMITTEE]
   */
-  syntax CompactCommittee ::= #CompactCommittee( BytesList, IntList )
+  syntax CompactCommittee ::= #CompactCommittee( BLSPubkeyList, IntList )
 
-  syntax BytesList ::= CompactCommittee "." "pubkeys"                 [function]
+  syntax BLSPubkeyList ::= CompactCommittee "." "pubkeys"             [function]
   rule #CompactCommittee(PUBKEYS, _).pubkeys => PUBKEYS
   syntax IntList ::= CompactCommittee "." "compact_validators"        [function]
   rule #CompactCommittee(_, CVALS).compact_validators => CVALS
@@ -436,6 +440,8 @@ class Attestation(Container):
   rule #Attestation(AggrBITS, _,_,_).aggregation_bits => AggrBITS
   syntax AttestationData ::= Attestation "." "_data"                  [function]
   rule #Attestation(_, AttDATA, _,_)._data => AttDATA
+  syntax BitList ::= Attestation "." "custody_bits"                   [function]
+  rule #Attestation(_,_, CustBITS,_).custody_bits => CustBITS
 
 
   /*
@@ -640,6 +646,8 @@ def bytes_to_int(data: bytes) -> uint64:
 
   rule len(_ LIST:IntList) => 1 +Int len(LIST)
   rule len(.IntList) => 0
+  rule len(_ LIST:BitList) => 1 +Int len(LIST)
+  rule len(.BitList) => 0
   rule len(_ LIST:BytesList) => 1 +Int len(LIST)
   rule len(.BytesList) => 0
 
@@ -744,7 +752,7 @@ def bytes_to_int(data: bytes) -> uint64:
   rule initMapOfSize(0) => .Map
 
   syntax CompactCommitteeList ::= initCompCommListOfSize(Int) [function]
-  rule initCompCommListOfSize(I) => #CompactCommittee(.BytesList, .IntList) initCompCommListOfSize(I -Int 1)
+  rule initCompCommListOfSize(I) => #CompactCommittee(.BLSPubkeyList, .IntList) initCompCommListOfSize(I -Int 1)
     requires I >Int 0
   rule initCompCommListOfSize(0) => .CompactCommitteeList
 

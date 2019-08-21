@@ -170,78 +170,74 @@ if __name__ == '__main__':
 
     yaml_test = yaml.load(args.input, Loader = yaml.FullLoader)
 
-    for test_case in yaml_test['test_cases']:
-        test_title = test_case['description'] + ' from ' + args.input.name
-        _notif(test_title)
+    test_title = args.input.name
+    _notif(test_title)
 
-        if 'bls_setting' in test_case and test_case['bls_setting'] > 1:
-            _warning('Skipping test with `bls_setting` set to ' + str(test_case['bls_setting']))
+    # TODO bls_setting is in meta.yaml
+    if 'bls_setting' in yaml_test and yaml_test['bls_setting'] > 1:
+        _warning('Skipping test with `bls_setting` set to ' + str(yaml_test['bls_setting']))
 
-        all_keys = list(init_cells.keys())
+    all_keys = list(init_cells.keys())
 
-        if 'transfer' in test_case:
-            test_case['pre']['transfers'] = [ test_case['transfer'] ]
+    # TODO not clear why needed
+    if 'transfer' in yaml_test:
+        yaml_test['transfers'] = [ yaml_test['transfer'] ]
 
-        skip_keys = [
-                    #  'GENESIS_TIME_CELL'
-                    #, 'SLOT_CELL'
-                    #, 'FORK_CELL'
-                    #, 'LATEST_BLOCK_HEADER_CELL'
-                    #, 'BLOCK_ROOTS_CELL'
-                    #, 'STATE_ROOTS_CELL'
-                    #, 'HISTORICAL_ROOTS_CELL'
-                    #, 'ETH1_DATA_CELL'
-                    #, 'ETH1_DATA_VOTES_CELL'
-                    #, 'ETH1_DEPOSIT_INDEX_CELL'
-                    #, 'VALIDATORS_CELL'
-                    #, 'BALANCES_CELL'
-                    #, 'START_SHARD_CELL'
-                    #, 'RANDAO_MIXES_CELL'
-                    #, 'ACTIVE_INDEX_ROOTS_CELL'
-                    #, 'COMPACT_COMMITTEES_ROOTS_CELL'
-                    #, 'SLASHINGS_CELL'
-                    #, 'PREVIOUS_EPOCH_ATTESTATION_CELL'
-                    #, 'CURRENT_EPOCH_ATTESTATIONS_CELL'
-                    #, 'PREVIOUS_CROSSLINKS_CELL'
-                    #, 'CURRENT_CROSSLINKS_CELL'
-                    #, 'JUSTIFICATION_BITS_CELL'
-                    #, 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL'
-                    #, 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'
-                    #, 'FINALIZED_CHECKPOINT_CELL'
-                    #, 'BLOCKSLOT_CELL'
-                    #, 'PARENT_ROOT_CELL'
-                    #, 'STATE_ROOT_CELL'
-                    #, 'SIGNATURE_CELL'
-                    #, 'TRANSFERS_CELL'
-                    ]
+    skip_keys = [
+                #  'GENESIS_TIME_CELL'
+                #, 'SLOT_CELL'
+                #, 'FORK_CELL'
+                #, 'LATEST_BLOCK_HEADER_CELL'
+                #, 'BLOCK_ROOTS_CELL'
+                #, 'STATE_ROOTS_CELL'
+                #, 'HISTORICAL_ROOTS_CELL'
+                #, 'ETH1_DATA_CELL'
+                #, 'ETH1_DATA_VOTES_CELL'
+                #, 'ETH1_DEPOSIT_INDEX_CELL'
+                #, 'VALIDATORS_CELL'
+                #, 'BALANCES_CELL'
+                #, 'START_SHARD_CELL'
+                #, 'RANDAO_MIXES_CELL'
+                #, 'ACTIVE_INDEX_ROOTS_CELL'
+                #, 'COMPACT_COMMITTEES_ROOTS_CELL'
+                #, 'SLASHINGS_CELL'
+                #, 'PREVIOUS_EPOCH_ATTESTATION_CELL'
+                #, 'CURRENT_EPOCH_ATTESTATIONS_CELL'
+                #, 'PREVIOUS_CROSSLINKS_CELL'
+                #, 'CURRENT_CROSSLINKS_CELL'
+                #, 'JUSTIFICATION_BITS_CELL'
+                #, 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL'
+                #, 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'
+                #, 'FINALIZED_CHECKPOINT_CELL'
+                #, 'BLOCKSLOT_CELL'
+                #, 'PARENT_ROOT_CELL'
+                #, 'STATE_ROOT_CELL'
+                #, 'SIGNATURE_CELL'
+                #, 'TRANSFERS_CELL'
+                ]
 
-        debug_keys = [ ]
+    debug_keys = [ ]
 
-        init_config_subst = buildInitConfigSubstitution(test_case['pre'], skip_keys = skip_keys, debug_keys = debug_keys)
-        init_config = substitute(symbolic_configuration, init_config_subst)
-        kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
+    init_config_subst = buildInitConfigSubstitution(yaml_test, skip_keys = skip_keys, debug_keys = debug_keys)
+    init_config = substitute(symbolic_configuration, init_config_subst)
+    kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
 
-        if test_case['post'] is None:
-            _warning('No post condition!')
-        else:
-            _warning('Skipping post block!')
+    with tempfile.NamedTemporaryFile(mode = 'w') as tempf:
+        json.dump(kast_json, tempf)
+        tempf.flush()
 
-        with tempfile.NamedTemporaryFile(mode = 'w') as tempf:
-            json.dump(kast_json, tempf)
-            tempf.flush()
+        fastPrinted = prettyPrintKast(init_config['args'][0], ALL_symbols).strip()
+        (returnCode, kastPrinted, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty')
+        if returnCode != 0:
+            _fatal('kast returned non-zero exit code: ' + args.input.name, code = returnCode)
 
-            fastPrinted = prettyPrintKast(init_config['args'][0], ALL_symbols).strip()
-            (returnCode, kastPrinted, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty')
-            if returnCode != 0:
-                _fatal('kast returned non-zero exit code: ' + args.input.name + ' ' + test_case['description'], code = returnCode)
+        kastPrinted = kastPrinted.strip()
+        if fastPrinted != kastPrinted:
+            _warning('kastPrinted and fastPrinted differ!')
+            for line in difflib.unified_diff(kastPrinted.split('\n'), fastPrinted.split('\n'), fromfile='kast', tofile='fast', lineterm='\n'):
+                sys.stderr.write(line + '\n')
+            sys.stderr.flush()
 
-            kastPrinted = kastPrinted.strip()
-            if fastPrinted != kastPrinted:
-                _warning('kastPrinted and fastPrinted differ!')
-                for line in difflib.unified_diff(kastPrinted.split('\n'), fastPrinted.split('\n'), fromfile='kast', tofile='fast', lineterm='\n'):
-                    sys.stderr.write(line + '\n')
-                sys.stderr.flush()
-
-            (returnCode, _, _) = krun(tempf.name, '--term', '--parser', 'cat')
-            if returnCode != 0:
-                _fatal('krun returned non-zero exit code: ' + args.input.name + ' ' + test_case['description'], code = returnCode)
+        (returnCode, _, _) = krun(tempf.name, '--term', '--parser', 'cat')
+        if returnCode != 0:
+            _fatal('krun returned non-zero exit code: ' + args.input.name, code = returnCode)

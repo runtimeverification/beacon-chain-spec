@@ -175,7 +175,7 @@ test: test-python-config test-operations-minimal
 test-python-config: buildConfig.py $(llvm_kompiled)
 	python3 $<
 
-operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/operations/*/*_minimal.yaml)
+operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/attestation/pyspec_tests/*/pre.yaml)
 
 test-operations-minimal: $(operations_minimal_tests:=.test-parse)
 

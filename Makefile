@@ -158,7 +158,8 @@ $(llvm_kompiled): $(llvm_files) $(libff_out)
 	                 --hook-namespaces KRYPTO                                              \
 	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                        \
 	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp                 \
-	                 -ccopt -lprocps -ccopt -g -ccopt -std=c++11 -ccopt -O2                \
+	                 $(addprefix -ccopt ,$(LINK_PROCPS))                                   \
+			 -ccopt -g -ccopt -std=c++11 -ccopt -O2                                \
 	                 -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                     \
 	                 $(LLVM_KOMPILE_OPTS)
 

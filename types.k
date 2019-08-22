@@ -41,8 +41,6 @@ module TYPES
   syntax BitList ::= List{Bit, ""}
   syntax BasicValueList ::= IntList | BitList
 
-  syntax BLSPubkeyList ::= List{BLSPubkey, ""}
-
   syntax ProposerSlashingList ::= List{ProposerSlashing, ""}
   syntax AttesterSlashingList ::= List{AttesterSlashing, ""}
   syntax AttestationList ::= List{Attestation, ""}
@@ -62,7 +60,7 @@ module TYPES
 
   syntax BytesList ::= List{Bytes, ""}
 
-  syntax BytesOrContainerList ::= BytesList | BLSPubkeyList | ContainerList
+  syntax BytesOrContainerList ::= BytesList | ContainerList
   syntax ValueList ::= BasicValueList | BytesOrContainerList
 
   // (Non-configurable) constants
@@ -385,9 +383,9 @@ class CompactCommittee(Container):
     pubkeys: List[BLSPubkey, MAX_VALIDATORS_PER_COMMITTEE]
     compact_validators: List[uint64, MAX_VALIDATORS_PER_COMMITTEE]
   */
-  syntax CompactCommittee ::= #CompactCommittee( BLSPubkeyList, IntList )
+  syntax CompactCommittee ::= #CompactCommittee( BytesList, IntList )
 
-  syntax BLSPubkeyList ::= CompactCommittee "." "pubkeys"             [function]
+  syntax BytesList ::= CompactCommittee "." "pubkeys"             [function]
   rule #CompactCommittee(PUBKEYS, _).pubkeys => PUBKEYS
   syntax IntList ::= CompactCommittee "." "compact_validators"        [function]
   rule #CompactCommittee(_, CVALS).compact_validators => CVALS
@@ -752,7 +750,7 @@ def bytes_to_int(data: bytes) -> uint64:
   rule initMapOfSize(0) => .Map
 
   syntax CompactCommitteeList ::= initCompCommListOfSize(Int) [function]
-  rule initCompCommListOfSize(I) => #CompactCommittee(.BLSPubkeyList, .IntList) initCompCommListOfSize(I -Int 1)
+  rule initCompCommListOfSize(I) => #CompactCommittee(.BytesList, .IntList) initCompCommListOfSize(I -Int 1)
     requires I >Int 0
   rule initCompCommListOfSize(0) => .CompactCommitteeList
 

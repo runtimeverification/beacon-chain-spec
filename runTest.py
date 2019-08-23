@@ -9,7 +9,11 @@ import tempfile
 import yaml
 
 from pyk.kast    import _notif, _warning, _fatal
+from pyk.kast      import combineDicts, appliedLabelStr, constLabel, underbarUnparsing, K_symbols, KApply, KConstant, KSequence, KVariable, KToken
 from buildConfig import *
+from pathlib import Path
+
+bitListTerm = lambda inputInt: listOf('Bit', converter=boolToken)([i for i in bin(int(inputInt, 16))[2:]])
 
 forkTerm = labelWithKeyPairs('#Fork' , [ ('previous_version' , hashToken)
                                        , ('current_version'  , hashToken)
@@ -41,6 +45,13 @@ crosslinkTerm = labelWithKeyPairs('#Crosslink' , [ ('shard'       , intToken)
                                                  ]
                                  )
 
+attestationDataTerm = labelWithKeyPairs('#AttestationData' , [ ('beacon_block_root' , hashToken)
+                                                             , ('source'            , checkpointTerm)
+                                                             , ('target'            , checkpointTerm)
+                                                             , ('crosslink'         , crosslinkTerm)
+                                                             ]
+                                       )
+
 blockheaderTerm = labelWithKeyPairs('#BeaconBlockHeader' , [ ('slot'        , intToken)
                                                            , ('parent_root' , hashToken)
                                                            , ('state_root'  , hashToken)
@@ -49,18 +60,19 @@ blockheaderTerm = labelWithKeyPairs('#BeaconBlockHeader' , [ ('slot'        , in
                                                            ]
                                    )
 
+# #Attestation( BitList, AttestationData, BitList, BLSSignature )
+attestationTerm = labelWithKeyPairs('#Attestation' , [ ('aggregation_bits' , bitListTerm)
+                                                     , ('data'             , attestationDataTerm)
+                                                     , ('custody_bits'     , bitListTerm)
+                                                     , ('signature'        , hashToken)
+                                                     ]
+                                   )
+
 eth1dataTerm = labelWithKeyPairs('#Eth1Data' , [ ('deposit_root'  , hashToken)
                                                , ('deposit_count' , intToken)
                                                , ('block_hash'    , hashToken)
                                                ]
                                 )
-
-attestationDataTerm = labelWithKeyPairs('#AttestationData' , [ ('beacon_block_root' , hashToken)
-                                                             , ('source'            , checkpointTerm)
-                                                             , ('target'            , checkpointTerm)
-                                                             , ('crosslink'         , crosslinkTerm)
-                                                             ]
-                                       )
 
 pendingAttestationTerm = labelWithKeyPairs('#PendingAttestation' , [ ('aggregation_bits' , listOf('Bit', converter = intToken))
                                                                    , ('data'             , attestationDataTerm)
@@ -100,15 +112,16 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'CURRENT_EPOCH_ATTESTATIONS_CELL'    : (['current_epoch_attestations']         , listOf('PendingAttestation', converter = pendingAttestationTerm))
                     , 'PREVIOUS_CROSSLINKS_CELL'           : (['previous_crosslinks']                , indexedMapOf(converter = crosslinkTerm))
                     , 'CURRENT_CROSSLINKS_CELL'            : (['current_crosslinks']                 , indexedMapOf(converter = crosslinkTerm))
-                    , 'JUSTIFICATION_BITS_CELL'            : (['justification_bits']                 , lambda inputInt: listOf('Bit', converter = boolToken)([i for i in bin(int(inputInt, 16))[2:]]))
+                    , 'JUSTIFICATION_BITS_CELL'            : (['justification_bits']                 , bitListTerm)
                     , 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL' : (['previous_justified_checkpoint']      , checkpointTerm)
                     , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'  : (['current_justified_checkpoint']       , checkpointTerm)
                     , 'FINALIZED_CHECKPOINT_CELL'          : (['finalized_checkpoint']               , checkpointTerm)
-                    , 'BLOCKSLOT_CELL'                     : (['latest_block_header', 'slot']        , intToken)
-                    , 'PARENT_ROOT_CELL'                   : (['latest_block_header', 'parent_root'] , hashToken)
-                    , 'STATE_ROOT_CELL'                    : (['latest_block_header', 'state_root']  , hashToken)
-                    , 'SIGNATURE_CELL'                     : (['latest_block_header', 'signature']   , hashToken)
-                    , 'TRANSFERS_CELL'                     : (['transfers']                          , listOf('Transfer', converter = transferTerm))
+                    # Later: only when test 2nd arg is a Block.
+                    # , 'BLOCKSLOT_CELL'                     : (['latest_block_header', 'slot']        , intToken)
+                    # , 'PARENT_ROOT_CELL'                   : (['latest_block_header', 'parent_root'] , hashToken)
+                    # , 'STATE_ROOT_CELL'                    : (['latest_block_header', 'state_root']  , hashToken)
+                    # , 'SIGNATURE_CELL'                     : (['latest_block_header', 'signature']   , hashToken)
+                    # , 'TRANSFERS_CELL'                     : (['transfers']                          , listOf('Transfer', converter = transferTerm))
                     }
 
 def getKeyChain(yaml_input, key_chain):
@@ -133,7 +146,12 @@ def gatherKeyChains(yaml_input):
                 key_chains.append([k] + sub_key_chain)
     return key_chains
 
-def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_keys = [], debug_keys = []):
+
+def buildKCellProcessAttestation(yaml_attestation):
+    return KApply ( 'process_attestation', [ attestationTerm(yaml_attestation) ] )
+
+
+def buildInitConfigSubstitution(test_pre_state, yaml_attestation, key_table = init_cells, skip_keys = [], debug_keys = []):
     new_key_table = {}
     used_key_chains = []
     for cell_var in key_table:
@@ -157,31 +175,39 @@ def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_key
     for pre_key in gatherKeyChains(test_pre_state):
         if pre_key not in used_key_chains:
             _warning('Unused pre_key: ' + str(pre_key))
+
+    new_key_table['K_CELL'] = buildKCellProcessAttestation(yaml_attestation)
+
     return new_key_table
 
 if __name__ == '__main__':
 
     arguments = argparse.ArgumentParser(prog = sys.argv[0])
     arguments.add_argument('command'  , choices = ['parse'])
-    arguments.add_argument('-i', '--input'  , type = argparse.FileType('r'), default = '-')
     arguments.add_argument('-o', '--output' , type = argparse.FileType('w'), default = '-')
+    arguments.add_argument('--pre'  , type = argparse.FileType('r'), default = '-')
+    arguments.add_argument('--type', choices = ['attestation'])
+    arguments.add_argument('-d', '--debug', dest='debug', action='store_true')
 
     args = arguments.parse_args()
 
-    yaml_test = yaml.load(args.input, Loader = yaml.FullLoader)
+    yaml_pre = yaml.load(args.pre, Loader = yaml.FullLoader)
+    attestation_file = Path.joinpath(Path(args.pre.name).parent, "attestation.yaml").as_posix()
+    print("\nAttestation file: " + attestation_file)
+    yaml_attestation = yaml.load(open(attestation_file, 'r'), Loader=yaml.FullLoader)
 
-    test_title = args.input.name
+    test_title = args.pre.name
     _notif(test_title)
 
     # TODO bls_setting is in meta.yaml
-    if 'bls_setting' in yaml_test and yaml_test['bls_setting'] > 1:
-        _warning('Skipping test with `bls_setting` set to ' + str(yaml_test['bls_setting']))
+    if 'bls_setting' in yaml_pre and yaml_pre['bls_setting'] > 1:
+        _warning('Skipping test with `bls_setting` set to ' + str(yaml_pre['bls_setting']))
 
     all_keys = list(init_cells.keys())
 
     # TODO not clear why needed
-    if 'transfer' in yaml_test:
-        yaml_test['transfers'] = [ yaml_test['transfer'] ]
+    if 'transfer' in yaml_pre:
+        yaml_pre['transfers'] = [yaml_pre['transfer']]
 
     skip_keys = [
                 #  'GENESIS_TIME_CELL'
@@ -218,18 +244,18 @@ if __name__ == '__main__':
 
     debug_keys = [ ]
 
-    init_config_subst = buildInitConfigSubstitution(yaml_test, skip_keys = skip_keys, debug_keys = debug_keys)
+    init_config_subst = buildInitConfigSubstitution(yaml_pre, yaml_attestation, skip_keys = skip_keys, debug_keys = debug_keys)
     init_config = substitute(symbolic_configuration, init_config_subst)
     kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
 
-    with tempfile.NamedTemporaryFile(mode = 'w') as tempf:
+    with tempfile.NamedTemporaryFile(mode = 'w', delete = not args.debug) as tempf:
         json.dump(kast_json, tempf)
         tempf.flush()
 
         fastPrinted = prettyPrintKast(init_config['args'][0], ALL_symbols).strip()
-        (returnCode, kastPrinted, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty')
+        (returnCode, kastPrinted, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty', '--debug')
         if returnCode != 0:
-            _fatal('kast returned non-zero exit code: ' + args.input.name, code = returnCode)
+            _fatal('kast returned non-zero exit code: ' + test_title, code = returnCode)
 
         kastPrinted = kastPrinted.strip()
         if fastPrinted != kastPrinted:
@@ -240,4 +266,4 @@ if __name__ == '__main__':
 
         (returnCode, _, _) = krun(tempf.name, '--term', '--parser', 'cat')
         if returnCode != 0:
-            _fatal('krun returned non-zero exit code: ' + args.input.name, code = returnCode)
+            _fatal('krun returned non-zero exit code: ' + test_title, code = returnCode)

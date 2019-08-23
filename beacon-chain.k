@@ -2419,7 +2419,7 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
     # Check signature
     assert is_valid_indexed_attestation(state, get_indexed_attestation(state, attestation))
 */
-  syntax KItem ::= "process_attestation" "(" Attestation ")"
+  syntax KItem ::= "process_attestation" "(" Attestation ")" [klabel(process_attestation), symbol]
   rule <k> process_attestation( ATT )
            => process_attestation_if(ATT, #PendingAttestation(ATT.aggregation_bits,
                                                               ATT._data,

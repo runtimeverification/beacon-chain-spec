@@ -432,7 +432,7 @@ class Attestation(Container):
     custody_bits: Bitlist[MAX_VALIDATORS_PER_COMMITTEE]
     signature: BLSSignature
   */
-  syntax Attestation ::= #Attestation( BitList, AttestationData, BitList, BLSSignature )
+  syntax Attestation ::= #Attestation( BitList, AttestationData, BitList, BLSSignature ) [klabel(#Attestation), symbol]
 
   syntax BitList ::= Attestation "." "aggregation_bits"               [function]
   rule #Attestation(AggrBITS, _,_,_).aggregation_bits => AggrBITS

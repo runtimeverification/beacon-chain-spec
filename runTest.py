@@ -151,7 +151,7 @@ def buildKCellProcessAttestation(yaml_attestation):
     return KApply ( 'process_attestation', [ attestationTerm(yaml_attestation) ] )
 
 
-def buildInitConfigSubstitution(test_pre_state, yaml_attestation, key_table = init_cells, skip_keys = [], debug_keys = []):
+def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_keys = [], debug_keys = []):
     new_key_table = {}
     used_key_chains = []
     for cell_var in key_table:
@@ -176,8 +176,6 @@ def buildInitConfigSubstitution(test_pre_state, yaml_attestation, key_table = in
         if pre_key not in used_key_chains:
             _warning('Unused pre_key: ' + str(pre_key))
 
-    new_key_table['K_CELL'] = buildKCellProcessAttestation(yaml_attestation)
-
     return new_key_table
 
 if __name__ == '__main__':
@@ -186,16 +184,12 @@ if __name__ == '__main__':
     arguments.add_argument('command'  , choices = ['parse'])
     arguments.add_argument('-o', '--output' , type = argparse.FileType('w'), default = '-')
     arguments.add_argument('--pre'  , type = argparse.FileType('r'), default = '-')
-    arguments.add_argument('--type', choices = ['attestation'])
+    arguments.add_argument('--type', choices = ['attestation', 'transfer'])
     arguments.add_argument('-d', '--debug', dest='debug', action='store_true')
 
     args = arguments.parse_args()
 
     yaml_pre = yaml.load(args.pre, Loader = yaml.FullLoader)
-    attestation_file = Path.joinpath(Path(args.pre.name).parent, "attestation.yaml").as_posix()
-    print("\nAttestation file: " + attestation_file)
-    yaml_attestation = yaml.load(open(attestation_file, 'r'), Loader=yaml.FullLoader)
-
     test_title = args.pre.name
     _notif(test_title)
 
@@ -243,8 +237,14 @@ if __name__ == '__main__':
                 ]
 
     debug_keys = [ ]
+    init_config_subst = buildInitConfigSubstitution(yaml_pre, skip_keys = skip_keys, debug_keys = debug_keys)
 
-    init_config_subst = buildInitConfigSubstitution(yaml_pre, yaml_attestation, skip_keys = skip_keys, debug_keys = debug_keys)
+    if args.type == 'attestation':
+        attestation_file = Path.joinpath(Path(args.pre.name).parent, "attestation.yaml").as_posix()
+        print("\nAttestation file: " + attestation_file)
+        yaml_attestation = yaml.load(open(attestation_file, 'r'), Loader=yaml.FullLoader)
+        init_config_subst['K_CELL'] = buildKCellProcessAttestation(yaml_attestation)
+
     init_config = substitute(symbolic_configuration, init_config_subst)
     kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
 

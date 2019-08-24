@@ -537,18 +537,16 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
        => #fun(CommitteesPerSlot
        => #fun(OFFSET
        => #fun(SHARD
-       //=> #fun(FirstCommittee
-       //=> #fun(MaxRandomByte
-       //=> #fun(SEED
-       //=> #fun(I
-       /*=> getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD,
-                                     FirstCommittee, MaxRandomByte, SEED, I)*/
-       //todo commented code should work but crashes with ClassCastException, even with one #fun.
-       => getBeaconProposerIndexLoop(0, 0, 0, 0, .IntList, 0, "", 0)
-       //   )(0)
-       //   )(0/*get_seed(EPOCH)*/)
-       //   )(2 ^Int 8 -Int 1)
-       //   )(get_crosslink_committee(EPOCH, SHARD))
+       => #fun(FirstCommittee
+       => #fun(MaxRandomByte
+       => #fun(SEED
+       => #fun(I
+       => getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD,
+                                     FirstCommittee, MaxRandomByte, SEED, I)
+          )(0)
+          )(get_seed(EPOCH))
+          )(2 ^Int 8 -Int 1)
+          )(get_crosslink_committee(EPOCH, SHARD))
           )((get_start_shard(EPOCH) +Int OFFSET) %Int SHARD_COUNT)
           )(CommitteesPerSlot *Int (SLOT %Int SLOTS_PER_EPOCH))
           )(get_committee_count(EPOCH))

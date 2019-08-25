@@ -2333,7 +2333,7 @@ def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSla
 
     slash_validator(state, proposer_slashing.proposer_index)
 */
-  syntax KItem ::= "process_proposer_slashing" "(" ProposerSlashing ")"
+  syntax KItem ::= "process_proposer_slashing" "(" ProposerSlashing ")" [klabel(process_proposer_slashing), symbol]
   rule <k> process_proposer_slashing(#ProposerSlashing(ProposerIndex, HEAD1, HEAD2)) => slash_validator(ProposerIndex, .K) ...</k>
        <validators> ProposerIndex |-> VAL ...</validators>
     requires compute_epoch_of_slot(HEAD1._slot) ==Int compute_epoch_of_slot(HEAD2._slot)
@@ -2357,7 +2357,7 @@ def process_attester_slashing(state: BeaconState, attester_slashing: AttesterSla
             slashed_any = True
     assert slashed_any
 */
-  syntax KItem ::= "process_attester_slashing" "(" AttesterSlashing ")"
+  syntax KItem ::= "process_attester_slashing" "(" AttesterSlashing ")" [klabel(process_attester_slashing), symbol]
   rule process_attester_slashing(#AttesterSlashing( IAtt1, IAtt2 ))
     => processAttesterSlashingLoop(
         sortIntList(intersection(IAtt1.custodyBit0Indices +IntList IAtt1.custodyBit1Indices,
@@ -2506,7 +2506,7 @@ def process_deposit(state: BeaconState, deposit: Deposit) -> None:
         index = ValidatorIndex(validator_pubkeys.index(pubkey))
         increase_balance(state, index, amount)
 */
-  syntax KItem ::= "process_deposit" "(" Deposit ")"
+  syntax KItem ::= "process_deposit" "(" Deposit ")" [klabel(process_deposit), symbol]
 
   //case pubkey in validator_pubkeys
   rule <k> process_deposit(DEP) => increase_balance(getValidatorIndexByPubkey(DEP.data.pubkey), DEP.data.amount) ...</k>
@@ -2573,7 +2573,7 @@ def process_voluntary_exit(state: BeaconState, exit: VoluntaryExit) -> None:
     # Initiate exit
     initiate_validator_exit(state, exit.validator_index)
 */
-  syntax KItem ::= "process_voluntary_exit" "(" VoluntaryExit ")"
+  syntax KItem ::= "process_voluntary_exit" "(" VoluntaryExit ")" [klabel(process_voluntary_exit), symbol]
 
   rule <k> process_voluntary_exit(#VoluntaryExit(ExitEPOCH, ValINDEX, _)) => initiate_validator_exit(ValINDEX) ...</k>
        <validators> ValINDEX |-> VAL ...</validators>
@@ -2609,7 +2609,7 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
     assert not (0 < state.balances[transfer.sender] < MIN_DEPOSIT_AMOUNT)
     assert not (0 < state.balances[transfer.recipient] < MIN_DEPOSIT_AMOUNT)
 */
-  syntax KItem ::= "process_transfer" "(" Transfer ")"
+  syntax KItem ::= "process_transfer" "(" Transfer ")" [klabel(process_transfer), symbol]
 
   rule <k> process_transfer(#Transfer( SENDER, RECIPIENT, AMOUNT, FEE, TrSLOT, PUBKEY, SIGNATURE ))
            => decrease_balance(SENDER, AMOUNT +Int FEE)

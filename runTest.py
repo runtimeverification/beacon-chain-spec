@@ -52,6 +52,20 @@ attestationDataTerm = labelWithKeyPairs('#AttestationData' , [ ('beacon_block_ro
                                                              ]
                                        )
 
+indexedAttestationTerm = labelWithKeyPairs('#IndexedAttestation' , [ ('custody_bit_0_indices' , listOf('Int', converter = intToken))
+                                                                   , ('custody_bit_1_indices' , listOf('Int', converter = intToken))
+                                                                   , ('data'                  , attestationDataTerm)
+                                                                   , ('signature'             , hashToken)
+                                                                   ]
+                                          )
+
+depositDataTerm = labelWithKeyPairs('#DepositData' , [ ('pubkey'                 , hashToken)
+                                                     , ('withdrawal_credentials' , hashToken)
+                                                     , ('amount'                 , intToken)
+                                                     , ('signature'              , hashToken)
+                                                     ]
+                                   )
+
 blockheaderTerm = labelWithKeyPairs('#BeaconBlockHeader' , [ ('slot'        , intToken)
                                                            , ('parent_root' , hashToken)
                                                            , ('state_root'  , hashToken)
@@ -60,6 +74,17 @@ blockheaderTerm = labelWithKeyPairs('#BeaconBlockHeader' , [ ('slot'        , in
                                                            ]
                                    )
 
+proposerSlashingTerm = labelWithKeyPairs('#ProposerSlashing' , [ ('proposer_index' , intToken)
+                                                               , ('header_1'       , blockheaderTerm)
+                                                               , ('header_2'       , blockheaderTerm)
+                                                               ]
+                                        )
+
+attesterSlashingTerm = labelWithKeyPairs('#AttesterSlashing' , [ ('attestation_1' , indexedAttestationTerm)
+                                                               , ('attestation_2' , indexedAttestationTerm)
+                                                               ]
+                                        )
+
 # #Attestation( BitList, AttestationData, BitList, BLSSignature )
 attestationTerm = labelWithKeyPairs('#Attestation' , [ ('aggregation_bits' , bitListTerm)
                                                      , ('data'             , attestationDataTerm)
@@ -67,6 +92,17 @@ attestationTerm = labelWithKeyPairs('#Attestation' , [ ('aggregation_bits' , bit
                                                      , ('signature'        , hashToken)
                                                      ]
                                    )
+
+depositTerm = labelWithKeyPairs('#Deposit' , [ ('proof' , listOf('Hash', converter = hashToken))
+                                             , ('data' , depositDataTerm)
+                                             ]
+                               )
+
+voluntaryExitTerm = labelWithKeyPairs('#VoluntaryExit' , [ ('epoch'           , intToken)
+                                                         , ('validator_index' , intToken)
+                                                         , ('signature'       , hashToken)
+                                                         ]
+                                     )
 
 eth1dataTerm = labelWithKeyPairs('#Eth1Data' , [ ('deposit_root'  , hashToken)
                                                , ('deposit_count' , intToken)
@@ -90,6 +126,15 @@ transferTerm = labelWithKeyPairs('#Transfer' , [ ('sender'    , intToken)
                                                , ('signature' , hashToken)
                                                ]
                                 )
+
+test_type_to_term = {
+    'proposer_slashing': proposerSlashingTerm,
+    'attester_slashing': attesterSlashingTerm,
+    'attestation'      : attestationTerm,
+    'deposit'          : depositTerm,
+    'voluntary_exit'   : voluntaryExitTerm,
+    'transfer'         : transferTerm
+}
 
 init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']                       , intToken)
                     , 'SLOT_CELL'                          : (['slot']                               , intToken)
@@ -147,10 +192,6 @@ def gatherKeyChains(yaml_input):
     return key_chains
 
 
-def buildKCellProcessAttestation(yaml_attestation):
-    return KApply ( 'process_attestation', [ attestationTerm(yaml_attestation) ] )
-
-
 def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_keys = [], debug_keys = []):
     new_key_table = {}
     used_key_chains = []
@@ -178,13 +219,21 @@ def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_key
 
     return new_key_table
 
+
+def loadYamlOperation(operation):
+    global yaml_operation
+    operation_file = Path.joinpath(Path(args.pre.name).parent, "%s.yaml" % operation).as_posix()
+    print("\nOperation file: " + operation_file)
+    return yaml.load(open(operation_file, 'r'), Loader=yaml.FullLoader)
+
+
 if __name__ == '__main__':
 
     arguments = argparse.ArgumentParser(prog = sys.argv[0])
     arguments.add_argument('command'  , choices = ['parse'])
     arguments.add_argument('-o', '--output' , type = argparse.FileType('w'), default = '-')
     arguments.add_argument('--pre'  , type = argparse.FileType('r'), default = '-')
-    arguments.add_argument('--type', choices = ['attestation', 'transfer'])
+    arguments.add_argument('--type', choices = test_type_to_term.keys())
     arguments.add_argument('-d', '--debug', dest='debug', action='store_true')
 
     args = arguments.parse_args()
@@ -198,10 +247,6 @@ if __name__ == '__main__':
         _warning('Skipping test with `bls_setting` set to ' + str(yaml_pre['bls_setting']))
 
     all_keys = list(init_cells.keys())
-
-    # TODO not clear why needed
-    if 'transfer' in yaml_pre:
-        yaml_pre['transfers'] = [yaml_pre['transfer']]
 
     skip_keys = [
                 #  'GENESIS_TIME_CELL'
@@ -239,11 +284,9 @@ if __name__ == '__main__':
     debug_keys = [ ]
     init_config_subst = buildInitConfigSubstitution(yaml_pre, skip_keys = skip_keys, debug_keys = debug_keys)
 
-    if args.type == 'attestation':
-        attestation_file = Path.joinpath(Path(args.pre.name).parent, "attestation.yaml").as_posix()
-        print("\nAttestation file: " + attestation_file)
-        yaml_attestation = yaml.load(open(attestation_file, 'r'), Loader=yaml.FullLoader)
-        init_config_subst['K_CELL'] = buildKCellProcessAttestation(yaml_attestation)
+    # build <k> cell
+    yaml_operation = loadYamlOperation(args.type)
+    init_config_subst['K_CELL'] = KApply('process_%s' % args.type, [test_type_to_term[args.type](yaml_operation)])
 
     init_config = substitute(symbolic_configuration, init_config_subst)
     kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }

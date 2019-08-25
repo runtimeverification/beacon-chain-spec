@@ -13,7 +13,8 @@ from pyk.kast      import combineDicts, appliedLabelStr, constLabel, underbarUnp
 from buildConfig import *
 from pathlib import Path
 
-bitListTerm = lambda inputInt: listOf('Bit', converter=boolToken)([i for i in bin(int(inputInt, 16))[2:]])
+bitListTerm = lambda inputInt: listOf('Bit', converter=intToBoolToken)([i for i in bin(int(inputInt, 16))[2:]])
+bytesListTerm = listOf('Bytes', converter = hashToken)
 
 forkTerm = labelWithKeyPairs('#Fork' , [ ('previous_version' , hashToken)
                                        , ('current_version'  , hashToken)
@@ -93,7 +94,7 @@ attestationTerm = labelWithKeyPairs('#Attestation' , [ ('aggregation_bits' , bit
                                                      ]
                                    )
 
-depositTerm = labelWithKeyPairs('#Deposit' , [ ('proof' , listOf('Hash', converter = hashToken))
+depositTerm = labelWithKeyPairs('#Deposit' , [ ('proof' , bytesListTerm)
                                              , ('data' , depositDataTerm)
                                              ]
                                )
@@ -110,7 +111,7 @@ eth1dataTerm = labelWithKeyPairs('#Eth1Data' , [ ('deposit_root'  , hashToken)
                                                ]
                                 )
 
-pendingAttestationTerm = labelWithKeyPairs('#PendingAttestation' , [ ('aggregation_bits' , listOf('Bit', converter = intToken))
+pendingAttestationTerm = labelWithKeyPairs('#PendingAttestation' , [ ('aggregation_bits' , bitListTerm)
                                                                    , ('data'             , attestationDataTerm)
                                                                    , ('inclusion_delay'  , intToken)
                                                                    , ('proposer_index'   , intToken)
@@ -142,16 +143,16 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'LATEST_BLOCK_HEADER_CELL'           : (['latest_block_header']                , blockheaderTerm)
                     , 'BLOCK_ROOTS_CELL'                   : (['block_roots']                        , indexedMapOf(converter = hashToken))
                     , 'STATE_ROOTS_CELL'                   : (['state_roots']                        , indexedMapOf(converter = hashToken))
-                    , 'HISTORICAL_ROOTS_CELL'              : (['historical_roots']                   , listOf('Hash', converter = hashToken))
+                    , 'HISTORICAL_ROOTS_CELL'              : (['historical_roots']                   , bytesListTerm)
                     , 'ETH1_DATA_CELL'                     : (['eth1_data']                          , eth1dataTerm)
                     , 'ETH1_DATA_VOTES_CELL'               : (['eth1_data_votes']                    , listOf('Eth1Data', converter = eth1dataTerm))
                     , 'ETH1_DEPOSIT_INDEX_CELL'            : (['eth1_deposit_index']                 , intToken)
                     , 'VALIDATORS_CELL'                    : (['validators']                         , indexedMapOf(converter = validatorTerm))
                     , 'BALANCES_CELL'                      : (['balances']                           , indexedMapOf(converter = intToken))
                     , 'START_SHARD_CELL'                   : (['start_shard']                        , intToken)
-                    , 'RANDAO_MIXES_CELL'                  : (['randao_mixes']                       , listOf('Hash', converter = hashToken))
-                    , 'ACTIVE_INDEX_ROOTS_CELL'            : (['active_index_roots']                 , listOf('Hash', converter = hashToken))
-                    , 'COMPACT_COMMITTEES_ROOTS_CELL'      : (['compact_committees_roots']           , listOf('Hash', converter = hashToken))
+                    , 'RANDAO_MIXES_CELL'                  : (['randao_mixes']                       , bytesListTerm)
+                    , 'ACTIVE_INDEX_ROOTS_CELL'            : (['active_index_roots']                 , bytesListTerm)
+                    , 'COMPACT_COMMITTEES_ROOTS_CELL'      : (['compact_committees_roots']           , bytesListTerm)
                     , 'SLASHINGS_CELL'                     : (['slashings']                          , indexedMapOf(converter = intToken))
                     , 'PREVIOUS_EPOCH_ATTESTATION_CELL'    : (['previous_epoch_attestations']        , listOf('PendingAttestation', converter = pendingAttestationTerm))
                     , 'CURRENT_EPOCH_ATTESTATIONS_CELL'    : (['current_epoch_attestations']         , listOf('PendingAttestation', converter = pendingAttestationTerm))

@@ -537,7 +537,7 @@ Equivalent of python n.to_bytes(len, 'little')
 */
   syntax Bytes ::= "to_bytes" "(" n: Int "," length: Int ")"          [function]
   rule to_bytes(N, LEN) => chrChar(N %Int 256) +Bytes to_bytes(N /Int 256, LEN -Int 1)
-    requires N >Int 0
+    requires LEN >Int 0
   rule to_bytes(0, 0) => ""
 
 /*
@@ -547,7 +547,11 @@ def bytes_to_int(data: bytes) -> uint64:
     """
     return int.from_bytes(data, ENDIANNESS)
 */
-  syntax Int ::= bytesToInt( Bytes ) [function]
+  syntax Int ::= "bytes_to_int" "(" Bytes ")" [function]
+  rule bytes_to_int(BYTES) => bytes_to_int(substrString(BYTES, 1, lengthString(BYTES))) *Int 256
+                              +Int ordChar(substrString(BYTES, 0, 1))
+    requires BYTES =/=String ""
+  rule bytes_to_int("") => 0
 
   // Python framework functions
   //====================================================

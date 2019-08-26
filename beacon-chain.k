@@ -216,14 +216,14 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
   rule compute_shuffled_index_loop(INDEX, _, _, CurrRound, RoundCount) => INDEX
     requires CurrRound >=Int RoundCount
 
+//        byte = source[(position % 256) // 8]
+//        bit = (byte >> (position % 8)) % 2
   syntax Bool ::= computeBit(Int /* position */, Hash /* seed */, Int /* current round */ ) [function]
   rule computeBit(Position, Seed, CurrRound)
-    => (String2Int(
-         substrString({computeSource(Position, Seed, CurrRound)}:>String,
+    => (ordChar( substrString({computeSource(Position, Seed, CurrRound)}:>String,
                       (Position %Int 256) /Int 8,
                       (Position %Int 256) /Int 8 +Int 1)
-                 )
-         /Int 2 ^Int (Position %Int 8))  // shifting right by (position % 8)
+       ) /Int 2 ^Int (Position %Int 8))  // shifting right by (position % 8)
        %Int 2 ==Int 1
 
   syntax Hash ::= computeSource(Int /* position */, Hash /* seed */, Int /* current round */) [function]
@@ -233,9 +233,10 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
   syntax Int ::= computeFlip(Int /* pivot */, Int /* index */, Int /* count */ ) [function]
   rule computeFlip(Pivot, Index, Count) => (Pivot +Int Count -Int Index) %Int Count
 
+  //pivot = bytes_to_int(hash(seed + int_to_bytes(current_round, length=1))[0:8]) % index_count
   syntax Int ::= computePivot(Hash /* seed */, Int /* current round */, Int /* index count */ ) [function]
     rule computePivot(Seed, CurrRound, Count)
-      => String2Int(substrString({hash({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1))}:>String, 0, 8)) %Int Count
+      => bytes_to_int(substrString({hash({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1))}:>String, 0, 8)) %Int Count
 
 /*
 def compute_committee(indices: Sequence[ValidatorIndex],
@@ -369,13 +370,8 @@ def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
     return state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
 */
   syntax Hash ::= "get_randao_mix" "(" Int ")" [function]
-  rule [[ get_randao_mix( EPOCH ) => getRandaoMixAux( RMS, EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR )]]
+  rule [[ get_randao_mix( EPOCH ) => RMS[ EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR ] ]]
     <randao-mixes> RMS </randao-mixes>
-
-  syntax Hash ::= getRandaoMixAux( BytesList, Int ) [function]
-  rule getRandaoMixAux(RM RMS, 0) => RM
-  rule getRandaoMixAux(RM RMS, I) => getRandaoMixAux(RMS, I -Int 1)
-    requires I >Int 0
 
 /*
 def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[ValidatorIndex]:

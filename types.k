@@ -313,7 +313,7 @@ class IndexedAttestation(Container):
     data: AttestationData
     signature: BLSSignature
   */
-  syntax IndexedAttestation ::= #IndexedAttestation( IntList, IntList, AttestationData, BLSSignature )
+  syntax IndexedAttestation ::= #IndexedAttestation( IntList, IntList, AttestationData, BLSSignature ) [klabel(#IndexedAttestation), symbol]
 
   syntax IntList ::= IndexedAttestation "." "custodyBit0Indices"      [function]
   rule #IndexedAttestation( IL0, _, _, _ ).custodyBit0Indices => IL0
@@ -369,7 +369,7 @@ class DepositData(Container):
     amount: Gwei
     signature: BLSSignature
   */
-  syntax DepositData ::= #DepositData( BLSPubkey, Hash, Int, BLSSignature )
+  syntax DepositData ::= #DepositData( BLSPubkey, Hash, Int, BLSSignature ) [klabel(#DepositData), symbol]
 
   syntax BLSPubkey  ::= DepositData "." "pubkey"                      [function]
   rule #DepositData( PUBKEY, _,_,_ ).pubkey => PUBKEY
@@ -416,14 +416,14 @@ class BeaconBlockHeader(Container):
     header_2: BeaconBlockHeader
 */
 syntax ProposerSlashing ::= #ProposerSlashing( proposerIndex: ValidatorIndex,
-                                               header1: BeaconBlockHeader, header2: BeaconBlockHeader )
+                                               header1: BeaconBlockHeader, header2: BeaconBlockHeader ) [klabel(#ProposerSlashing), symbol]
 
   /*
 class AttesterSlashing(Container):
     attestation_1: IndexedAttestation
     attestation_2: IndexedAttestation
   */
-  syntax AttesterSlashing ::= #AttesterSlashing( IndexedAttestation, IndexedAttestation )
+  syntax AttesterSlashing ::= #AttesterSlashing( IndexedAttestation, IndexedAttestation ) [klabel(#AttesterSlashing), symbol]
 
   /*
 class Attestation(Container):
@@ -447,7 +447,7 @@ class Deposit(Container):
     proof: Vector[Hash, DEPOSIT_CONTRACT_TREE_DEPTH + 1]  # Merkle path to deposit data list root
     data: DepositData
   */
-  syntax Deposit ::= #Deposit( BytesList, DepositData )
+  syntax Deposit ::= #Deposit( BytesList, DepositData ) [klabel(#Deposit), symbol]
 
   syntax BytesList ::= Deposit "." "proof"                           [function]
   rule #Deposit(PROOF, _).proof => PROOF
@@ -461,7 +461,7 @@ class VoluntaryExit(Container):
     validator_index: ValidatorIndex
     signature: BLSSignature
   */
-  syntax VoluntaryExit ::= #VoluntaryExit( Int, ValidatorIndex, BLSSignature )
+  syntax VoluntaryExit ::= #VoluntaryExit( Int, ValidatorIndex, BLSSignature ) [klabel(#VoluntaryExit), symbol]
 
   /*
 class Transfer(Container):

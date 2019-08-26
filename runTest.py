@@ -13,7 +13,8 @@ from pyk.kast      import combineDicts, appliedLabelStr, constLabel, underbarUnp
 from buildConfig import *
 from pathlib import Path
 
-bitListTerm = lambda inputInt: listOf('Bit', converter=boolToken)([i for i in bin(int(inputInt, 16))[2:]])
+bitListTerm = lambda inputInt: listOf('Bit', converter=intToBoolToken)([i for i in bin(int(inputInt, 16))[2:]])
+bytesListTerm = listOf('Bytes', converter = hashToken)
 
 forkTerm = labelWithKeyPairs('#Fork' , [ ('previous_version' , hashToken)
                                        , ('current_version'  , hashToken)
@@ -52,6 +53,20 @@ attestationDataTerm = labelWithKeyPairs('#AttestationData' , [ ('beacon_block_ro
                                                              ]
                                        )
 
+indexedAttestationTerm = labelWithKeyPairs('#IndexedAttestation' , [ ('custody_bit_0_indices' , listOf('Int', converter = intToken))
+                                                                   , ('custody_bit_1_indices' , listOf('Int', converter = intToken))
+                                                                   , ('data'                  , attestationDataTerm)
+                                                                   , ('signature'             , hashToken)
+                                                                   ]
+                                          )
+
+depositDataTerm = labelWithKeyPairs('#DepositData' , [ ('pubkey'                 , hashToken)
+                                                     , ('withdrawal_credentials' , hashToken)
+                                                     , ('amount'                 , intToken)
+                                                     , ('signature'              , hashToken)
+                                                     ]
+                                   )
+
 blockheaderTerm = labelWithKeyPairs('#BeaconBlockHeader' , [ ('slot'        , intToken)
                                                            , ('parent_root' , hashToken)
                                                            , ('state_root'  , hashToken)
@@ -59,6 +74,17 @@ blockheaderTerm = labelWithKeyPairs('#BeaconBlockHeader' , [ ('slot'        , in
                                                            , ('signature'   , hashToken)
                                                            ]
                                    )
+
+proposerSlashingTerm = labelWithKeyPairs('#ProposerSlashing' , [ ('proposer_index' , intToken)
+                                                               , ('header_1'       , blockheaderTerm)
+                                                               , ('header_2'       , blockheaderTerm)
+                                                               ]
+                                        )
+
+attesterSlashingTerm = labelWithKeyPairs('#AttesterSlashing' , [ ('attestation_1' , indexedAttestationTerm)
+                                                               , ('attestation_2' , indexedAttestationTerm)
+                                                               ]
+                                        )
 
 # #Attestation( BitList, AttestationData, BitList, BLSSignature )
 attestationTerm = labelWithKeyPairs('#Attestation' , [ ('aggregation_bits' , bitListTerm)
@@ -68,13 +94,24 @@ attestationTerm = labelWithKeyPairs('#Attestation' , [ ('aggregation_bits' , bit
                                                      ]
                                    )
 
+depositTerm = labelWithKeyPairs('#Deposit' , [ ('proof' , bytesListTerm)
+                                             , ('data' , depositDataTerm)
+                                             ]
+                               )
+
+voluntaryExitTerm = labelWithKeyPairs('#VoluntaryExit' , [ ('epoch'           , intToken)
+                                                         , ('validator_index' , intToken)
+                                                         , ('signature'       , hashToken)
+                                                         ]
+                                     )
+
 eth1dataTerm = labelWithKeyPairs('#Eth1Data' , [ ('deposit_root'  , hashToken)
                                                , ('deposit_count' , intToken)
                                                , ('block_hash'    , hashToken)
                                                ]
                                 )
 
-pendingAttestationTerm = labelWithKeyPairs('#PendingAttestation' , [ ('aggregation_bits' , listOf('Bit', converter = intToken))
+pendingAttestationTerm = labelWithKeyPairs('#PendingAttestation' , [ ('aggregation_bits' , bitListTerm)
                                                                    , ('data'             , attestationDataTerm)
                                                                    , ('inclusion_delay'  , intToken)
                                                                    , ('proposer_index'   , intToken)
@@ -91,22 +128,31 @@ transferTerm = labelWithKeyPairs('#Transfer' , [ ('sender'    , intToken)
                                                ]
                                 )
 
+test_type_to_term = {
+    'proposer_slashing': proposerSlashingTerm,
+    'attester_slashing': attesterSlashingTerm,
+    'attestation'      : attestationTerm,
+    'deposit'          : depositTerm,
+    'voluntary_exit'   : voluntaryExitTerm,
+    'transfer'         : transferTerm
+}
+
 init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']                       , intToken)
                     , 'SLOT_CELL'                          : (['slot']                               , intToken)
                     , 'FORK_CELL'                          : (['fork']                               , forkTerm)
                     , 'LATEST_BLOCK_HEADER_CELL'           : (['latest_block_header']                , blockheaderTerm)
                     , 'BLOCK_ROOTS_CELL'                   : (['block_roots']                        , indexedMapOf(converter = hashToken))
                     , 'STATE_ROOTS_CELL'                   : (['state_roots']                        , indexedMapOf(converter = hashToken))
-                    , 'HISTORICAL_ROOTS_CELL'              : (['historical_roots']                   , listOf('Hash', converter = hashToken))
+                    , 'HISTORICAL_ROOTS_CELL'              : (['historical_roots']                   , bytesListTerm)
                     , 'ETH1_DATA_CELL'                     : (['eth1_data']                          , eth1dataTerm)
                     , 'ETH1_DATA_VOTES_CELL'               : (['eth1_data_votes']                    , listOf('Eth1Data', converter = eth1dataTerm))
                     , 'ETH1_DEPOSIT_INDEX_CELL'            : (['eth1_deposit_index']                 , intToken)
                     , 'VALIDATORS_CELL'                    : (['validators']                         , indexedMapOf(converter = validatorTerm))
                     , 'BALANCES_CELL'                      : (['balances']                           , indexedMapOf(converter = intToken))
                     , 'START_SHARD_CELL'                   : (['start_shard']                        , intToken)
-                    , 'RANDAO_MIXES_CELL'                  : (['randao_mixes']                       , listOf('Hash', converter = hashToken))
-                    , 'ACTIVE_INDEX_ROOTS_CELL'            : (['active_index_roots']                 , listOf('Hash', converter = hashToken))
-                    , 'COMPACT_COMMITTEES_ROOTS_CELL'      : (['compact_committees_roots']           , listOf('Hash', converter = hashToken))
+                    , 'RANDAO_MIXES_CELL'                  : (['randao_mixes']                       , bytesListTerm)
+                    , 'ACTIVE_INDEX_ROOTS_CELL'            : (['active_index_roots']                 , bytesListTerm)
+                    , 'COMPACT_COMMITTEES_ROOTS_CELL'      : (['compact_committees_roots']           , bytesListTerm)
                     , 'SLASHINGS_CELL'                     : (['slashings']                          , indexedMapOf(converter = intToken))
                     , 'PREVIOUS_EPOCH_ATTESTATION_CELL'    : (['previous_epoch_attestations']        , listOf('PendingAttestation', converter = pendingAttestationTerm))
                     , 'CURRENT_EPOCH_ATTESTATIONS_CELL'    : (['current_epoch_attestations']         , listOf('PendingAttestation', converter = pendingAttestationTerm))
@@ -147,11 +193,7 @@ def gatherKeyChains(yaml_input):
     return key_chains
 
 
-def buildKCellProcessAttestation(yaml_attestation):
-    return KApply ( 'process_attestation', [ attestationTerm(yaml_attestation) ] )
-
-
-def buildInitConfigSubstitution(test_pre_state, yaml_attestation, key_table = init_cells, skip_keys = [], debug_keys = []):
+def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_keys = [], debug_keys = []):
     new_key_table = {}
     used_key_chains = []
     for cell_var in key_table:
@@ -176,9 +218,14 @@ def buildInitConfigSubstitution(test_pre_state, yaml_attestation, key_table = in
         if pre_key not in used_key_chains:
             _warning('Unused pre_key: ' + str(pre_key))
 
-    new_key_table['K_CELL'] = buildKCellProcessAttestation(yaml_attestation)
-
     return new_key_table
+
+
+def loadYamlOperation(operation):
+    operation_file = Path.joinpath(Path(args.pre.name).parent, "%s.yaml" % operation).as_posix()
+    print("\nOperation file: " + operation_file)
+    return yaml.load(open(operation_file, 'r'), Loader=yaml.FullLoader)
+
 
 if __name__ == '__main__':
 
@@ -186,16 +233,11 @@ if __name__ == '__main__':
     arguments.add_argument('command'  , choices = ['parse'])
     arguments.add_argument('-o', '--output' , type = argparse.FileType('w'), default = '-')
     arguments.add_argument('--pre'  , type = argparse.FileType('r'), default = '-')
-    arguments.add_argument('--type', choices = ['attestation'])
     arguments.add_argument('-d', '--debug', dest='debug', action='store_true')
 
     args = arguments.parse_args()
 
     yaml_pre = yaml.load(args.pre, Loader = yaml.FullLoader)
-    attestation_file = Path.joinpath(Path(args.pre.name).parent, "attestation.yaml").as_posix()
-    print("\nAttestation file: " + attestation_file)
-    yaml_attestation = yaml.load(open(attestation_file, 'r'), Loader=yaml.FullLoader)
-
     test_title = args.pre.name
     _notif(test_title)
 
@@ -204,10 +246,6 @@ if __name__ == '__main__':
         _warning('Skipping test with `bls_setting` set to ' + str(yaml_pre['bls_setting']))
 
     all_keys = list(init_cells.keys())
-
-    # TODO not clear why needed
-    if 'transfer' in yaml_pre:
-        yaml_pre['transfers'] = [yaml_pre['transfer']]
 
     skip_keys = [
                 #  'GENESIS_TIME_CELL'
@@ -243,8 +281,15 @@ if __name__ == '__main__':
                 ]
 
     debug_keys = [ ]
+    init_config_subst = buildInitConfigSubstitution(yaml_pre, skip_keys = skip_keys, debug_keys = debug_keys)
 
-    init_config_subst = buildInitConfigSubstitution(yaml_pre, yaml_attestation, skip_keys = skip_keys, debug_keys = debug_keys)
+    # build <k> cell
+    test_type = Path(args.pre.name).parts[-4]
+    if test_type not in test_type_to_term.keys():
+        raise Exception("Invalid test type: " + test_type)
+    yaml_operation = loadYamlOperation(test_type)
+    init_config_subst['K_CELL'] = KApply('process_%s' % test_type, [test_type_to_term[test_type](yaml_operation)])
+
     init_config = substitute(symbolic_configuration, init_config_subst)
     kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
 

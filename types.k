@@ -3,17 +3,25 @@ module TYPES
 
   // Basic Python (SSZ) types
   //====================================================
-  syntax Bytes   ::= String | Hash | Bytes48 | Bytes96
-  syntax Hash    ::= String
-  syntax Uint64  ::= Int
+  syntax Bytes   ::= String | Bytes32 | Bytes48 | Bytes96
   syntax Bytes4  ::= Bytes
   syntax Bytes8  ::= Bytes
-  syntax Bytes32 ::= Bytes
+
+  syntax Bytes32 ::= String | Hash
+  syntax Bytes32 ::= defaultBytes32()                                 [function]
+  rule defaultBytes32() => {"\x00" *Bytes 32}:>String
+
+  syntax Hash    ::= String
+  syntax Hash ::= defaultHash()                                       [function]
+  rule defaultHash() => {defaultBytes32()}:>String
+
   syntax Bytes48 ::= String
 
   syntax Bytes96 ::= String
   syntax Bytes96 ::= defaultBytes96()                                 [function]
   rule defaultBytes96() => {"\x00" *Bytes 96}:>String
+
+  syntax Uint64  ::= Int
 
   syntax Bit     ::= Bool
   syntax BasicValue ::= Int | Uint64 | Bool
@@ -743,12 +751,15 @@ def bytes_to_int(data: bytes) -> uint64:
   rule allOnes(false BL) => false
   rule allOnes(.BitList) => true
 
-  syntax Bytes ::= BytesList "[" Int "]"
+  syntax Bytes ::= BytesList "[" Int "]"                              [function]
   rule (H:Bytes HL:BytesList)[I] => HL[I -Int 1]
     requires I >Int 0
   rule (H:Bytes HL:BytesList)[0] => H
+  //Vector types might have less elements then their static size in the tests.
+  //We must consider missing elements present and initialized with default value.
+  rule (.BytesList)[I] => {defaultBytes32()}:>String //todo will not work for Bytes of length != 32.
 
-  syntax CompactCommittee ::= CompactCommitteeList "[" Int "]"
+  syntax CompactCommittee ::= CompactCommitteeList "[" Int "]"        [function]
   rule (H:CompactCommittee HL:CompactCommitteeList)[I] => HL[I -Int 1]
     requires I >Int 0
   rule (H:CompactCommittee HL:CompactCommitteeList)[0] => H

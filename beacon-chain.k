@@ -370,7 +370,7 @@ def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
     return state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
 */
   syntax Hash ::= "get_randao_mix" "(" Int ")" [function]
-  rule [[ get_randao_mix( EPOCH ) => RMS[ EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR ] ]]
+  rule [[ get_randao_mix( EPOCH ) => {RMS[ EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR ]}:>Hash ]]
     <randao-mixes> RMS </randao-mixes>
 
 /*
@@ -954,7 +954,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
        <eth1-data> _ => #Eth1Data("", len(Deposits), E1BH) </eth1-data>  // deposit root unspecified, hence the ""
        <latest-block-header>
               //BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody()))
-         _ => #BeaconBlockHeader(0, zerohashes(0), zerohashes(0), hash_tree_root_blockBodyEmpty(), defaultBytes96())
+         _ => #BeaconBlockHeader(0, defaultHash(), defaultHash(), hash_tree_root_blockBodyEmpty(), defaultBytes96())
        </latest-block-header>
        <validators> ValMap </validators>
 
@@ -1104,7 +1104,7 @@ def process_slot(state: BeaconState) -> None:
   rule <k> processSlotAux(HTROOT, SLOT) => cacheBlockRoot(SLOT) ... </k>
        <state-roots> SLOT |-> (_ => HTROOT) </state-roots>
        <latest-block-header> #BeaconBlockHeader(_,_, BLOCKSTATEROOT
-                                                     => #if BLOCKSTATEROOT =/=K zerohashes(0)
+                                                     => #if BLOCKSTATEROOT =/=K defaultHash()
                                                           #then HTROOT
                                                           #else BLOCKSTATEROOT
                                                         #fi , _,_) </latest-block-header>
@@ -2197,7 +2197,7 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
          OldBlockHEADER  => #BeaconBlockHeader(
                                BlockSLOT,                   // block.slot
                                ParentROOT,                  // block.parent_root
-                               zerohashes(0),               // zeroed
+                               defaultHash(),               // zeroed
                                hash_tree_root_blockBody(),  // hash_tree_root(block.body)
                                defaultBytes96()  )          // zeroed
        </latest-block-header>
@@ -2458,7 +2458,7 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
     requires ATT._data.crosslink.parentRoot ==K hash_tree_root(ParentCrosslink)
      andBool ATT._data.crosslink.startEpoch ==Int ParentCrosslink.endEpoch
      andBool ATT._data.crosslink.endEpoch ==Int minInt(ATT._data.target.epoch, ParentCrosslink.endEpoch +Int MAX_EPOCHS_PER_CROSSLINK)
-     andBool ATT._data.crosslink.dataRoot ==K zerohashes(0)
+     andBool ATT._data.crosslink.dataRoot ==K defaultHash()
      andBool is_valid_indexed_attestation(get_indexed_attestation(ATT))
 
 

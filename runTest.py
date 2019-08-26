@@ -222,7 +222,6 @@ def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_key
 
 
 def loadYamlOperation(operation):
-    global yaml_operation
     operation_file = Path.joinpath(Path(args.pre.name).parent, "%s.yaml" % operation).as_posix()
     print("\nOperation file: " + operation_file)
     return yaml.load(open(operation_file, 'r'), Loader=yaml.FullLoader)
@@ -234,7 +233,6 @@ if __name__ == '__main__':
     arguments.add_argument('command'  , choices = ['parse'])
     arguments.add_argument('-o', '--output' , type = argparse.FileType('w'), default = '-')
     arguments.add_argument('--pre'  , type = argparse.FileType('r'), default = '-')
-    arguments.add_argument('--type', choices = test_type_to_term.keys())
     arguments.add_argument('-d', '--debug', dest='debug', action='store_true')
 
     args = arguments.parse_args()
@@ -286,8 +284,11 @@ if __name__ == '__main__':
     init_config_subst = buildInitConfigSubstitution(yaml_pre, skip_keys = skip_keys, debug_keys = debug_keys)
 
     # build <k> cell
-    yaml_operation = loadYamlOperation(args.type)
-    init_config_subst['K_CELL'] = KApply('process_%s' % args.type, [test_type_to_term[args.type](yaml_operation)])
+    test_type = Path(args.pre.name).parts[-4]
+    if test_type not in test_type_to_term.keys():
+        raise Exception("Invalid test type: " + test_type)
+    yaml_operation = loadYamlOperation(test_type)
+    init_config_subst['K_CELL'] = KApply('process_%s' % test_type, [test_type_to_term[test_type](yaml_operation)])
 
     init_config = substitute(symbolic_configuration, init_config_subst)
     kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }

@@ -193,4 +193,4 @@ test-operations-minimal: $(operations_minimal_tests:=.test-parse)
 
 # Add argument --debug to python3 command, to keep temporary json file.
 %.yaml.test-parse: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse --pre $*.yaml --type attestation
+	python3 runTest.py parse --pre $*.yaml

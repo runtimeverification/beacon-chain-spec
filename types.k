@@ -536,7 +536,7 @@ Equivalent of python n.to_bytes(len, 'little')
   and int_to_bytes(n, length)
 */
   syntax Bytes ::= "to_bytes" "(" n: Int "," length: Int ")"          [function]
-  rule to_bytes(N, LEN) => chrChar(N modInt 256) +Bytes to_bytes(N /Int 256, LEN -Int 1)
+  rule to_bytes(N, LEN) => chrChar(N %Int 256) +Bytes to_bytes(N /Int 256, LEN -Int 1)
     requires N >Int 0
   rule to_bytes(0, 0) => ""
 
@@ -620,6 +620,11 @@ def bytes_to_int(data: bytes) -> uint64:
   syntax IntList ::= IntList "+IntList" IntList     [function]
   rule IL1 +IntList I IL2 => (IL1 I) +IntList IL2
   rule IL  +IntList .IntList => IL
+
+  //todo use list associativity if supported: rule append(IL, I) => IL I
+  syntax IntList ::= append(IntList, Int)                             [function]
+  rule append(I IL, A) => I append(IL, A)
+  rule append(.IntList, A) => A .IntList
 
   //BytesList and Bytes concatenation. For some reason (parsing?) rule RHS cannot be used directly in other rules.
   syntax BytesList ::= BytesList "+BytesList" Bytes                   [function]

@@ -224,7 +224,7 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
                       (Position %Int 256) /Int 8 +Int 1)
                  )
          /Int 2 ^Int (Position %Int 8))  // shifting right by (position % 8)
-       %Int 2 ==K 1
+       %Int 2 ==Int 1
 
   syntax Hash ::= computeSource(Int /* position */, Hash /* seed */, Int /* current round */) [function]
   rule computeSource(Position, Seed, CurrRound)
@@ -259,9 +259,9 @@ def compute_committee(indices: Sequence[ValidatorIndex],
         .IntList
     )
 
-  syntax IntList ::= computeCommitteeLoop( Int, Int, Hash, IntList, IntList )
+  syntax IntList ::= computeCommitteeLoop( Int, Int, Hash, IntList, IntList )     [function]
   rule computeCommitteeLoop(I => I +Int 1, END, SEED, INDICES,
-                            RESULT => RESULT compute_shuffled_index(I, len(INDICES), SEED))
+                            RESULT => append(RESULT, compute_shuffled_index(I, len(INDICES), SEED)))
     requires I <Int END
   rule computeCommitteeLoop(I, END, _,_, RESULT) => RESULT
     requires I >=Int END
@@ -391,7 +391,8 @@ def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[V
   syntax IntList ::= getActiveValidatorIndicesAux( result: IntList, i: Int, validators: Map, epoch: Int ) [function]
   rule getActiveValidatorIndicesAux(_,          I => I +Int 1, _:Map (I |-> V => .Map), EP )
     requires notBool is_active_validator(V, EP)
-  rule getActiveValidatorIndicesAux(Is => Is I, I => I +Int 1, _:Map (I |-> V => .Map), EP )
+  //todo use list associativity if supported: Is => Is I. kompiles but crashes at runtime.
+  rule getActiveValidatorIndicesAux(Is => append(Is, I), I => I +Int 1, _:Map (I |-> V => .Map), EP )
     requires         is_active_validator(V, EP)
   rule getActiveValidatorIndicesAux(Is, _, .Map, _) => Is
 

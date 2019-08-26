@@ -384,11 +384,11 @@ def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[V
     """
     return [ValidatorIndex(i) for i, v in enumerate(state.validators) if is_active_validator(v, epoch)]
 */
-  syntax IntList ::= "get_active_validator_indices" "(" Int ")" [function]
+  syntax IntList ::= "get_active_validator_indices" "(" epoch: Int ")" [function]
   rule [[ get_active_validator_indices(EP) => getActiveValidatorIndicesAux(.IntList, 0, VALIDATORS, EP) ]]
     <validators> VALIDATORS </validators>
 
-  syntax IntList ::= getActiveValidatorIndicesAux( IntList, Int, Map, Int ) [function]
+  syntax IntList ::= getActiveValidatorIndicesAux( result: IntList, i: Int, validators: Map, epoch: Int ) [function]
   rule getActiveValidatorIndicesAux(_,          I => I +Int 1, _:Map (I |-> V => .Map), EP )
     requires notBool is_active_validator(V, EP)
   rule getActiveValidatorIndicesAux(Is => Is I, I => I +Int 1, _:Map (I |-> V => .Map), EP )

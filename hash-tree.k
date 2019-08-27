@@ -117,7 +117,7 @@ for layer in range(1, 100):
     zerohashes.append(hash(zerohashes[layer - 1] + zerohashes[layer - 1]))
 */
   syntax Hash ::= zerohashes ( Int )                                  [function]
-  rule zerohashes(0) => {"\x00" *Bytes 32}:>String
+  rule zerohashes(0) => defaultHash()
   rule zerohashes(I) => hashConcat(zerohashes(I -Int 1), zerohashes(I -Int 1))
     requires I >Int 0
 
@@ -427,7 +427,7 @@ for layer in range(1, 100):
   rule chunkifyContainerList(V:CompactCommittee L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
-  rule chunkifyContainerList(LIST, MinLen) => hash_tree_root(zerohashes(0)) chunkifyContainerList(LIST, MinLen -Int 1)
+  rule chunkifyContainerList(LIST, MinLen) => hash_tree_root(defaultHash()) chunkifyContainerList(LIST, MinLen -Int 1)
     requires len(LIST) ==Int 0 andBool MinLen >Int 0
 
   rule chunkifyContainerList(LIST, MinLen) => .BytesList
@@ -531,8 +531,8 @@ for layer in range(1, 100):
   rule hash_tree_root_blockBodyEmpty()
        => hash_tree_root_part2_v2(
             hash_tree_root(defaultBytes96())
-            hash_tree_root(#Eth1Data(zerohashes(0), 0, zerohashes(0)))
-            hash_tree_root(zerohashes(0))
+            hash_tree_root(#Eth1Data(defaultHash(), 0, defaultHash()))
+            hash_tree_root(defaultHash())
             hash_tree_root_list(.ProposerSlashingList, MAX_PROPOSER_SLASHINGS, %container, false)
             hash_tree_root_list(.AttesterSlashingList, MAX_ATTESTER_SLASHINGS, %container, false)
             hash_tree_root_list(.AttestationList, MAX_ATTESTATIONS, %container, false)

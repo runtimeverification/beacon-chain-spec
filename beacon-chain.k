@@ -216,15 +216,15 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
   rule compute_shuffled_index_loop(INDEX, _, _, CurrRound, RoundCount) => INDEX
     requires CurrRound >=Int RoundCount
 
+//        byte = source[(position % 256) // 8]
+//        bit = (byte >> (position % 8)) % 2
   syntax Bool ::= computeBit(Int /* position */, Hash /* seed */, Int /* current round */ ) [function]
   rule computeBit(Position, Seed, CurrRound)
-    => (String2Int(
-         substrString({computeSource(Position, Seed, CurrRound)}:>String,
+    => (ordChar( substrString({computeSource(Position, Seed, CurrRound)}:>String,
                       (Position %Int 256) /Int 8,
                       (Position %Int 256) /Int 8 +Int 1)
-                 )
-         /Int 2 ^Int (Position %Int 8))  // shifting right by (position % 8)
-       %Int 2 ==K 1
+       ) /Int 2 ^Int (Position %Int 8))  // shifting right by (position % 8)
+       %Int 2 ==Int 1
 
   syntax Hash ::= computeSource(Int /* position */, Hash /* seed */, Int /* current round */) [function]
   rule computeSource(Position, Seed, CurrRound)
@@ -233,9 +233,10 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
   syntax Int ::= computeFlip(Int /* pivot */, Int /* index */, Int /* count */ ) [function]
   rule computeFlip(Pivot, Index, Count) => (Pivot +Int Count -Int Index) %Int Count
 
+  //pivot = bytes_to_int(hash(seed + int_to_bytes(current_round, length=1))[0:8]) % index_count
   syntax Int ::= computePivot(Hash /* seed */, Int /* current round */, Int /* index count */ ) [function]
     rule computePivot(Seed, CurrRound, Count)
-      => String2Int(substrString({hash({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1))}:>String, 0, 8)) %Int Count
+      => bytes_to_int(substrString({hash({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1))}:>String, 0, 8)) %Int Count
 
 /*
 def compute_committee(indices: Sequence[ValidatorIndex],
@@ -259,9 +260,9 @@ def compute_committee(indices: Sequence[ValidatorIndex],
         .IntList
     )
 
-  syntax IntList ::= computeCommitteeLoop( Int, Int, Hash, IntList, IntList )
+  syntax IntList ::= computeCommitteeLoop( Int, Int, Hash, IntList, IntList )     [function]
   rule computeCommitteeLoop(I => I +Int 1, END, SEED, INDICES,
-                            RESULT => RESULT compute_shuffled_index(I, len(INDICES), SEED))
+                            RESULT => append(RESULT, compute_shuffled_index(I, len(INDICES), SEED)))
     requires I <Int END
   rule computeCommitteeLoop(I, END, _,_, RESULT) => RESULT
     requires I >=Int END
@@ -369,13 +370,8 @@ def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
     return state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
 */
   syntax Hash ::= "get_randao_mix" "(" Int ")" [function]
-  rule [[ get_randao_mix( EPOCH ) => getRandaoMixAux( RMS, EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR )]]
+  rule [[ get_randao_mix( EPOCH ) => {RMS[ EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR ]}:>Hash ]]
     <randao-mixes> RMS </randao-mixes>
-
-  syntax Hash ::= getRandaoMixAux( BytesList, Int ) [function]
-  rule getRandaoMixAux(RM RMS, 0) => RM
-  rule getRandaoMixAux(RM RMS, I) => getRandaoMixAux(RMS, I -Int 1)
-    requires I >Int 0
 
 /*
 def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[ValidatorIndex]:
@@ -384,14 +380,15 @@ def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[V
     """
     return [ValidatorIndex(i) for i, v in enumerate(state.validators) if is_active_validator(v, epoch)]
 */
-  syntax IntList ::= "get_active_validator_indices" "(" Int ")" [function]
+  syntax IntList ::= "get_active_validator_indices" "(" epoch: Int ")" [function]
   rule [[ get_active_validator_indices(EP) => getActiveValidatorIndicesAux(.IntList, 0, VALIDATORS, EP) ]]
     <validators> VALIDATORS </validators>
 
-  syntax IntList ::= getActiveValidatorIndicesAux( IntList, Int, Map, Int ) [function]
+  syntax IntList ::= getActiveValidatorIndicesAux( result: IntList, i: Int, validators: Map, epoch: Int ) [function]
   rule getActiveValidatorIndicesAux(_,          I => I +Int 1, _:Map (I |-> V => .Map), EP )
     requires notBool is_active_validator(V, EP)
-  rule getActiveValidatorIndicesAux(Is => Is I, I => I +Int 1, _:Map (I |-> V => .Map), EP )
+  //todo use list associativity if supported: Is => Is I. kompiles but crashes at runtime.
+  rule getActiveValidatorIndicesAux(Is => append(Is, I), I => I +Int 1, _:Map (I |-> V => .Map), EP )
     requires         is_active_validator(V, EP)
   rule getActiveValidatorIndicesAux(Is, _, .Map, _) => Is
 
@@ -957,7 +954,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
        <eth1-data> _ => #Eth1Data("", len(Deposits), E1BH) </eth1-data>  // deposit root unspecified, hence the ""
        <latest-block-header>
               //BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody()))
-         _ => #BeaconBlockHeader(0, zerohashes(0), zerohashes(0), hash_tree_root_blockBodyEmpty(), defaultBytes96())
+         _ => #BeaconBlockHeader(0, defaultHash(), defaultHash(), hash_tree_root_blockBodyEmpty(), defaultBytes96())
        </latest-block-header>
        <validators> ValMap </validators>
 
@@ -1107,7 +1104,7 @@ def process_slot(state: BeaconState) -> None:
   rule <k> processSlotAux(HTROOT, SLOT) => cacheBlockRoot(SLOT) ... </k>
        <state-roots> SLOT |-> (_ => HTROOT) </state-roots>
        <latest-block-header> #BeaconBlockHeader(_,_, BLOCKSTATEROOT
-                                                     => #if BLOCKSTATEROOT =/=K zerohashes(0)
+                                                     => #if BLOCKSTATEROOT =/=K defaultHash()
                                                           #then HTROOT
                                                           #else BLOCKSTATEROOT
                                                         #fi , _,_) </latest-block-header>
@@ -2200,7 +2197,7 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
          OldBlockHEADER  => #BeaconBlockHeader(
                                BlockSLOT,                   // block.slot
                                ParentROOT,                  // block.parent_root
-                               zerohashes(0),               // zeroed
+                               defaultHash(),               // zeroed
                                hash_tree_root_blockBody(),  // hash_tree_root(block.body)
                                defaultBytes96()  )          // zeroed
        </latest-block-header>
@@ -2461,7 +2458,7 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
     requires ATT._data.crosslink.parentRoot ==K hash_tree_root(ParentCrosslink)
      andBool ATT._data.crosslink.startEpoch ==Int ParentCrosslink.endEpoch
      andBool ATT._data.crosslink.endEpoch ==Int minInt(ATT._data.target.epoch, ParentCrosslink.endEpoch +Int MAX_EPOCHS_PER_CROSSLINK)
-     andBool ATT._data.crosslink.dataRoot ==K zerohashes(0)
+     andBool ATT._data.crosslink.dataRoot ==K defaultHash()
      andBool is_valid_indexed_attestation(get_indexed_attestation(ATT))
 
 

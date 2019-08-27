@@ -3,17 +3,25 @@ module TYPES
 
   // Basic Python (SSZ) types
   //====================================================
-  syntax Bytes   ::= String | Hash | Bytes48 | Bytes96
-  syntax Hash    ::= String
-  syntax Uint64  ::= Int
+  syntax Bytes   ::= String | Bytes32 | Bytes48 | Bytes96
   syntax Bytes4  ::= Bytes
   syntax Bytes8  ::= Bytes
-  syntax Bytes32 ::= Bytes
+
+  syntax Bytes32 ::= String | Hash
+  syntax Bytes32 ::= defaultBytes32()                                 [function]
+  rule defaultBytes32() => {"\x00" *Bytes 32}:>String
+
+  syntax Hash    ::= String
+  syntax Hash ::= defaultHash()                                       [function]
+  rule defaultHash() => {defaultBytes32()}:>String
+
   syntax Bytes48 ::= String
 
   syntax Bytes96 ::= String
   syntax Bytes96 ::= defaultBytes96()                                 [function]
   rule defaultBytes96() => {"\x00" *Bytes 96}:>String
+
+  syntax Uint64  ::= Int
 
   syntax Bit     ::= Bool
   syntax BasicValue ::= Int | Uint64 | Bool
@@ -536,8 +544,8 @@ Equivalent of python n.to_bytes(len, 'little')
   and int_to_bytes(n, length)
 */
   syntax Bytes ::= "to_bytes" "(" n: Int "," length: Int ")"          [function]
-  rule to_bytes(N, LEN) => chrChar(N modInt 256) +Bytes to_bytes(N /Int 256, LEN -Int 1)
-    requires N >Int 0
+  rule to_bytes(N, LEN) => chrChar(N %Int 256) +Bytes to_bytes(N /Int 256, LEN -Int 1)
+    requires LEN >Int 0
   rule to_bytes(0, 0) => ""
 
 /*
@@ -547,7 +555,11 @@ def bytes_to_int(data: bytes) -> uint64:
     """
     return int.from_bytes(data, ENDIANNESS)
 */
-  syntax Int ::= bytesToInt( Bytes ) [function]
+  syntax Int ::= "bytes_to_int" "(" Bytes ")" [function]
+  rule bytes_to_int(BYTES) => bytes_to_int(substrString(BYTES, 1, lengthString(BYTES))) *Int 256
+                              +Int ordChar(substrString(BYTES, 0, 1))
+    requires BYTES =/=String ""
+  rule bytes_to_int("") => 0
 
   // Python framework functions
   //====================================================
@@ -620,6 +632,11 @@ def bytes_to_int(data: bytes) -> uint64:
   syntax IntList ::= IntList "+IntList" IntList     [function]
   rule IL1 +IntList I IL2 => (IL1 I) +IntList IL2
   rule IL  +IntList .IntList => IL
+
+  //todo use list associativity if supported: rule append(IL, I) => IL I
+  syntax IntList ::= append(IntList, Int)                             [function]
+  rule append(I IL, A) => I append(IL, A)
+  rule append(.IntList, A) => A .IntList
 
   //BytesList and Bytes concatenation. For some reason (parsing?) rule RHS cannot be used directly in other rules.
   syntax BytesList ::= BytesList "+BytesList" Bytes                   [function]
@@ -734,12 +751,15 @@ def bytes_to_int(data: bytes) -> uint64:
   rule allOnes(false BL) => false
   rule allOnes(.BitList) => true
 
-  syntax Bytes ::= BytesList "[" Int "]"
+  syntax Bytes ::= BytesList "[" Int "]"                              [function]
   rule (H:Bytes HL:BytesList)[I] => HL[I -Int 1]
     requires I >Int 0
   rule (H:Bytes HL:BytesList)[0] => H
+  //Vector types might have less elements then their static size in the tests.
+  //We must consider missing elements present and initialized with default value.
+  rule (.BytesList)[I] => {defaultBytes32()}:>String //todo will not work for Bytes of length != 32.
 
-  syntax CompactCommittee ::= CompactCommitteeList "[" Int "]"
+  syntax CompactCommittee ::= CompactCommitteeList "[" Int "]"        [function]
   rule (H:CompactCommittee HL:CompactCommitteeList)[I] => HL[I -Int 1]
     requires I >Int 0
   rule (H:CompactCommittee HL:CompactCommitteeList)[0] => H

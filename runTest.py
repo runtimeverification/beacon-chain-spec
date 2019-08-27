@@ -223,8 +223,19 @@ def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_key
 
 def loadYamlOperation(operation):
     operation_file = Path.joinpath(Path(args.pre.name).parent, "%s.yaml" % operation).as_posix()
-    print("\nOperation file: " + operation_file)
+    print("Operation file: %s\n" % operation_file)
     return yaml.load(open(operation_file, 'r'), Loader=yaml.FullLoader)
+
+
+def loadPostYaml():
+    try:
+        post_file = Path.joinpath(Path(args.pre.name).parent, "post.yaml").as_posix()
+        result = yaml.load(open(post_file, 'r'), Loader=yaml.FullLoader)
+        print("\nPost file: %s\n" % post_file)
+        return result
+    except FileNotFoundError:
+        print("\nNo post file")
+        return None
 
 
 if __name__ == '__main__':
@@ -312,3 +323,20 @@ if __name__ == '__main__':
         (returnCode, _, _) = krun(tempf.name, '--term', '--parser', 'cat')
         if returnCode != 0:
             _fatal('krun returned non-zero exit code: ' + test_title, code = returnCode)
+
+    # Printing the post state
+    post_json = loadPostYaml()
+    if post_json is not None:
+        post_config_subst = buildInitConfigSubstitution(post_json, skip_keys = skip_keys, debug_keys = debug_keys)
+        # todo use a copy of symbolic configuration?
+        post_config = substitute(symbolic_configuration, post_config_subst)
+        post_kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : post_config }
+        with tempfile.NamedTemporaryFile(mode = 'w', delete = not args.debug) as tempf:
+            json.dump(post_kast_json, tempf)
+            tempf.flush()
+
+            (returnCode, kastPrinted, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty', '--debug')
+            if returnCode != 0:
+                _fatal('kast returned non-zero exit code: ' + test_title, code = returnCode)
+
+            kastPrinted = kastPrinted.strip()

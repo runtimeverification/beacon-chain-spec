@@ -221,15 +221,15 @@ def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_key
     return new_key_table
 
 
-def loadYamlOperation(operation):
-    operation_file = Path.joinpath(Path(args.pre.name).parent, "%s.yaml" % operation).as_posix()
+def loadYamlOperation(pre_name, operation):
+    operation_file = Path.joinpath(Path(pre_name).parent, "%s.yaml" % operation).as_posix()
     print("Operation file: %s\n" % operation_file)
     return yaml.load(open(operation_file, 'r'), Loader=yaml.FullLoader)
 
 
-def loadPostYaml():
+def loadPostYaml(pre_name):
     try:
-        post_file = Path.joinpath(Path(args.pre.name).parent, "post.yaml").as_posix()
+        post_file = Path.joinpath(Path(pre_name).parent, "post.yaml").as_posix()
         result = yaml.load(open(post_file, 'r'), Loader=yaml.FullLoader)
         print("\nPost file: %s\n" % post_file)
         return result
@@ -298,7 +298,7 @@ if __name__ == '__main__':
     test_type = Path(args.pre.name).parts[-4]
     if test_type not in test_type_to_term.keys():
         raise Exception("Invalid test type: " + test_type)
-    yaml_operation = loadYamlOperation(test_type)
+    yaml_operation = loadYamlOperation(args.pre.name, test_type)
     init_config_subst['K_CELL'] = KApply('process_%s' % test_type, [test_type_to_term[test_type](yaml_operation)])
 
     init_config = substitute(symbolic_configuration, init_config_subst)
@@ -325,7 +325,7 @@ if __name__ == '__main__':
             _fatal('krun returned non-zero exit code: ' + test_title, code = returnCode)
 
     # Printing the post state
-    post_json = loadPostYaml()
+    post_json = loadPostYaml(args.pre.name)
     if post_json is not None:
         post_config_subst = buildInitConfigSubstitution(post_json, skip_keys = skip_keys, debug_keys = debug_keys)
         # todo use a copy of symbolic configuration?

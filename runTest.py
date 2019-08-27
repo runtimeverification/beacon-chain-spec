@@ -6,6 +6,8 @@ import difflib
 import json
 import sys
 import tempfile
+from collections import Iterator
+
 import yaml
 
 from pyk.kast    import _notif, _warning, _fatal
@@ -13,7 +15,17 @@ from pyk.kast      import combineDicts, appliedLabelStr, constLabel, underbarUnp
 from buildConfig import *
 from pathlib import Path
 
-bitListTerm = lambda inputInt: listOf('Bit', converter=intToBoolToken)([i for i in bin(int(inputInt, 16))[2:]])
+# Adapted from:
+# https://github.com/ethereum/py-ssz/blob/938fbdb931576b75813e7bf660cfd66f06482b84/ssz/sedes/bitlist.py#L66-L76
+def deserializeBitlist(hex_string: str):
+    data = bytearray.fromhex(hex_string[2:])
+    as_integer = int.from_bytes(data, 'little')
+    len_value = as_integer.bit_length() - 1
+    return [((data[bit_index // 8] >> bit_index % 8) % 2 == 1) for bit_index in range(len_value)]
+
+
+bitListTerm = lambda hex_string: listOf('Bit', converter = boolToBoolStringToken)(deserializeBitlist(hex_string))
+
 bytesListTerm = listOf('Bytes', converter = hashToken)
 
 forkTerm = labelWithKeyPairs('#Fork' , [ ('previous_version' , hashToken)

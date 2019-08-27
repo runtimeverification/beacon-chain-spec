@@ -6,6 +6,8 @@ import difflib
 import json
 import sys
 import tempfile
+from collections import Iterator
+
 import yaml
 
 from pyk.kast    import _notif, _warning, _fatal
@@ -13,7 +15,25 @@ from pyk.kast      import combineDicts, appliedLabelStr, constLabel, underbarUnp
 from buildConfig import *
 from pathlib import Path
 
-bitListTerm = lambda inputInt: listOf('Bit', converter=intToBoolToken)([i for i in bin(int(inputInt, 16))[2:]])
+JUSTIFICATION_BITS_LENGTH = 4
+
+# Adapted from:
+# https://github.com/ethereum/py-ssz/blob/938fbdb931576b75813e7bf660cfd66f06482b84/ssz/sedes/bitlist.py#L66-L76
+def deserializeBitlist(hex_string: str):
+    data = bytearray.fromhex(hex_string[2:])
+    as_integer = int.from_bytes(data, 'little')
+    len_value = as_integer.bit_length() - 1
+    return [bool((data[bit_index // 8] >> bit_index % 8) % 2) for bit_index in range(len_value)]
+
+def deserializeBitvector(hex_string: str, bit_count: int):
+    data = bytearray.fromhex(hex_string[2:])
+    return [bool((data[bit_index // 8] >> bit_index % 8) % 2) for bit_index in range(bit_count)]
+
+bitListTerm = lambda hex_string: listOf('Bit', converter = boolToBoolStringToken)(deserializeBitlist(hex_string))
+
+bitVectorTerm = lambda bit_count: lambda hex_string: \
+    listOf('Bit', converter = boolToBoolStringToken)(deserializeBitvector(hex_string, bit_count))
+
 bytesListTerm = listOf('Bytes', converter = hashToken)
 
 forkTerm = labelWithKeyPairs('#Fork' , [ ('previous_version' , hashToken)
@@ -86,7 +106,11 @@ attesterSlashingTerm = labelWithKeyPairs('#AttesterSlashing' , [ ('attestation_1
                                                                ]
                                         )
 
-# #Attestation( BitList, AttestationData, BitList, BLSSignature )
+# class Attestation(Container):
+#     aggregation_bits: Bitlist[MAX_VALIDATORS_PER_COMMITTEE]
+#     data: AttestationData
+#     custody_bits: Bitlist[MAX_VALIDATORS_PER_COMMITTEE]
+#     signature: BLSSignature
 attestationTerm = labelWithKeyPairs('#Attestation' , [ ('aggregation_bits' , bitListTerm)
                                                      , ('data'             , attestationDataTerm)
                                                      , ('custody_bits'     , bitListTerm)
@@ -111,6 +135,11 @@ eth1dataTerm = labelWithKeyPairs('#Eth1Data' , [ ('deposit_root'  , hashToken)
                                                ]
                                 )
 
+# class PendingAttestation(Container):
+#     aggregation_bits: Bitlist[MAX_VALIDATORS_PER_COMMITTEE]
+#     data: AttestationData
+#     inclusion_delay: Slot
+#     proposer_index: ValidatorIndex
 pendingAttestationTerm = labelWithKeyPairs('#PendingAttestation' , [ ('aggregation_bits' , bitListTerm)
                                                                    , ('data'             , attestationDataTerm)
                                                                    , ('inclusion_delay'  , intToken)
@@ -158,7 +187,8 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'CURRENT_EPOCH_ATTESTATIONS_CELL'    : (['current_epoch_attestations']         , listOf('PendingAttestation', converter = pendingAttestationTerm))
                     , 'PREVIOUS_CROSSLINKS_CELL'           : (['previous_crosslinks']                , indexedMapOf(converter = crosslinkTerm))
                     , 'CURRENT_CROSSLINKS_CELL'            : (['current_crosslinks']                 , indexedMapOf(converter = crosslinkTerm))
-                    , 'JUSTIFICATION_BITS_CELL'            : (['justification_bits']                 , bitListTerm)
+                      # justification_bits: Bitvector[JUSTIFICATION_BITS_LENGTH]
+                    , 'JUSTIFICATION_BITS_CELL'            : (['justification_bits']                 , bitVectorTerm(JUSTIFICATION_BITS_LENGTH))
                     , 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL' : (['previous_justified_checkpoint']      , checkpointTerm)
                     , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'  : (['current_justified_checkpoint']       , checkpointTerm)
                     , 'FINALIZED_CHECKPOINT_CELL'          : (['finalized_checkpoint']               , checkpointTerm)

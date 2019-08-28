@@ -350,7 +350,10 @@ if __name__ == '__main__':
                 sys.stderr.write(line + '\n')
             sys.stderr.flush()
 
-        (returnCode, _, _) = krun(tempf.name, '--term', '--parser', 'cat')
+        krun_args = [tempf.name, '--term', '--parser', 'cat']
+        if args.debug:
+            krun_args.append('--debug')
+        (returnCode, _, _) = krun(*krun_args)
         if returnCode != 0:
             _fatal('krun returned non-zero exit code: ' + test_title, code = returnCode)
 

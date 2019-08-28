@@ -62,6 +62,11 @@ $(DEPS_DIR)/secp256k1/autogen.sh:
 	@echo "== submodule: $(DEPS_DIR)/secp256k1"
 	git submodule update --init --recursive -- $(DEPS_DIR)/secp256k1
 
+$(PLUGIN_SUBMODULE)/make.timestamp:
+	@echo "== submodule: $@"
+	git submodule update --init --recursive -- $(PLUGIN_SUBMODULE)
+	touch $(PLUGIN_SUBMODULE)/make.timestamp
+
 $(libsecp256k1_out): $(DEPS_DIR)/secp256k1/autogen.sh
 	cd $(DEPS_DIR)/secp256k1/ \
 	    && ./autogen.sh \
@@ -97,10 +102,11 @@ $(libff_out): $(DEPS_DIR)/libff/CMakeLists.txt
 # Dependencies
 # ------------
 
-deps: deps-k deps-tangle deps-tests
+deps: deps-k deps-tangle deps-tests plugin-deps
 deps-k: $(K_SUBMODULE)/mvn.timestamp
 deps-tangle: $(PANDOC_TANGLE_SUBMODULE)/submodule.timestamp
 deps-tests: $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
+plugin-deps: $(PLUGIN_SUBMODULE)/make.timestamp
 
 %/submodule.timestamp:
 	@echo "== submodule: $*"

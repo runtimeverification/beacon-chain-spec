@@ -633,14 +633,24 @@ def bytes_to_int(data: bytes) -> uint64:
   rule IL1 +IntList I IL2 => (IL1 I) +IntList IL2
   rule IL  +IntList .IntList => IL
 
-  //todo use list associativity if supported: rule append(IL, I) => IL I
-  syntax IntList ::= append(IntList, Int)                             [function]
-  rule append(I IL, A) => I append(IL, A)
-  rule append(.IntList, A) => A .IntList
+  // +append class of functions - appending at the end of user-list
+  //---------------------------------------------------------------
+  syntax IntList ::= IntList "+append" Int                            [function]
+  rule (EL1:Int LIST) +append EL2 => EL1 (LIST +append EL2)
+  rule .IntList +append EL => EL .IntList
 
-  //BytesList and Bytes concatenation. For some reason (parsing?) rule RHS cannot be used directly in other rules.
-  syntax BytesList ::= BytesList "+BytesList" Bytes                   [function]
-  rule BL1 +BytesList B => BL1 B
+  syntax BytesList ::= BytesList "+append" Bytes                      [function]
+  rule (EL1:Bytes LIST) +append EL2 => EL1 (LIST +append EL2)
+  rule .BytesList +append EL => EL .BytesList
+
+  syntax PendingAttestationList ::= PendingAttestationList "+append" PendingAttestation [function]
+  rule (EL1:PendingAttestation LIST) +append EL2 => EL1 (LIST +append EL2)
+  rule .PendingAttestationList +append EL => EL .PendingAttestationList
+
+  syntax Eth1DataList ::= Eth1DataList "+append" Eth1Data             [function]
+  rule (EL1:Eth1Data LIST) +append EL2 => EL1 (LIST +append EL2)
+  rule .Eth1DataList +append EL => EL .Eth1DataList
+
 
   //IntList merging (no duplicates)
   //Note: if the input lists duplicate-free, the resulting list will also be duplicate-free
@@ -757,7 +767,7 @@ def bytes_to_int(data: bytes) -> uint64:
   rule (H:Bytes HL:BytesList)[0] => H
   //Vector types might have less elements then their static size in the tests.
   //We must consider missing elements present and initialized with default value.
-  rule (.BytesList)[I] => {defaultBytes32()}:>String //todo will not work for Bytes of length != 32.
+  rule (.BytesList)[I] => {defaultBytes32()}:>String //NOTEH will not work for Bytes of length != 32.
 
   syntax CompactCommittee ::= CompactCommitteeList "[" Int "]"        [function]
   rule (H:CompactCommittee HL:CompactCommitteeList)[I] => HL[I -Int 1]
@@ -770,6 +780,7 @@ def bytes_to_int(data: bytes) -> uint64:
   rule initMapOfSize(0) => .Map
 
   syntax CompactCommitteeList ::= initCompCommListOfSize(Int) [function]
+  //todo incorrect init values for fields
   rule initCompCommListOfSize(I) => #CompactCommittee(.BytesList, .IntList) initCompCommListOfSize(I -Int 1)
     requires I >Int 0
   rule initCompCommListOfSize(0) => .CompactCommitteeList

@@ -253,8 +253,8 @@ def compute_committee(indices: Sequence[ValidatorIndex],
   syntax IntList ::= "compute_committee" "(" IntList "," Hash "," Int "," Int ")" [function]
   rule compute_committee(INDICES, SEED, INDEX, COUNT)
     => computeCommitteeLoop(
-        len(INDICES) *Int INDEX,
-        len(INDICES) *Int (INDEX +Int 1),
+        len(INDICES) *Int INDEX /Int COUNT,
+        len(INDICES) *Int (INDEX +Int 1) /Int COUNT,
         SEED,
         INDICES,
         .IntList
@@ -2422,7 +2422,7 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
        ...</k>
        <slot> SLOT </slot>
     requires ATT._data.crosslink.shard <Int SHARD_COUNT
-     andBool SetItem(ATT._data.target.epoch) in SetItem(get_previous_epoch()) SetItem(get_current_epoch())
+     andBool (ATT._data.target.epoch) in (SetItem(get_previous_epoch()) SetItem(get_current_epoch()))
      andBool get_attestation_data_slot(ATT._data) +Int MIN_ATTESTATION_INCLUSION_DELAY <=Int SLOT
      andBool len(ATT.aggregation_bits) ==K len(ATT.custody_bits)
      andBool len(ATT.custody_bits) ==K len(get_crosslink_committee(ATT._data.target.epoch, ATT._data.crosslink.shard))

@@ -100,8 +100,10 @@ def chunkify(bytez):
   syntax BytesList ::= chunkify( Bytes )                              [function]
   rule chunkify(B) => chunkifyAux(padTo32(B))
 
+  // bytez += b'\x00' * (-len(bytez) % 32)
   syntax Bytes ::= padTo32( Bytes )                                   [function]
-  rule padTo32(BYTES) => BYTES +Bytes ("\x00" *Bytes ((lengthString(BYTES) +Int 31) /Int 32 -Int lengthString(BYTES)) )
+  //modInt always returns a nonnegative value.
+  rule padTo32(BYTES) => BYTES +Bytes ("\x00" *Bytes ( (0 -Int lengthString(BYTES)) modInt 32 ) )
 
   syntax BytesList ::= chunkifyAux( Bytes )                           [function]
   rule chunkifyAux(BYTES) => substrString(BYTES, 0, 32) chunkifyAux(substrString(BYTES, 32, lengthString(BYTES)))

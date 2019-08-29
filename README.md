@@ -29,7 +29,7 @@ git submodule update --init --recursive
 In addition to the dependencies listed at [KEVM](https://github.com/kframework/evm-semantics), install:
 
 ```sh
-brew install jemalloc llvm libyaml
+brew install jemalloc llvm libyaml git-lfs cryptopp
 ```
 
 and rust to use K's LLVM backend:

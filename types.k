@@ -1,5 +1,8 @@
+requires "constants-minimal.k"
+
 module TYPES
   imports DOMAINS
+  imports CONSTANTS
 
   // Basic Python (SSZ) types
   //====================================================
@@ -70,139 +73,6 @@ module TYPES
 
   syntax BytesOrContainerList ::= BytesList | ContainerList
   syntax ValueList ::= BasicValueList | BytesOrContainerList
-
-  // (Non-configurable) constants
-  //====================================================
-  syntax Int ::= "FAR_FUTURE_EPOCH"
-  rule FAR_FUTURE_EPOCH => 2 ^Int 64 -Int 1                   [macro]
-  syntax Int ::= "BASE_REWARDS_PER_EPOCH"
-  rule BASE_REWARDS_PER_EPOCH => 5                            [macro]
-  syntax Int ::= "DEPOSIT_CONTRACT_TREE_DEPTH"
-  rule DEPOSIT_CONTRACT_TREE_DEPTH => 2 ^Int 5                [macro]
-  syntax Int ::= "SECONDS_PER_DAY"
-  rule SECONDS_PER_DAY => 86400                               [macro]
-  syntax Int ::= "JUSTIFICATION_BITS_LENGTH"
-  rule JUSTIFICATION_BITS_LENGTH => 4                         [macro]
-  syntax String ::= "ENDIANNESS"
-  rule ENDIANNESS => "little"                                 [macro]
-
-  // Configuration -- Misc
-  //====================================================
-  syntax Int ::= "SHARD_COUNT"
-  rule SHARD_COUNT => 2 ^Int 10                               [macro]
-  syntax Int ::= "TARGET_COMMITTEE_SIZE"
-  rule TARGET_COMMITTEE_SIZE => 2 ^Int 7                      [macro]
-  syntax Int ::= "MAX_VALIDATORS_PER_COMMITTEE"
-  rule MAX_VALIDATORS_PER_COMMITTEE => 2 ^Int 12              [macro]
-  syntax Int ::= "MIN_PER_EPOCH_CHURN_LIMIT"
-  rule MIN_PER_EPOCH_CHURN_LIMIT => 2 ^Int 2                  [macro]
-  syntax Int ::= "CHURN_LIMIT_QUOTIENT"
-  rule CHURN_LIMIT_QUOTIENT => 2 ^Int 16                      [macro]
-  syntax Int ::= "SHUFFLE_ROUND_COUNT"
-  rule SHUFFLE_ROUND_COUNT => 90                              [macro]
-  syntax Int ::= "MIN_GENESIS_ACTIVE_VALIDATOR_COUNT"
-  rule MIN_GENESIS_ACTIVE_VALIDATOR_COUNT => 2 ^Int 16        [macro]
-  syntax Int ::= "MIN_GENESIS_TIME"
-  rule MIN_GENESIS_TIME => 1578009600                         [macro]
-
-  // Configuration -- Gwei values
-  //====================================================
-  syntax Int ::= "MIN_DEPOSIT_AMOUNT"
-  rule MIN_DEPOSIT_AMOUNT => 2 ^Int 0 *Int 10 ^Int 9          [macro]
-  syntax Int ::= "MAX_EFFECTIVE_BALANCE"
-  rule MAX_EFFECTIVE_BALANCE => 2 ^Int 5 *Int 10 ^Int 9       [macro]
-  syntax Int ::= "EJECTION_BALANCE"
-  rule EJECTION_BALANCE => 2 ^Int 4 *Int 10 ^Int 9            [macro]
-  syntax Int ::= "EFFECTIVE_BALANCE_INCREMENT"
-  rule EFFECTIVE_BALANCE_INCREMENT => 2 ^Int 0 *Int 10 ^Int 9 [macro]
-
-  // Configuration -- Initial values
-  //====================================================
-  syntax Int ::= "GENESIS_SLOT"
-  rule GENESIS_SLOT => 0                                      [macro]
-  syntax Int ::= "GENESIS_EPOCH"
-  rule GENESIS_EPOCH => 0                                     [macro]
-  syntax Bytes ::= "BLS_WITHDRAWAL_PREFIX"
-  rule BLS_WITHDRAWAL_PREFIX => "\x00"                        [macro]
-
-  // Configuration -- Time parameters
-  //====================================================
-  syntax Int ::= "SECONDS_PER_SLOT"
-  rule SECONDS_PER_SLOT => 6                                  [macro]
-  syntax Int ::= "MIN_ATTESTATION_INCLUSION_DELAY"
-  rule MIN_ATTESTATION_INCLUSION_DELAY => 2 ^Int 0            [macro]
-  syntax Int ::= "SLOTS_PER_EPOCH"
-  rule SLOTS_PER_EPOCH => 2 ^Int 6                            [macro]
-  syntax Int ::= "MIN_SEED_LOOKAHEAD"
-  rule MIN_SEED_LOOKAHEAD => 2 ^Int 0                         [macro]
-  syntax Int ::= "ACTIVATION_EXIT_DELAY"
-  rule ACTIVATION_EXIT_DELAY => 2 ^Int 2                      [macro]
-  syntax Int ::= "SLOTS_PER_ETH1_VOTING_PERIOD"
-  rule SLOTS_PER_ETH1_VOTING_PERIOD => 2 ^Int 10              [macro]
-  syntax Int ::= "SLOTS_PER_HISTORICAL_ROOT"
-  rule SLOTS_PER_HISTORICAL_ROOT => 2 ^Int 13                 [macro]
-  syntax Int ::= "MIN_VALIDATOR_WITHDRAWABILITY_DELAY"
-  rule MIN_VALIDATOR_WITHDRAWABILITY_DELAY => 2 ^Int 8        [macro]
-  syntax Int ::= "PERSISTENT_COMMITTEE_PERIOD"
-  rule PERSISTENT_COMMITTEE_PERIOD => 2 ^Int 11               [macro]
-  syntax Int ::= "MAX_EPOCHS_PER_CROSSLINK"
-  rule MAX_EPOCHS_PER_CROSSLINK => 2 ^Int 6                   [macro]
-  syntax Int ::= "MIN_EPOCHS_TO_INACTIVITY_PENALTY"
-  rule MIN_EPOCHS_TO_INACTIVITY_PENALTY => 2 ^Int 2           [macro]
-
-  // Configuration -- State list lengths
-  //====================================================
-  syntax Int ::= "EPOCHS_PER_HISTORICAL_VECTOR"
-  rule EPOCHS_PER_HISTORICAL_VECTOR => 2 ^Int 16              [macro]
-  syntax Int ::= "EPOCHS_PER_SLASHINGS_VECTOR"
-  rule EPOCHS_PER_SLASHINGS_VECTOR => 2 ^Int 13               [macro]
-  syntax Int ::= "HISTORICAL_ROOTS_LIMIT"
-  rule HISTORICAL_ROOTS_LIMIT => 2 ^Int 24                    [macro]
-  syntax Int ::= "VALIDATOR_REGISTRY_LIMIT"
-  rule VALIDATOR_REGISTRY_LIMIT => 2 ^Int 40                  [macro]
-
-  // Configuration -- Rewards and penalties
-  //====================================================
-  syntax Int ::= "BASE_REWARD_FACTOR"
-  rule BASE_REWARD_FACTOR => 2 ^Int 6                         [macro]
-  syntax Int ::= "WHISTLEBLOWER_REWARD_QUOTIENT"
-  rule WHISTLEBLOWER_REWARD_QUOTIENT => 2 ^Int 9              [macro]
-  syntax Int ::= "PROPOSER_REWARD_QUOTIENT"
-  rule PROPOSER_REWARD_QUOTIENT => 2 ^Int 3                   [macro]
-  syntax Int ::= "INACTIVITY_PENALTY_QUOTIENT"
-  rule INACTIVITY_PENALTY_QUOTIENT => 2 ^Int 25               [macro]
-  syntax Int ::= "MIN_SLASHING_PENALTY_QUOTIENT"
-  rule MIN_SLASHING_PENALTY_QUOTIENT => 2 ^Int 5              [macro]
-
-  // Configuration -- Max operations per block
-  //====================================================
-  syntax Int ::= "MAX_PROPOSER_SLASHINGS"
-  rule MAX_PROPOSER_SLASHINGS => 2 ^Int 4                     [macro]
-  syntax Int ::= "MAX_ATTESTER_SLASHINGS"
-  rule MAX_ATTESTER_SLASHINGS => 2 ^Int 0                     [macro]
-  syntax Int ::= "MAX_ATTESTATIONS"
-  rule MAX_ATTESTATIONS => 2 ^Int 7                           [macro]
-  syntax Int ::= "MAX_DEPOSITS"
-  rule MAX_DEPOSITS => 2 ^Int 4                               [macro]
-  syntax Int ::= "MAX_VOLUNTARY_EXITS"
-  rule MAX_VOLUNTARY_EXITS => 2 ^Int 4                        [macro]
-  syntax Int ::= "MAX_TRANSFERS"
-  rule MAX_TRANSFERS => 0                                     [macro]
-
-  // Configuration -- Signature domain types
-  //====================================================
-  syntax Int ::= "DOMAIN_BEACON_PROPOSER"
-  rule DOMAIN_BEACON_PROPOSER => 0                            [macro]
-  syntax Int ::= "DOMAIN_RANDAO"
-  rule DOMAIN_RANDAO => 1                                     [macro]
-  syntax Int ::= "DOMAIN_ATTESTATION"
-  rule DOMAIN_ATTESTATION => 2                                [macro]
-  syntax Int ::= "DOMAIN_DEPOSIT"
-  rule DOMAIN_DEPOSIT => 3                                    [macro]
-  syntax Int ::= "DOMAIN_VOLUNTARY_EXIT"
-  rule DOMAIN_VOLUNTARY_EXIT => 4                             [macro]
-  syntax Int ::= "DOMAIN_TRANSFER"
-  rule DOMAIN_TRANSFER => 5                                   [macro]
 
   // Containers
   //====================================================
@@ -633,14 +503,24 @@ def bytes_to_int(data: bytes) -> uint64:
   rule IL1 +IntList I IL2 => (IL1 I) +IntList IL2
   rule IL  +IntList .IntList => IL
 
-  //todo use list associativity if supported: rule append(IL, I) => IL I
-  syntax IntList ::= append(IntList, Int)                             [function]
-  rule append(I IL, A) => I append(IL, A)
-  rule append(.IntList, A) => A .IntList
+  // +append class of functions - appending at the end of user-list
+  //---------------------------------------------------------------
+  syntax IntList ::= IntList "+append" Int                            [function]
+  rule (EL1:Int LIST) +append EL2 => EL1 (LIST +append EL2)
+  rule .IntList +append EL => EL .IntList
 
-  //BytesList and Bytes concatenation. For some reason (parsing?) rule RHS cannot be used directly in other rules.
-  syntax BytesList ::= BytesList "+BytesList" Bytes                   [function]
-  rule BL1 +BytesList B => BL1 B
+  syntax BytesList ::= BytesList "+append" Bytes                      [function]
+  rule (EL1:Bytes LIST) +append EL2 => EL1 (LIST +append EL2)
+  rule .BytesList +append EL => EL .BytesList
+
+  syntax PendingAttestationList ::= PendingAttestationList "+append" PendingAttestation [function]
+  rule (EL1:PendingAttestation LIST) +append EL2 => EL1 (LIST +append EL2)
+  rule .PendingAttestationList +append EL => EL .PendingAttestationList
+
+  syntax Eth1DataList ::= Eth1DataList "+append" Eth1Data             [function]
+  rule (EL1:Eth1Data LIST) +append EL2 => EL1 (LIST +append EL2)
+  rule .Eth1DataList +append EL => EL .Eth1DataList
+
 
   //IntList merging (no duplicates)
   //Note: if the input lists duplicate-free, the resulting list will also be duplicate-free
@@ -757,7 +637,7 @@ def bytes_to_int(data: bytes) -> uint64:
   rule (H:Bytes HL:BytesList)[0] => H
   //Vector types might have less elements then their static size in the tests.
   //We must consider missing elements present and initialized with default value.
-  rule (.BytesList)[I] => {defaultBytes32()}:>String //todo will not work for Bytes of length != 32.
+  rule (.BytesList)[I] => {defaultBytes32()}:>String //NOTEH will not work for Bytes of length != 32.
 
   syntax CompactCommittee ::= CompactCommitteeList "[" Int "]"        [function]
   rule (H:CompactCommittee HL:CompactCommitteeList)[I] => HL[I -Int 1]
@@ -770,6 +650,7 @@ def bytes_to_int(data: bytes) -> uint64:
   rule initMapOfSize(0) => .Map
 
   syntax CompactCommitteeList ::= initCompCommListOfSize(Int) [function]
+  //todo incorrect init values for fields
   rule initCompCommListOfSize(I) => #CompactCommittee(.BytesList, .IntList) initCompCommListOfSize(I -Int 1)
     requires I >Int 0
   rule initCompCommListOfSize(0) => .CompactCommitteeList

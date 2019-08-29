@@ -262,7 +262,7 @@ def compute_committee(indices: Sequence[ValidatorIndex],
 
   syntax IntList ::= computeCommitteeLoop( Int, Int, Hash, IntList, IntList )     [function]
   rule computeCommitteeLoop(I => I +Int 1, END, SEED, INDICES,
-                            RESULT => append(RESULT, compute_shuffled_index(I, len(INDICES), SEED)))
+                            RESULT => RESULT +append compute_shuffled_index(I, len(INDICES), SEED))
     requires I <Int END
   rule computeCommitteeLoop(I, END, _,_, RESULT) => RESULT
     requires I >=Int END
@@ -387,8 +387,7 @@ def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[V
   syntax IntList ::= getActiveValidatorIndicesAux( result: IntList, i: Int, validators: Map, epoch: Int ) [function]
   rule getActiveValidatorIndicesAux(_,          I => I +Int 1, _:Map (I |-> V => .Map), EP )
     requires notBool is_active_validator(V, EP)
-  //todo use list associativity if supported: Is => Is I. kompiles but crashes at runtime.
-  rule getActiveValidatorIndicesAux(Is => append(Is, I), I => I +Int 1, _:Map (I |-> V => .Map), EP )
+  rule getActiveValidatorIndicesAux(Is => Is +append I, I => I +Int 1, _:Map (I |-> V => .Map), EP )
     requires         is_active_validator(V, EP)
   rule getActiveValidatorIndicesAux(Is, _, .Map, _) => Is
 
@@ -656,7 +655,7 @@ def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
     => (I *Int (2 ^Int 16)) +Int (Slashed *Int (2 ^Int 15)) +Int CompBal
 
   syntax CompactCommittee ::= updateCompComm(CompactCommittee, BLSPubkey, Int) [function]
-  rule updateCompComm(#CompactCommittee(PKS, IL), PK, I) => #CompactCommittee(PKS PK, IL I)
+  rule updateCompComm(#CompactCommittee(PKS, IL), PK, I) => #CompactCommittee(PKS +append PK, IL +append I)
 
   syntax CompactCommitteeList ::= setCommAtShard(CompactCommitteeList, Int, CompactCommittee) [function]
   rule setCommAtShard(C CL, SHARD, C') => C setCommAtShard(CL, SHARD -Int 1, C')
@@ -2140,7 +2139,7 @@ def process_final_updates(state: BeaconState) -> None:
     <historical-roots>
       HL:BytesList
          => #if (get_current_epoch() +Int 1) %Int (SLOTS_PER_HISTORICAL_ROOT /Int SLOTS_PER_EPOCH) ==Int 0
-              #then HL +BytesList hash_tree_root(#HistoricalBatch({mapToList(BlockRoots, 0, .BytesList)}:>BytesList,
+              #then HL +append hash_tree_root(#HistoricalBatch({mapToList(BlockRoots, 0, .BytesList)}:>BytesList,
                                                                   {mapToList(StateRoots, 0, .BytesList)}:>BytesList ))
               #else HL
             #fi
@@ -2248,7 +2247,7 @@ def process_eth1_data(state: BeaconState, body: BeaconBlockBody) -> None:
      requires countEth1(VOTES BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
 
   rule <k> process_eth1_data() => .K ... </k>
-       <eth1-data-votes> VOTES => VOTES BlockEth1 </eth1-data-votes>
+       <eth1-data-votes> VOTES => VOTES +append BlockEth1 </eth1-data-votes>
        <block-eth1-data> BlockEth1 </block-eth1-data>
      requires notBool countEth1(VOTES BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
 
@@ -2436,20 +2435,18 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
   rule <k> process_attestation_if(ATT, PendingATT)
           => process_attestation_after_if(ATT, CurrentCrosslink) ...</k>
     <current-justified-checkpoint> CurrJustCHECKP </current-justified-checkpoint>
-    <current-crosslinks> CurrentCrosslinkKey |-> CurrentCrosslink ...</current-crosslinks>
-    <current-epoch-attestations> CurrEpochATT => CurrEpochATT PendingATT </current-epoch-attestations>
+    <current-crosslinks> ATT._data.crosslink.shard |-> CurrentCrosslink ...</current-crosslinks>
+    <current-epoch-attestations> CurrEpochATTList => CurrEpochATTList +append PendingATT </current-epoch-attestations>
     requires ATT._data.target.epoch ==Int get_current_epoch() //if condition
-     andBool CurrentCrosslinkKey ==Int ATT._data.crosslink.shard
      andBool ATT._data.source ==K CurrJustCHECKP
 
   //if case false
   rule <k> process_attestation_if(ATT, PendingATT)
           => process_attestation_after_if(ATT, PrevCrosslink) ...</k>
     <previous-justified-checkpoint> PrevJustCHECKP </previous-justified-checkpoint>
-    <previous-crosslinks> PrevCrosslinkKey |-> PrevCrosslink ...</previous-crosslinks>
-    <previous-epoch-attestations> PrevEpochATT => PrevEpochATT PendingATT </previous-epoch-attestations>
+    <previous-crosslinks> ATT._data.crosslink.shard |-> PrevCrosslink ...</previous-crosslinks>
+    <previous-epoch-attestations> PrevEpochATTList => PrevEpochATTList +append PendingATT </previous-epoch-attestations>
     requires ATT._data.target.epoch =/=Int get_current_epoch() //if condition
-     andBool PrevCrosslinkKey ==Int ATT._data.crosslink.shard
      andBool ATT._data.source ==K PrevJustCHECKP
 
   //after if inside `process_attestation`

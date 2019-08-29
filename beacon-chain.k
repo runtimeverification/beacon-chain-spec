@@ -723,13 +723,21 @@ def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> Ind
     )
 */
   syntax IndexedAttestation ::= "get_indexed_attestation" "(" Attestation ")" [function]
-  rule get_indexed_attestation(#Attestation(ABITS,ADATA,CBITS,SIGN)) =>
-    #IndexedAttestation(
-        sortIntList(listDiff(get_attesting_indices(ADATA,ABITS), get_attesting_indices(ADATA, CBITS))),
-        sortIntList(get_attesting_indices(ADATA, CBITS)),
-        ADATA,
-        SIGN
-    )
+  rule get_indexed_attestation(#Attestation(AggregationBits, DATA, CustodyBits, SIG)) =>
+    #fun(AttestingIndices =>
+    #fun(CustodyBit1Indices =>
+    #fun(CustodyBit0Indices => #IndexedAttestation(
+                                  sortIntList(CustodyBit0Indices),
+                                  sortIntList(CustodyBit1Indices),
+                                  DATA,
+                                  SIG
+                               )
+    )(listDiff(AttestingIndices, CustodyBit1Indices))
+    )(get_attesting_indices(DATA, CustodyBits))
+    )(get_attesting_indices(DATA, AggregationBits))
+    // assert custody_bit_1_indices.issubset(attesting_indices)
+    //requires listDiff(CustodyBit1Indices, AttestingIndices) ==K .IntList - cannot be used, vars out of scope
+    requires listDiff(get_attesting_indices(DATA, CustodyBits), get_attesting_indices(DATA, AggregationBits)) ==K .IntList
 
 /*
 def get_attesting_indices(state: BeaconState,

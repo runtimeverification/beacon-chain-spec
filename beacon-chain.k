@@ -754,7 +754,7 @@ def get_attesting_indices(state: BeaconState,
     extractAttestingIndices(get_crosslink_committee(EP, SHARD), BL, .IntList)
 
   syntax IntList ::= extractAttestingIndices(IntList, BitList, IntList) [function]
-  rule extractAttestingIndices(I IL => IL, true  BL => BL, AL => AL I)
+  rule extractAttestingIndices(I IL => IL, true  BL => BL, AL => AL +append I)
   rule extractAttestingIndices(I IL => IL, false BL => BL, AL)
   rule extractAttestingIndices(.IntList,_, AL) => AL
 

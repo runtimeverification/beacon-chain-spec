@@ -35,7 +35,7 @@ ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-spec-tests
 
 .PHONY: all clean \
         libff libsecp256k1 \
-        deps deps-k deps-tangle deps-tests \
+        deps deps-k deps-tangle deps-plugin deps-tests \
         defn defn-llvm defn-haskell \
         build build-llvm build-haskell \
         test test-split test-python-config test-operations-minimal
@@ -102,11 +102,11 @@ $(libff_out): $(DEPS_DIR)/libff/CMakeLists.txt
 # Dependencies
 # ------------
 
-deps: deps-k deps-tangle deps-tests plugin-deps
+deps: deps-k deps-tangle deps-tests deps-plugin
 deps-k: $(K_SUBMODULE)/mvn.timestamp
 deps-tangle: $(PANDOC_TANGLE_SUBMODULE)/submodule.timestamp
 deps-tests: $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
-plugin-deps: $(PLUGIN_SUBMODULE)/make.timestamp
+deps-plugin: $(PLUGIN_SUBMODULE)/make.timestamp
 
 %/submodule.timestamp:
 	@echo "== submodule: $*"

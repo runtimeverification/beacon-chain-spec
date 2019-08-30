@@ -333,15 +333,15 @@ if __name__ == '__main__':
                 ]
 
     debug_keys = [ ]
-    init_config_subst = buildConfigSubstitution(pre_yaml, init_config_cells,
-                                                skip_keys = skip_keys, debug_keys = debug_keys)
 
     # Process block.yaml if present
     block_yaml = loadYaml("block.yaml", args.pre.name)
-    if block_yaml is not None:
-        block_config_subst = buildConfigSubstitution(block_yaml, block_cells,
-                                                     skip_keys = skip_keys, debug_keys = debug_keys)
-        init_config_subst.update(block_config_subst)
+    block_config_subst = buildConfigSubstitution(block_yaml, block_cells, skip_keys = skip_keys, debug_keys = debug_keys) \
+        if block_yaml is not None else {}
+
+    init_config_subst = buildConfigSubstitution(pre_yaml, init_config_cells,
+                                                skip_keys = skip_keys, debug_keys = debug_keys)
+    init_config_subst.update(block_config_subst)
 
     # build <k> cell
     test_type = Path(args.pre.name).parts[-4]
@@ -380,6 +380,7 @@ if __name__ == '__main__':
     if post_yaml is not None:
         post_config_subst = buildConfigSubstitution(post_yaml, init_config_cells,
                                                     skip_keys = skip_keys, debug_keys = debug_keys)
+        post_config_subst.update(block_config_subst)
         # todo use a copy of symbolic configuration?
         post_config = substitute(symbolic_configuration, post_config_subst)
         post_kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : post_config }

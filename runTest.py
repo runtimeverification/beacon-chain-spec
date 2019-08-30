@@ -293,9 +293,10 @@ if __name__ == '__main__':
     test_title = args.pre.name
     _notif(test_title)
 
-    # TODO bls_setting is in meta.yaml
-    if 'bls_setting' in pre_yaml and pre_yaml['bls_setting'] > 1:
-        _warning('Skipping test with `bls_setting` set to ' + str(pre_yaml['bls_setting']))
+    meta_yaml = loadYaml("meta.yaml", args.pre.name)
+    if meta_yaml is not None and 'bls_setting' in meta_yaml and meta_yaml['bls_setting'] == 1:
+        _warning('Skipping test with `bls_setting` enabled')
+        sys.exit()
 
     all_keys = list(init_cells.keys())
 

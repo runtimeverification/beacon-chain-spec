@@ -480,7 +480,7 @@ def bytes_to_int(data: bytes) -> uint64:
   rule intersection(L1, L2) => intersection(L1, L2, .IntList)
   rule intersection(A L1 => L1, L2, _)
     requires notBool contains(A, L2)
-  rule intersection(A L1 => L1, L2, REZ => REZ A)
+  rule intersection(A L1 => L1, L2, REZ => REZ +append A)
     requires contains(A, L2)
   rule intersection(.IntList, _, REZ) => REZ
 

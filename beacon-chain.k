@@ -2198,7 +2198,7 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
     # Verify proposer signature
     assert bls_verify(proposer.pubkey, signing_root(block), block.signature, get_domain(state, DOMAIN_BEACON_PROPOSER))
 */
-  syntax KItem ::= "process_block_header" "(" ")"
+  syntax KItem ::= "process_block_header" "(" ")"           [klabel(process_block_header), symbol]
   rule <k> process_block_header() => .K ... </k>
        <latest-block-header>
          OldBlockHEADER  => #BeaconBlockHeader(

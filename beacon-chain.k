@@ -834,7 +834,7 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
                     exitEpochsAux(VALIDATORS, .IntList) ) ]]
     <validators> VALIDATORS </validators>
 
-  syntax IntList ::= exitEpochsAux( Map /*validators*/ , IntList /*result*/ )
+  syntax IntList ::= exitEpochsAux( Map /*validators*/ , IntList /*result*/ ) [function]
   rule exitEpochsAux(_:Map (_ |-> VAL => .Map),
                      RES => VAL.exitEpoch RES )
     requires VAL.exitEpoch =/=K FAR_FUTURE_EPOCH

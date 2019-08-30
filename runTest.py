@@ -3,15 +3,11 @@
 import argparse
 import copy
 import difflib
-import json
-import sys
-import tempfile
-from collections import Iterator
 
 import yaml
 
 from pyk.kast    import _notif, _warning, _fatal
-from pyk.kast      import combineDicts, appliedLabelStr, constLabel, underbarUnparsing, K_symbols, KApply, KConstant, KSequence, KVariable, KToken
+from pyk.kast      import KApply
 from buildConfig import *
 from pathlib import Path
 
@@ -264,30 +260,11 @@ def buildConfigSubstitution(test_pre_state, config_cells, key_table = init_cells
     return new_key_table
 
 
-def loadYamlOperation(pre_name, operation):
+def loadYaml(name, pre_name):
     try:
-        operation_file = Path.joinpath(Path(pre_name).parent, "%s.yaml" % operation).as_posix()
-        print("Operation file: %s\n" % operation_file)
-        return yaml.load(open(operation_file, 'r'), Loader=yaml.FullLoader)
-    except FileNotFoundError:
-        return None
-
-def loadPostYaml(pre_name):
-    try:
-        post_file = Path.joinpath(Path(pre_name).parent, "post.yaml").as_posix()
-        result = yaml.load(open(post_file, 'r'), Loader=yaml.FullLoader)
-        print("\nPost file: %s\n" % post_file)
-        return result
-    except FileNotFoundError:
-        print("\nNo post file")
-        return None
-
-
-def loadBlockYaml(pre_name):
-    try:
-        block_file = Path.joinpath(Path(pre_name).parent, "block.yaml").as_posix()
-        result = yaml.load(open(block_file, 'r'), Loader=yaml.FullLoader)
-        print("\nBlock file: %s\n" % block_file)
+        post_file = Path.joinpath(Path(pre_name).parent, name).as_posix()
+        result = yaml.load(open(post_file, 'r'), Loader = yaml.FullLoader)
+        print("\n%s file: %s\n" % (name, post_file))
         return result
     except FileNotFoundError:
         return None
@@ -360,7 +337,7 @@ if __name__ == '__main__':
                                                 skip_keys = skip_keys, debug_keys = debug_keys)
 
     # Process block.yaml if present
-    block_yaml = loadBlockYaml(args.pre.name)
+    block_yaml = loadYaml("block.yaml", args.pre.name)
     if block_yaml is not None:
         block_config_subst = buildConfigSubstitution(block_yaml, block_cells,
                                                      skip_keys = skip_keys, debug_keys = debug_keys)
@@ -370,7 +347,7 @@ if __name__ == '__main__':
     test_type = Path(args.pre.name).parts[-4]
     if test_type not in test_type_to_term.keys():
         raise Exception("Invalid test type: " + test_type)
-    yaml_operation = loadYamlOperation(args.pre.name, test_type)
+    yaml_operation = loadYaml("%s.yaml" % test_type, args.pre.name)
     init_config_subst['K_CELL'] = KApply('process_%s' % test_type,
                                          [test_type_to_term[test_type](yaml_operation)]
                                          if test_type_to_term[test_type] is not None else [])
@@ -399,7 +376,7 @@ if __name__ == '__main__':
             _fatal('krun returned non-zero exit code: ' + test_title, code = returnCode)
 
     # Printing the post state
-    post_yaml = loadPostYaml(args.pre.name)
+    post_yaml = loadYaml("post.yaml", args.pre.name)
     if post_yaml is not None:
         post_config_subst = buildConfigSubstitution(post_yaml, init_config_cells,
                                                     skip_keys = skip_keys, debug_keys = debug_keys)
@@ -416,3 +393,5 @@ if __name__ == '__main__':
                 _fatal('kast returned non-zero exit code: ' + test_title, code = returnCode)
 
             kast_diff(krunPrinted, postKastPrinted, 'krun_out', 'expected_post_state')
+    else:
+        print("\nNo post file")

@@ -154,6 +154,7 @@ transferTerm = labelWithKeyPairs('#Transfer' , [ ('sender'    , intToken)
                                 )
 
 test_type_to_term = {
+    # operations
     'proposer_slashing': proposerSlashingTerm,
     'attester_slashing': attesterSlashingTerm,
     'attestation'      : attestationTerm,
@@ -161,7 +162,15 @@ test_type_to_term = {
     'voluntary_exit'   : voluntaryExitTerm,
     'transfer'         : transferTerm,
 
-    'block_header'     : None
+    'block_header'                      : None,
+
+    # epoch_processing
+    'crosslinks'                        : None,
+    'final_updates'                     : None,
+    'justification_and_finalization'    : None,
+    'registry_updates'                  : None,
+    'slashings'                         : None,
+    'rewards_and_penalties'             : None #planned
 }
 
 init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']                       , intToken)

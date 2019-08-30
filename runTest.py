@@ -268,6 +268,15 @@ def loadPostYaml(pre_name):
         return None
 
 
+def kast_diff(kast1, kast2, kast1Caption, kast2Caption):
+    if kast1 != kast2:
+        _warning('%s and %s differ!' % (kast1Caption, kast2Caption))
+        for line in difflib.unified_diff(kast1.split('\n'), kast2.split('\n'), fromfile=kast1Caption,
+                                         tofile=kast2Caption, lineterm='\n'):
+            sys.stderr.write(line + '\n')
+        sys.stderr.flush()
+
+
 if __name__ == '__main__':
 
     arguments = argparse.ArgumentParser(prog = sys.argv[0])
@@ -334,26 +343,23 @@ if __name__ == '__main__':
     init_config = substitute(symbolic_configuration, init_config_subst)
     kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
 
-    with tempfile.NamedTemporaryFile(mode = 'w', delete = not args.debug) as tempf:
-        json.dump(kast_json, tempf)
-        tempf.flush()
+    with tempfile.NamedTemporaryFile(mode = 'w', delete = not args.debug) as pre_json_file:
+        json.dump(kast_json, pre_json_file)
+        pre_json_file.flush()
 
         fastPrinted = prettyPrintKast(init_config['args'][0], ALL_symbols).strip()
-        (returnCode, kastPrinted, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty', '--debug')
+        (returnCode, kastPrinted, _) = kast(pre_json_file.name, '--input', 'json', '--output', 'pretty', '--debug')
         if returnCode != 0:
             _fatal('kast returned non-zero exit code: ' + test_title, code = returnCode)
 
         kastPrinted = kastPrinted.strip()
-        if fastPrinted != kastPrinted:
-            _warning('kastPrinted and fastPrinted differ!')
-            for line in difflib.unified_diff(kastPrinted.split('\n'), fastPrinted.split('\n'), fromfile='kast', tofile='fast', lineterm='\n'):
-                sys.stderr.write(line + '\n')
-            sys.stderr.flush()
+        kast_diff(kastPrinted, fastPrinted, 'kastPrinted', 'fastPrinted')
 
-        krun_args = [tempf.name, '--term', '--parser', 'cat']
+        krun_args = [pre_json_file.name, '--term', '--parser', 'cat']
         if args.debug:
             krun_args.append('--debug')
-        (returnCode, _, _) = krun(*krun_args)
+        (returnCode, krunPrinted, _) = krun(*krun_args)
+        krunPrinted = krunPrinted.strip()
         if returnCode != 0:
             _fatal('krun returned non-zero exit code: ' + test_title, code = returnCode)
 
@@ -364,12 +370,13 @@ if __name__ == '__main__':
         # todo use a copy of symbolic configuration?
         post_config = substitute(symbolic_configuration, post_config_subst)
         post_kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : post_config }
-        with tempfile.NamedTemporaryFile(mode = 'w', delete = not args.debug) as tempf:
-            json.dump(post_kast_json, tempf)
-            tempf.flush()
+        with tempfile.NamedTemporaryFile(mode = 'w', delete = not args.debug) as post_json_file:
+            json.dump(post_kast_json, post_json_file)
+            post_json_file.flush()
 
-            (returnCode, kastPrinted, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty', '--debug')
+            (returnCode, postKastPrinted, _) = kast(post_json_file.name, '--input', 'json', '--output', 'pretty', '--debug')
+            postKastPrinted = postKastPrinted.strip()
             if returnCode != 0:
                 _fatal('kast returned non-zero exit code: ' + test_title, code = returnCode)
 
-            kastPrinted = kastPrinted.strip()
+            kast_diff(krunPrinted, postKastPrinted, 'krun_out', 'expected_post_state')

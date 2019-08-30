@@ -253,8 +253,8 @@ def compute_committee(indices: Sequence[ValidatorIndex],
   syntax IntList ::= "compute_committee" "(" IntList "," Hash "," Int "," Int ")" [function]
   rule compute_committee(INDICES, SEED, INDEX, COUNT)
     => computeCommitteeLoop(
-        len(INDICES) *Int INDEX,
-        len(INDICES) *Int (INDEX +Int 1),
+        len(INDICES) *Int INDEX /Int COUNT,
+        len(INDICES) *Int (INDEX +Int 1) /Int COUNT,
         SEED,
         INDICES,
         .IntList
@@ -723,13 +723,21 @@ def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> Ind
     )
 */
   syntax IndexedAttestation ::= "get_indexed_attestation" "(" Attestation ")" [function]
-  rule get_indexed_attestation(#Attestation(ABITS,ADATA,CBITS,SIGN)) =>
-    #IndexedAttestation(
-        sortIntList(listDiff(get_attesting_indices(ADATA,ABITS), get_attesting_indices(ADATA, CBITS))),
-        sortIntList(get_attesting_indices(ADATA, CBITS)),
-        ADATA,
-        SIGN
-    )
+  rule get_indexed_attestation(#Attestation(AggregationBits, DATA, CustodyBits, SIG)) =>
+    #fun(AttestingIndices =>
+    #fun(CustodyBit1Indices =>
+    #fun(CustodyBit0Indices => #IndexedAttestation(
+                                  sortIntList(CustodyBit0Indices),
+                                  sortIntList(CustodyBit1Indices),
+                                  DATA,
+                                  SIG
+                               )
+    )(listDiff(AttestingIndices, CustodyBit1Indices))
+    )(get_attesting_indices(DATA, CustodyBits))
+    )(get_attesting_indices(DATA, AggregationBits))
+    // assert custody_bit_1_indices.issubset(attesting_indices)
+    //requires listDiff(CustodyBit1Indices, AttestingIndices) ==K .IntList - cannot be used, vars out of scope
+    requires listDiff(get_attesting_indices(DATA, CustodyBits), get_attesting_indices(DATA, AggregationBits)) ==K .IntList
 
 /*
 def get_attesting_indices(state: BeaconState,
@@ -746,7 +754,7 @@ def get_attesting_indices(state: BeaconState,
     extractAttestingIndices(get_crosslink_committee(EP, SHARD), BL, .IntList)
 
   syntax IntList ::= extractAttestingIndices(IntList, BitList, IntList) [function]
-  rule extractAttestingIndices(I IL => IL, true  BL => BL, AL => AL I)
+  rule extractAttestingIndices(I IL => IL, true  BL => BL, AL => AL +append I)
   rule extractAttestingIndices(I IL => IL, false BL => BL, AL)
   rule extractAttestingIndices(.IntList,_, AL) => AL
 
@@ -2422,7 +2430,7 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
        ...</k>
        <slot> SLOT </slot>
     requires ATT._data.crosslink.shard <Int SHARD_COUNT
-     andBool SetItem(ATT._data.target.epoch) in SetItem(get_previous_epoch()) SetItem(get_current_epoch())
+     andBool (ATT._data.target.epoch) in (SetItem(get_previous_epoch()) SetItem(get_current_epoch()))
      andBool get_attestation_data_slot(ATT._data) +Int MIN_ATTESTATION_INCLUSION_DELAY <=Int SLOT
      andBool len(ATT.aggregation_bits) ==K len(ATT.custody_bits)
      andBool len(ATT.custody_bits) ==K len(get_crosslink_committee(ATT._data.target.epoch, ATT._data.crosslink.shard))

@@ -77,7 +77,7 @@ def pack(values: Series):
   rule pack(B:Bytes) => B
 
   //Version for lists
-  syntax Bytes ::= pack ( list: ValueList, staticLen: Int, elemType: ElementType )
+  syntax Bytes ::= pack ( list: ValueList, staticLen: Int, elemType: ElementType ) [function]
 
   //Using StaticLEN here. Python code above also uses static length in "values.length".
   rule pack(BL:BitList, StaticLEN, %bool) => to_bytes( toInt(BL, (StaticLEN +Int 7) /Int 8 *Int 8),
@@ -97,11 +97,13 @@ def chunkify(bytez):
     bytez += b'\x00' * (-len(bytez) % 32)
     return [bytez[i:i + 32] for i in range(0, len(bytez), 32)]
 */
-  syntax BytesList ::= chunkify( Bytes )                               [function]
+  syntax BytesList ::= chunkify( Bytes )                              [function]
   rule chunkify(B) => chunkifyAux(padTo32(B))
 
+  // bytez += b'\x00' * (-len(bytez) % 32)
   syntax Bytes ::= padTo32( Bytes )                                   [function]
-  rule padTo32(BYTES) => BYTES +Bytes ("\x00" *Bytes ((lengthString(BYTES) +Int 31) /Int 32 -Int lengthString(BYTES)) )
+  //modInt always returns a nonnegative value.
+  rule padTo32(BYTES) => BYTES +Bytes ("\x00" *Bytes ( (0 -Int lengthString(BYTES)) modInt 32 ) )
 
   syntax BytesList ::= chunkifyAux( Bytes )                           [function]
   rule chunkifyAux(BYTES) => substrString(BYTES, 0, 32) chunkifyAux(substrString(BYTES, 32, lengthString(BYTES)))
@@ -170,7 +172,7 @@ for layer in range(1, 100):
                                        BytesList, // chunks
                                        Int,       // i
                                        Map        // tmp
-                                       )
+                                       )                              [function]
   rule merkleizeChunksLoop1(COUNT, DEPTH, MaxDEPTH, (CH CHUNKS => CHUNKS), I => I +Int 1,
                             TMP => merkleMerge(CH, I, COUNT, DEPTH, TMP))
 
@@ -187,13 +189,13 @@ for layer in range(1, 100):
   syntax Hash ::= merkleizeChunksLoop2(Int, // j
                                        Int, // max_depth
                                        Map  //tmp
-                                      )
+                                      )                               [function]
   rule merkleizeChunksLoop2( J => J +Int 1, MaxDEPTH, TMP => TMP[J +Int 1 <- hashConcat({TMP[J]}:>Hash, zerohashes(J))] )
     requires J <Int MaxDEPTH
 
   //end of merkleize_chunks
   //return tmp[max_depth]
-  rule merkleizeChunksLoop2( J, MaxDEPTH, TMP ) => TMP[MaxDEPTH]
+  rule merkleizeChunksLoop2( J, MaxDEPTH, TMP ) => {TMP[MaxDEPTH]}:>Hash
     requires J >=Int MaxDEPTH
 
 /*  Inner function in merkleize_chunks. Returns the new tmp.
@@ -364,6 +366,7 @@ for layer in range(1, 100):
           hash_tree_root(P4, %uint64) hash_tree_root(P5, %uint64) hash_tree_root(P6) hash_tree_root(P7) .BytesList, RemLast))
 
   syntax Hash ::= "hash_tree_root_list" "(" list: ValueList "," staticLen: Int "," elemType: ElementType "," fixedSize: Bool ")"
+                                                                      [function]
 
   //hash_tree_root branch 1.1, case list of basic values
   //leaves = chunkify(pack(obj))
@@ -437,14 +440,14 @@ for layer in range(1, 100):
         return mix_in_length(merkleize_chunks(leaves, pad_to=chunk_count(obj.type())), len(obj))
 */
   syntax Hash ::= "hash_tree_root_part2_v1" "(" leaves: BytesList "," staticLen: Int "," elemType: ElementType ","
-                                                dynamicLen: Int ")" [function]
+                                                dynamicLen: Int ")"   [function]
   rule hash_tree_root_part2_v1(LEAVES, StaticLEN, ElemType, DynamicLen)
     => mix_in_length(merkleize_chunks(LEAVES, chunk_count(StaticLEN, ElemType)), DynamicLen)
 
 /*  else: (from above)
         return merkleize_chunks(leaves)
 */
-  syntax Hash ::= "hash_tree_root_part2_v2" "(" BytesList ")" [function]
+  syntax Hash ::= "hash_tree_root_part2_v2" "(" BytesList ")"         [function]
   rule hash_tree_root_part2_v2(LEAVES) => merkleize_chunks(LEAVES, 1)
 
 /* def mix_in_length(root, length):
@@ -478,7 +481,7 @@ for layer in range(1, 100):
         return 32
 */
   //returns the length in bytes of a list element. Argument in K is a list of BasicValue.
-  syntax Int ::= "item_length" "(" ElementType ")"      [function]
+  syntax Int ::= "item_length" "(" ElementType ")"                    [function]
   rule item_length(%uint8) => 1
   rule item_length(%uint16) => 2
   rule item_length(%uint32) => 4

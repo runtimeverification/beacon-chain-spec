@@ -436,6 +436,8 @@ def bytes_to_int(data: bytes) -> uint64:
 
   syntax Int ::= "bit_length" "(" Int ")"                             [function]
   rule bit_length(A) => log2Int(A) +Int 1
+    requires A >Int 0
+  rule bit_length(0) => 0
 
   syntax Int ::= get( IntList, Int ) [function]
   rule get( _:Int L => L, I => I -Int 1)
@@ -455,25 +457,25 @@ def bytes_to_int(data: bytes) -> uint64:
   rule maxAux(I IL => IL, MAX => #if I <Int MAX #then MAX #else I #fi )
   rule maxAux(.IntList, MAX) => MAX
 
-  syntax IntList ::= sortIntList(IntList) [function]
+  syntax IntList ::= sortIntList(IntList)                             [function]
+  rule sortIntList(I IL) => #fun(MIN => MIN sortIntList(listExcept(I IL, MIN)))(minIndex(IL, I))
   rule sortIntList(.IntList) => .IntList
-  rule sortIntList(I IL) => minIndex(IL,I) sortIntList(listExcept(I IL, minIndex(IL, I)))
 
-  syntax Int ::= minIndex(IntList, Int) [function]
+  syntax Int ::= minIndex(IntList, Int)                               [function]
   rule minIndex(I IL => IL, M => #if I <Int M #then I #else M #fi)
   rule minIndex(.IntList, M) => M
 
   // Note: If listExcept(IL, I) removes every occurrence of I in IL, then difference here will do the same
-  syntax IntList ::= listDiff(IntList, IntList) [function]
-  rule listDiff(I IL => IL, IL' => listExcept(IL', I))
-  rule listDiff(.IntList, IL') => IL'
+  syntax IntList ::= listDiff(IntList, IntList)                       [function]
+  rule listDiff(IL => listExcept(IL, I), I IL2 => IL2)
+  rule listDiff(IL, .IntList) => IL
 
-  syntax Bool ::= contains( Int, IntList ) [function]
+  syntax Bool ::= contains( Int, IntList )                            [function]
   rule contains(A, A IL ) => true
   rule contains(A, B IL => IL)    requires A =/=Int B
   rule contains(_, .IntList) => false
 
-  syntax IntList ::= intersection( IntList, IntList ) [function, klabel(intersection)]
+  syntax IntList ::= intersection( IntList, IntList )                 [function, klabel(intersection)]
                    | intersection( IntList, IntList, IntList /*result*/) [function, klabel(intersection3)]
   rule intersection(L1, L2) => intersection(L1, L2, .IntList)
   rule intersection(A L1 => L1, L2, _)
@@ -486,9 +488,9 @@ def bytes_to_int(data: bytes) -> uint64:
   syntax IntList ::= listExcept( IntList , Int )                      [function, klabel(listExcept)]
                    | listExcept( IntList , Int , IntList /*result*/ ) [function, klabel(listExcept3)]
   rule listExcept(IL, EXCEPT) => listExcept(IL, EXCEPT, .IntList)
-  rule listExcept( (I:Int IL) => IL, EXCEPT, REZ => REZ I     )
-    when I =/=Int EXCEPT
-  rule listExcept((EXCEPT IL) => .IntList /*terminate*/, EXCEPT, REZ IL /*dump the rest of the list without EXCEPT*/)
+  rule listExcept( (I:Int IL) => IL, EXCEPT, REZ => REZ +append I )
+    requires I =/=Int EXCEPT
+  rule listExcept((EXCEPT IL) => .IntList /*terminate*/, EXCEPT, REZ => REZ +IntList IL /*dump the rest of the list without EXCEPT*/)
   rule listExcept(.IntList, _, REZ) => REZ
 
   syntax Int ::= sumIntList(IntList) [function]
@@ -500,8 +502,8 @@ def bytes_to_int(data: bytes) -> uint64:
 
   //IntList concatenation
   syntax IntList ::= IntList "+IntList" IntList     [function]
-  rule IL1 +IntList I IL2 => (IL1 I) +IntList IL2
-  rule IL  +IntList .IntList => IL
+  rule (I IL1) +IntList IL2 => I (IL1 +IntList IL2)
+  rule .IntList  +IntList IL2 => IL2
 
   // +append class of functions - appending at the end of user-list
   //---------------------------------------------------------------

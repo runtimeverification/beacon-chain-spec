@@ -398,7 +398,9 @@ if __name__ == '__main__':
             json.dump(post_kast_json, post_json_file)
             post_json_file.flush()
 
-            (returnCode, postKastPrinted, _) = kast(post_json_file.name, '--input', 'json', '--output', 'pretty', '--debug')
+            # (returnCode, postKastPrinted, _) = kast(post_json_file.name, '--input', 'json', '--output', 'pretty', '--debug')
+            # Using krun to get same string encoding as for main krun
+            (returnCode, postKastPrinted, _) = krun(post_json_file.name, '--term', '--parser', 'cat')
             postKastPrinted = postKastPrinted.strip()
             if returnCode != 0:
                 _fatal('kast returned non-zero exit code: ' + test_title, code = returnCode)

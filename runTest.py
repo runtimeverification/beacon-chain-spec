@@ -69,6 +69,11 @@ attestationDataTerm = labelWithKeyPairs('#AttestationData' , [ ('beacon_block_ro
                                                              ]
                                        )
 
+attestationDataAndCustodyBitTerm = labelWithKeyPairs('#AttestationDataAndCustodyBit' , [ ('data'      , attestationDataTerm)
+                                                                                       , ('custody_bit' , boolToken)
+                                                                                       ]
+                                                    )
+
 indexedAttestationTerm = labelWithKeyPairs('#IndexedAttestation' , [ ('custody_bit_0_indices' , listOf('Int', converter = intToken))
                                                                    , ('custody_bit_1_indices' , listOf('Int', converter = intToken))
                                                                    , ('data'                  , attestationDataTerm)
@@ -83,17 +88,23 @@ depositDataTerm = labelWithKeyPairs('#DepositData' , [ ('pubkey'                
                                                      ]
                                    )
 
-blockheaderTerm = labelWithKeyPairs('#BeaconBlockHeader' , [ ('slot'        , intToken)
-                                                           , ('parent_root' , hashToken)
-                                                           , ('state_root'  , hashToken)
-                                                           , ('body_root'   , hashToken)
-                                                           , ('signature'   , hashToken)
-                                                           ]
-                                   )
+compactCommitteeTerm = labelWithKeyPairs('#CompactCommittee' , [ ('pubkeys'            , bytesListTerm)
+                                                               , ('compact_validators' , listOf('Int', converter = intToken))
+                                                               ]
+                                        )
+
+
+beaconBlockHeaderTerm = labelWithKeyPairs('#BeaconBlockHeader', [ ('slot'        , intToken)
+                                                                , ('parent_root' , hashToken)
+                                                                , ('state_root'  , hashToken)
+                                                                , ('body_root'   , hashToken)
+                                                                , ('signature'   , hashToken)
+                                                                ]
+                                          )
 
 proposerSlashingTerm = labelWithKeyPairs('#ProposerSlashing' , [ ('proposer_index' , intToken)
-                                                               , ('header_1'       , blockheaderTerm)
-                                                               , ('header_2'       , blockheaderTerm)
+                                                               , ('header_1'       , beaconBlockHeaderTerm)
+                                                               , ('header_2'       , beaconBlockHeaderTerm)
                                                                ]
                                         )
 
@@ -125,11 +136,16 @@ voluntaryExitTerm = labelWithKeyPairs('#VoluntaryExit' , [ ('epoch'           , 
                                                          ]
                                      )
 
-eth1dataTerm = labelWithKeyPairs('#Eth1Data' , [ ('deposit_root'  , hashToken)
-                                               , ('deposit_count' , intToken)
-                                               , ('block_hash'    , hashToken)
-                                               ]
+eth1DataTerm = labelWithKeyPairs('#Eth1Data', [ ('deposit_root'  , hashToken)
+                                              , ('deposit_count' , intToken)
+                                              , ('block_hash'    , hashToken)
+                                              ]
                                 )
+
+historicalBatchTerm = labelWithKeyPairs('#HistoricalBatch', [ ('block_roots' , bitListTerm)
+                                                            , ('state_roots' , bitListTerm)
+                                                            ]
+                                       )
 
 # class PendingAttestation(Container):
 #     aggregation_bits: Bitlist[MAX_VALIDATORS_PER_COMMITTEE]
@@ -173,15 +189,40 @@ test_type_to_term = {
     'rewards_and_penalties'             : None #planned
 }
 
+data_class_to_converter = {
+    'Attestation': attestationTerm,
+    'AttestationData': attestationDataTerm,
+    'AttestationDataAndCustodyBit': attestationDataAndCustodyBitTerm,
+    'AttesterSlashing': attesterSlashingTerm,
+    'BeaconBlock': None,
+    'BeaconBlockBody': None,
+    'BeaconBlockHeader': beaconBlockHeaderTerm,
+    'BeaconState': None,
+    'Checkpoint': checkpointTerm,
+    'CompactCommittee': compactCommitteeTerm,
+    'Crosslink': crosslinkTerm,
+    'Deposit': depositTerm,
+    'DepositData': depositDataTerm,
+    'Eth1Data': eth1DataTerm,
+    'Fork': forkTerm,
+    'HistoricalBatch': historicalBatchTerm,
+    'IndexedAttestation': indexedAttestationTerm,
+    'PendingAttestation': pendingAttestationTerm,
+    'ProposerSlashing': proposerSlashingTerm,
+    'Transfer': transferTerm,
+    'Validator': validatorTerm,
+    'VoluntaryExit': voluntaryExitTerm,
+}
+
 init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']                       , intToken)
                     , 'SLOT_CELL'                          : (['slot']                               , intToken)
                     , 'FORK_CELL'                          : (['fork']                               , forkTerm)
-                    , 'LATEST_BLOCK_HEADER_CELL'           : (['latest_block_header']                , blockheaderTerm)
+                    , 'LATEST_BLOCK_HEADER_CELL'           : (['latest_block_header']                , beaconBlockHeaderTerm)
                     , 'BLOCK_ROOTS_CELL'                   : (['block_roots']                        , indexedMapOf(converter = hashToken))
                     , 'STATE_ROOTS_CELL'                   : (['state_roots']                        , indexedMapOf(converter = hashToken))
                     , 'HISTORICAL_ROOTS_CELL'              : (['historical_roots']                   , bytesListTerm)
-                    , 'ETH1_DATA_CELL'                     : (['eth1_data']                          , eth1dataTerm)
-                    , 'ETH1_DATA_VOTES_CELL'               : (['eth1_data_votes']                    , listOf('Eth1Data', converter = eth1dataTerm))
+                    , 'ETH1_DATA_CELL'                     : (['eth1_data']                          , eth1DataTerm)
+                    , 'ETH1_DATA_VOTES_CELL'               : (['eth1_data_votes']                    , listOf('Eth1Data', converter = eth1DataTerm))
                     , 'ETH1_DEPOSIT_INDEX_CELL'            : (['eth1_deposit_index']                 , intToken)
                     , 'VALIDATORS_CELL'                    : (['validators']                         , indexedMapOf(converter = validatorTerm))
                     , 'BALANCES_CELL'                      : (['balances']                           , indexedMapOf(converter = intToken))
@@ -206,7 +247,7 @@ block_cells = { 'BLOCKSLOT_CELL'            : (['slot']                         
               , 'STATE_ROOT_CELL'           : (['state_root']                   , hashToken)
 
               , 'RANDAO_REVEAL_CELL'        : (['body', 'randao_reveal']        , hashToken)
-              , 'BLOCK_ETH1_DATA_CELL'      : (['body', 'eth1_data']            , eth1dataTerm)
+              , 'BLOCK_ETH1_DATA_CELL'      : (['body', 'eth1_data']            , eth1DataTerm)
               , 'GRAFFITI_CELL'             : (['body', 'graffiti']             , hashToken)
               , 'PROPOSER_SLASHINGS_CELL'   : (['body', 'proposer_slashings']   , indexedMapOf(converter = proposerSlashingTerm))
               , 'ATTESTER_SLASHINGS_CELL'   : (['body', 'attester_slashings']   , listOf('AttesterSlashing', converter = attesterSlashingTerm))
@@ -217,6 +258,41 @@ block_cells = { 'BLOCKSLOT_CELL'            : (['slot']                         
 
               , 'SIGNATURE_CELL'            : (['signature']                    , hashToken)
               }
+
+skip_keys = [
+            #  'GENESIS_TIME_CELL'
+            # , 'SLOT_CELL'
+            # , 'FORK_CELL'
+            # , 'LATEST_BLOCK_HEADER_CELL'
+            # , 'BLOCK_ROOTS_CELL'
+            # , 'STATE_ROOTS_CELL'
+            # , 'HISTORICAL_ROOTS_CELL'
+            # , 'ETH1_DATA_CELL'
+            # , 'ETH1_DATA_VOTES_CELL'
+            # , 'ETH1_DEPOSIT_INDEX_CELL'
+            # , 'VALIDATORS_CELL'
+            # , 'BALANCES_CELL'
+            # , 'START_SHARD_CELL'
+            # , 'RANDAO_MIXES_CELL'
+            # , 'ACTIVE_INDEX_ROOTS_CELL'
+            # , 'COMPACT_COMMITTEES_ROOTS_CELL'
+            # , 'SLASHINGS_CELL'
+            # , 'PREVIOUS_EPOCH_ATTESTATION_CELL'
+            # , 'CURRENT_EPOCH_ATTESTATIONS_CELL'
+            # , 'PREVIOUS_CROSSLINKS_CELL'
+            # , 'CURRENT_CROSSLINKS_CELL'
+            # , 'JUSTIFICATION_BITS_CELL'
+            # , 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL'
+            # , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'
+            # , 'FINALIZED_CHECKPOINT_CELL'
+            # , 'BLOCKSLOT_CELL'
+            # , 'PARENT_ROOT_CELL'
+            # , 'STATE_ROOT_CELL'
+            # , 'SIGNATURE_CELL'
+            # , 'TRANSFERS_CELL'
+]
+
+debug_keys = []
 
 def getKeyChain(yaml_input, key_chain):
     output = copy.deepcopy(yaml_input)
@@ -269,9 +345,9 @@ def buildConfigSubstitution(test_pre_state, config_cells, key_table = init_cells
     return new_key_table
 
 
-def loadYaml(name, pre_name):
+def loadYaml(test_dir, name):
     try:
-        post_file = Path.joinpath(Path(pre_name).parent, name).as_posix()
+        post_file = Path.joinpath(test_dir, name).as_posix()
         result = yaml.load(open(post_file, 'r'), Loader = yaml.FullLoader)
         print("\n%s file: %s\n" % (name, post_file))
         return result
@@ -287,9 +363,30 @@ def kast_diff(kast1, kast2, kast1Caption, kast2Caption):
             sys.stderr.write(line + '\n')
         sys.stderr.flush()
 
+def buildPreConfigSubst(test_dir):
+    pre_yaml = loadYaml(test_dir, "pre.yaml")
+    if pre_yaml is not None:
+        return buildConfigSubstitution(pre_yaml, init_config_cells, skip_keys=skip_keys, debug_keys=debug_keys)
+    else:
+        return {}
 
-if __name__ == '__main__':
+def buildBlockConfigSubst(test_dir):
+    block_yaml = loadYaml(test_dir, "block.yaml")
+    if block_yaml is not None:
+        return buildConfigSubstitution(block_yaml, block_cells, skip_keys = skip_keys, debug_keys = debug_keys)
+    else:
+        return {}
 
+def buildKCell(test_dir):
+    test_handler = test_dir.parts[-3]
+    if test_handler not in test_type_to_term.keys():
+        raise Exception("Invalid test type: " + test_handler)
+    yaml_operation = loadYaml(test_dir, "%s.yaml" % test_handler)
+    return KApply('process_%s' % test_handler,
+                  [test_type_to_term[test_handler](yaml_operation)]
+                  if test_type_to_term[test_handler] is not None else [])
+
+def main():
     arguments = argparse.ArgumentParser(prog = sys.argv[0])
     arguments.add_argument('command'  , choices = ['parse'])
     arguments.add_argument('-o', '--output' , type = argparse.FileType('w'), default = '-')
@@ -298,69 +395,22 @@ if __name__ == '__main__':
 
     args = arguments.parse_args()
 
-    pre_yaml = yaml.load(args.pre, Loader = yaml.FullLoader)
-    test_title = args.pre.name
+    test_dir = Path(args.pre.name).parent
+    test_title = test_dir.name
     _notif(test_title)
 
-    meta_yaml = loadYaml("meta.yaml", args.pre.name)
+    meta_yaml = loadYaml(test_dir, "meta.yaml")
     if meta_yaml is not None and 'bls_setting' in meta_yaml and meta_yaml['bls_setting'] == 1:
         _warning('Skipping test with `bls_setting` enabled')
-        sys.exit()
+        return
 
+    init_config_subst = {}
     all_keys = list(init_cells.keys())
 
-    skip_keys = [
-                #  'GENESIS_TIME_CELL'
-                #, 'SLOT_CELL'
-                #, 'FORK_CELL'
-                #, 'LATEST_BLOCK_HEADER_CELL'
-                #, 'BLOCK_ROOTS_CELL'
-                #, 'STATE_ROOTS_CELL'
-                #, 'HISTORICAL_ROOTS_CELL'
-                #, 'ETH1_DATA_CELL'
-                #, 'ETH1_DATA_VOTES_CELL'
-                #, 'ETH1_DEPOSIT_INDEX_CELL'
-                #, 'VALIDATORS_CELL'
-                #, 'BALANCES_CELL'
-                #, 'START_SHARD_CELL'
-                #, 'RANDAO_MIXES_CELL'
-                #, 'ACTIVE_INDEX_ROOTS_CELL'
-                #, 'COMPACT_COMMITTEES_ROOTS_CELL'
-                #, 'SLASHINGS_CELL'
-                #, 'PREVIOUS_EPOCH_ATTESTATION_CELL'
-                #, 'CURRENT_EPOCH_ATTESTATIONS_CELL'
-                #, 'PREVIOUS_CROSSLINKS_CELL'
-                #, 'CURRENT_CROSSLINKS_CELL'
-                #, 'JUSTIFICATION_BITS_CELL'
-                #, 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL'
-                #, 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'
-                #, 'FINALIZED_CHECKPOINT_CELL'
-                #, 'BLOCKSLOT_CELL'
-                #, 'PARENT_ROOT_CELL'
-                #, 'STATE_ROOT_CELL'
-                #, 'SIGNATURE_CELL'
-                #, 'TRANSFERS_CELL'
-                ]
-
-    debug_keys = [ ]
-
-    # Process block.yaml if present
-    block_yaml = loadYaml("block.yaml", args.pre.name)
-    block_config_subst = buildConfigSubstitution(block_yaml, block_cells, skip_keys = skip_keys, debug_keys = debug_keys) \
-        if block_yaml is not None else {}
-
-    init_config_subst = buildConfigSubstitution(pre_yaml, init_config_cells,
-                                                skip_keys = skip_keys, debug_keys = debug_keys)
+    init_config_subst.update(buildPreConfigSubst(test_dir))             # build state
+    block_config_subst = buildBlockConfigSubst(test_dir)                # build block
     init_config_subst.update(block_config_subst)
-
-    # build <k> cell
-    test_type = Path(args.pre.name).parts[-4]
-    if test_type not in test_type_to_term.keys():
-        raise Exception("Invalid test type: " + test_type)
-    yaml_operation = loadYaml("%s.yaml" % test_type, args.pre.name)
-    init_config_subst['K_CELL'] = KApply('process_%s' % test_type,
-                                         [test_type_to_term[test_type](yaml_operation)]
-                                         if test_type_to_term[test_type] is not None else [])
+    init_config_subst['K_CELL'] = buildKCell(test_dir)                  # build <k>
 
     init_config = substitute(symbolic_configuration, init_config_subst)
     kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
@@ -386,12 +436,11 @@ if __name__ == '__main__':
             _fatal('krun returned non-zero exit code: ' + test_title, code = returnCode)
 
     # Printing the post state
-    post_yaml = loadYaml("post.yaml", args.pre.name)
+    post_yaml = loadYaml(test_dir, "post.yaml")
     if post_yaml is not None:
         post_config_subst = buildConfigSubstitution(post_yaml, init_config_cells,
                                                     skip_keys = skip_keys, debug_keys = debug_keys)
         post_config_subst.update(block_config_subst)
-        # todo use a copy of symbolic configuration?
         post_config = substitute(symbolic_configuration, post_config_subst)
         post_kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : post_config }
         with tempfile.NamedTemporaryFile(mode = 'w', delete = not args.debug) as post_json_file:
@@ -408,3 +457,7 @@ if __name__ == '__main__':
             kast_diff(krunPrinted, postKastPrinted, 'krun_out', 'expected_post_state')
     else:
         print("\nNo post file")
+
+
+if __name__ == '__main__':
+    main()

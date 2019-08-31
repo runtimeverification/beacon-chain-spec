@@ -9,6 +9,8 @@ module BEACON-CHAIN
   imports DOMAINS
   imports HASH-TREE
 
+  rule <k> . => .Pgm </k> //todo hack to make comparison with post-state happy, until bugs in pyk get fixed
+
   // Helper functions -- Math
   //====================================================
 

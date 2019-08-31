@@ -173,7 +173,7 @@ symbolic_configuration = KApply ( '<generatedTop>' , [ KApply ( '<beacon-chain>'
                                                      ]
                                 )
 
-init_cells = { 'K_CELL'                             : KSequence([KConstant('.Pgm_TYPES_')])
+init_cells = { 'K_CELL'                             : KSequence([]) # that is .K
              , 'GENESIS_TIME_CELL'                  : KToken('0', 'Int')
              , 'SLOT_CELL'                          : KToken('0', 'Int')
              , 'FORK_CELL'                          : KConstant('.Fork_TYPES_')
@@ -222,7 +222,7 @@ if __name__ == '__main__':
     with tempfile.NamedTemporaryFile(mode = 'w') as tempf:
         json.dump(kast_json, tempf)
         tempf.flush()
-        (returnCode, _, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty')
+        (returnCode, _, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty', '--debug')
         if returnCode != 0:
             printerr('[FATAL] kast returned non-zero exit code reading/printing the initial configuration')
             sys.exit(returnCode)

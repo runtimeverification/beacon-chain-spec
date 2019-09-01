@@ -1286,7 +1286,7 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
         [a.data.crosslink for a in attestations]
     )
 */
-  syntax CrosslinkList ::= getCrosslinksOfAttestationsMatchingShardCrosslink(PendingAttestationList, 
+  syntax CrosslinkList ::= getCrosslinksOfAttestationsMatchingShardCrosslink(PendingAttestationList,
                                                                              shard: Int, result: CrosslinkList) [function]
   rule getCrosslinksOfAttestationsMatchingShardCrosslink(PATT PATTList, SHARD, RES)
        => #fun(CROSSLINK
@@ -1305,23 +1305,23 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
         get_attesting_balance(state, [a for a in attestations if a.data.crosslink == c]), c.data_root
     ), default=Crosslink())
 */
-  syntax Crosslink ::= maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendingAttestationList, 
+  syntax Crosslink ::= maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendingAttestationList,
                                                     result: CrosslinkList, maxBalance: Int, maxRoot: Hash) [function]
   rule maxCrosslinkOnBalanceAndRoot( CROSSLINK CrosslinkList, PendAttList, RES, MaxBalance, MaxRoot )
         => #fun(BALANCE
         => #fun(ROOT
         => maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendAttList,
-                                        #if        BALANCE >Int MaxBalance 
+                                        #if        BALANCE >Int MaxBalance
                                            orBool (BALANCE ==Int MaxBalance andBool ROOT >String MaxRoot)
                                           #then CROSSLINK .CrosslinkList
                                           #else RES
                                         #fi,
-                                        #if        BALANCE >Int MaxBalance 
+                                        #if        BALANCE >Int MaxBalance
                                            orBool (BALANCE ==Int MaxBalance andBool ROOT >String MaxRoot)
                                           #then BALANCE
                                           #else MaxBalance
                                         #fi,
-                                        #if        BALANCE >Int MaxBalance 
+                                        #if        BALANCE >Int MaxBalance
                                            orBool (BALANCE ==Int MaxBalance andBool ROOT >String MaxRoot)
                                           #then ROOT
                                           #else MaxRoot
@@ -1329,12 +1329,12 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
            )
            )(CROSSLINK.dataRoot)
            )( get_attesting_balance(pendingAttestationsMatchingCrosslink(PendAttList, CROSSLINK, .PendingAttestationList)) )
-  
+
   rule maxCrosslinkOnBalanceAndRoot(.CrosslinkList, _, CROSSLINK:Crosslink, _,_ ) => CROSSLINK
   rule maxCrosslinkOnBalanceAndRoot(.CrosslinkList, _, .CrosslinkList, _,_ ) => defaultCrosslink()
 
   // extracts the list of attestations for the given shard
-  syntax PendingAttestationList ::= pendingAttestationsMatchingShard(PendingAttestationList, Int, 
+  syntax PendingAttestationList ::= pendingAttestationsMatchingShard(PendingAttestationList, Int,
                                                                      PendingAttestationList) [function]
   rule pendingAttestationsMatchingShard( PA PAList => PAList,
                                          SHARD,

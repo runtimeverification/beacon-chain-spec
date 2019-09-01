@@ -398,7 +398,7 @@ class Transfer(Container):
 
   syntax Int ::= toInt( BitList , Int /*size in bits*/  )             [function]
                | toInt( BitList , Int /*size*/ , Int /*result*/ )     [function]
-  rule toInt(BL, SIZE) => toInt(BL, SIZE, 1)
+  rule toInt(BL, SIZE) => toInt(BL, SIZE, 0)
   rule toInt(BIT BL => BL, SIZE => SIZE -Int 1, RES => 2 *Int RES +Int toInt(BIT))
     requires SIZE >Int 0
   rule toInt(.BitList, SIZE => SIZE -Int 1, RES => 2 *Int RES)

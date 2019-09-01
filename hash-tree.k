@@ -268,7 +268,7 @@ for layer in range(1, 100):
     else:
         return merkleize_chunks(leaves)
 */
-  syntax Hash ::= "hash_tree_root" "(" BytesOrContainer ")"           [function]
+  syntax Hash ::= "hash_tree_root" "(" BytesOrContainer ")"           [function, klabel(hash_tree_root), symbol]
   rule hash_tree_root(VAL:Container) => hash_tree_root(VAL, %container, false)
   rule hash_tree_root(BYTES:Bytes) => hash_tree_root(BYTES, %bytes)
 

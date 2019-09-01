@@ -198,8 +198,8 @@ operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase
 test-operations-minimal: $(operations_minimal_tests:=.test-parse)
 
 %.yaml.test-parse: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse --pre $*.yaml
+	python3 runTest.py parse --test $*.yaml
 
 # Same as above, but invokes krun with --debug
 %.yaml.test-debug: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse --pre $*.yaml --debug
+	python3 runTest.py parse --test $*.yaml --debug

@@ -259,6 +259,17 @@ block_cells = { 'BLOCKSLOT_CELL'            : (['slot']                         
               , 'SIGNATURE_CELL'            : (['signature']                    , hashToken)
               }
 
+block_body_cells = {    'RANDAO_REVEAL_CELL'        : (['randao_reveal']        , hashToken)
+                      , 'BLOCK_ETH1_DATA_CELL'      : (['eth1_data']            , eth1DataTerm)
+                      , 'GRAFFITI_CELL'             : (['graffiti']             , hashToken)
+                      , 'PROPOSER_SLASHINGS_CELL'   : (['proposer_slashings']   , indexedMapOf(converter = proposerSlashingTerm))
+                      , 'ATTESTER_SLASHINGS_CELL'   : (['attester_slashings']   , listOf('AttesterSlashing', converter = attesterSlashingTerm))
+                      , 'ATTESTATIONS_CELL'         : (['attestations']         , listOf('Attestation', converter = attestationTerm))
+                      , 'DEPOSITS_CELL'             : (['deposits']             , listOf('Deposit', converter = depositTerm))
+                      , 'VOLUNTARY_EXITS_CELL'      : (['voluntary_exits']      , listOf('VoluntaryExit', converter = voluntaryExitTerm))
+                      , 'TRANSFERS_CELL'            : (['transfers']            , listOf('Transfer', converter = transferTerm))
+                   }
+
 skip_keys = [
             #  'GENESIS_TIME_CELL'
             # , 'SLOT_CELL'
@@ -317,15 +328,14 @@ def gatherKeyChains(yaml_input):
     return key_chains
 
 
-def buildConfigSubstitution(test_pre_state, config_cells, key_table = init_cells, skip_keys = [], debug_keys = []):
+def buildConfigSubstitution(test_pre_state, config_cells, skip_keys = [], debug_keys = []):
     new_key_table = {}
     used_key_chains = []
-    for cell_var in key_table:
-        if cell_var in config_cells and cell_var not in skip_keys:
+    for cell_var in config_cells:
+        if cell_var not in skip_keys:
             (pre_keys, converter) = config_cells[cell_var]
             test_field = getKeyChain(test_pre_state, pre_keys)
             if test_field is None:
-                new_key_table[cell_var] = key_table[cell_var]
                 _warning('Key not found: ' + str(pre_keys))
             else:
                 kast_term = converter(getKeyChain(test_pre_state, pre_keys))
@@ -336,7 +346,6 @@ def buildConfigSubstitution(test_pre_state, config_cells, key_table = init_cells
                 new_key_table[cell_var] = kast_term
                 used_key_chains.append(pre_keys)
         else:
-            new_key_table[cell_var] = key_table[cell_var]
             _warning('Unset configuration variable: ' + cell_var)
     for pre_key in gatherKeyChains(test_pre_state):
         if pre_key not in used_key_chains:
@@ -349,7 +358,7 @@ def loadYaml(test_dir, name):
     try:
         post_file = Path.joinpath(test_dir, name).as_posix()
         result = yaml.load(open(post_file, 'r'), Loader = yaml.FullLoader)
-        print("\n%s file: %s\n" % (name, post_file))
+        print("\n%s file: %s\n" % (name, post_file), flush=True)
         return result
     except FileNotFoundError:
         return None
@@ -364,39 +373,58 @@ def kast_diff(kast1, kast2, kast1Caption, kast2Caption):
         sys.stderr.flush()
 
 def buildPreConfigSubst(test_dir):
-    pre_yaml = loadYaml(test_dir, "pre.yaml")
+    test_runner = test_dir.parts[-4]
+    test_handler = test_dir.parts[-3]
+    file_name = 'value.yaml' if test_runner == 'ssz_static' and test_handler == 'BeaconState' \
+        else 'pre.yaml'
+    pre_yaml = loadYaml(test_dir, file_name)
     if pre_yaml is not None:
         return buildConfigSubstitution(pre_yaml, init_config_cells, skip_keys=skip_keys, debug_keys=debug_keys)
     else:
         return {}
 
 def buildBlockConfigSubst(test_dir):
-    block_yaml = loadYaml(test_dir, "block.yaml")
+    test_runner = test_dir.parts[-4]
+    test_handler = test_dir.parts[-3]
+    file_name = 'value.yaml' if test_runner == 'ssz_static' and (test_handler in ('BeaconBlock', 'BeaconBlockBody')) \
+        else 'block.yaml'
+    block_yaml = loadYaml(test_dir, file_name)
     if block_yaml is not None:
-        return buildConfigSubstitution(block_yaml, block_cells, skip_keys = skip_keys, debug_keys = debug_keys)
+        cells = block_body_cells if test_handler == 'BeaconBlockBody' else block_cells
+        return buildConfigSubstitution(block_yaml, cells, skip_keys = skip_keys, debug_keys = debug_keys)
     else:
         return {}
 
 def buildKCell(test_dir):
+    test_runner = test_dir.parts[-4]
     test_handler = test_dir.parts[-3]
-    if test_handler not in test_type_to_term.keys():
-        raise Exception("Invalid test type: " + test_handler)
-    yaml_operation = loadYaml(test_dir, "%s.yaml" % test_handler)
-    return KApply('process_%s' % test_handler,
-                  [test_type_to_term[test_handler](yaml_operation)]
-                  if test_type_to_term[test_handler] is not None else [])
+    if test_runner == 'ssz_static':
+        entry_point = 'hash_tree_root'
+        arg_converter = data_class_to_converter[test_handler]
+        file_name = 'value.yaml'
+    elif test_runner in ('operations', 'epoch_processing'):
+        if test_handler not in test_type_to_term.keys():
+            raise Exception("Unsupported test handler: " + test_handler)
+        entry_point = 'process_%s' % test_handler
+        arg_converter = test_type_to_term[test_handler]
+        file_name = "%s.yaml" % test_handler
+    else:
+        raise Exception("Unsupported test runner: " + test_runner)
+
+    return KApply(entry_point,
+                  [arg_converter(loadYaml(test_dir, file_name))] if arg_converter is not None else [])
 
 def main():
     arguments = argparse.ArgumentParser(prog = sys.argv[0])
-    arguments.add_argument('command'  , choices = ['parse'])
+    arguments.add_argument('command'        , choices = ['parse'])
     arguments.add_argument('-o', '--output' , type = argparse.FileType('w'), default = '-')
-    arguments.add_argument('--pre'  , type = argparse.FileType('r'), default = '-')
-    arguments.add_argument('-d', '--debug', dest='debug', action='store_true')
+    arguments.add_argument('--test'         , type = argparse.FileType('r'), default = '-')
+    arguments.add_argument('-d', '--debug'  , dest='debug', action='store_true')
 
     args = arguments.parse_args()
 
-    test_dir = Path(args.pre.name).parent
-    test_title = test_dir.name
+    test_dir = Path(args.test.name).parent
+    test_title = str(test_dir)
     _notif(test_title)
 
     meta_yaml = loadYaml(test_dir, "meta.yaml")
@@ -404,7 +432,7 @@ def main():
         _warning('Skipping test with `bls_setting` enabled')
         return
 
-    init_config_subst = {}
+    init_config_subst = copy.deepcopy(init_cells)
     all_keys = list(init_cells.keys())
 
     init_config_subst.update(buildPreConfigSubst(test_dir))             # build state
@@ -438,8 +466,9 @@ def main():
     # Printing the post state
     post_yaml = loadYaml(test_dir, "post.yaml")
     if post_yaml is not None:
-        post_config_subst = buildConfigSubstitution(post_yaml, init_config_cells,
-                                                    skip_keys = skip_keys, debug_keys = debug_keys)
+        post_config_subst = copy.deepcopy(init_cells)
+        post_config_subst.update(buildConfigSubstitution(post_yaml, init_config_cells,
+                                                         skip_keys=skip_keys, debug_keys=debug_keys))
         post_config_subst.update(block_config_subst)
         post_config = substitute(symbolic_configuration, post_config_subst)
         post_kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : post_config }
@@ -456,7 +485,7 @@ def main():
 
             kast_diff(krunPrinted, postKastPrinted, 'krun_out', 'expected_post_state')
     else:
-        print("\nNo post file")
+        print("\nNo post file", flush=True)
 
 
 if __name__ == '__main__':

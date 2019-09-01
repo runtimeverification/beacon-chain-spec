@@ -414,6 +414,11 @@ def buildKCell(test_dir):
     return KApply(entry_point,
                   [arg_converter(loadYaml(test_dir, file_name))] if arg_converter is not None else [])
 
+def buildPostKCell(test_dir):
+    test_runner = test_dir.parts[-4]
+    return None if test_runner != 'ssz_static' else hashToken(loadYaml(test_dir, 'roots.yaml')['root'])
+
+
 def main():
     arguments = argparse.ArgumentParser(prog = sys.argv[0])
     arguments.add_argument('command'        , choices = ['parse'])
@@ -436,8 +441,7 @@ def main():
     all_keys = list(init_cells.keys())
 
     init_config_subst.update(buildPreConfigSubst(test_dir))             # build state
-    block_config_subst = buildBlockConfigSubst(test_dir)                # build block
-    init_config_subst.update(block_config_subst)
+    init_config_subst.update(buildBlockConfigSubst(test_dir))           # build block
     init_config_subst['K_CELL'] = buildKCell(test_dir)                  # build <k>
 
     init_config = substitute(symbolic_configuration, init_config_subst)
@@ -465,11 +469,14 @@ def main():
 
     # Printing the post state
     post_yaml = loadYaml(test_dir, "post.yaml")
-    if post_yaml is not None:
-        post_config_subst = copy.deepcopy(init_cells)
-        post_config_subst.update(buildConfigSubstitution(post_yaml, init_config_cells,
-                                                         skip_keys=skip_keys, debug_keys=debug_keys))
-        post_config_subst.update(block_config_subst)
+    post_k_cell = buildPostKCell(test_dir)
+    if post_yaml is not None or post_k_cell is not None:
+        post_config_subst = copy.deepcopy(init_config_subst)
+        if post_yaml is not None:
+            post_config_subst.update(buildConfigSubstitution(post_yaml, init_config_cells,
+                                                             skip_keys=skip_keys, debug_keys=debug_keys))
+        post_config_subst['K_CELL'] = post_k_cell if post_k_cell is not None else init_cells['K_CELL']
+
         post_config = substitute(symbolic_configuration, post_config_subst)
         post_kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : post_config }
         with tempfile.NamedTemporaryFile(mode = 'w', delete = not args.debug) as post_json_file:

@@ -435,8 +435,8 @@ def bytes_to_int(data: bytes) -> uint64:
   //====================================================
 
   syntax Int ::= "bit_length" "(" Int ")"                             [function]
-  rule bit_length(A) => log2Int(A) +Int 1
-    requires A >Int 0
+  rule bit_length(A) => log2Int(absInt(A)) +Int 1
+    requires A =/=Int 0
   rule bit_length(0) => 0
 
   syntax Int ::= get( IntList, Int ) [function]

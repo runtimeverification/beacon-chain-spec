@@ -391,7 +391,7 @@ for layer in range(1, 100):
 
   syntax BytesList ::= chunkifyContainerList( list: BytesOrContainerList , minLen: Int)          [function]
 
-  rule chunkifyContainerList(V:Hash L:BytesList, MinLen)
+  rule chunkifyContainerList(V:Bytes L:BytesList, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(V:ProposerSlashing L, MinLen)
@@ -489,6 +489,7 @@ for layer in range(1, 100):
   rule item_length(%uint128) => 16
   rule item_length(%uint256) => 32
   rule item_length(%container) => 32
+  rule item_length(%bytes) => 32    //only bytes that are result of chunkify() are counted here, so length is 32.
 
   syntax ElementType ::= "%bool" | "%uint8" | "%uint16" |"%uint32" | "%uint64" | "%uint128" | "%uint256"
                        | "%bytes"

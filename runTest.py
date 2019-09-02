@@ -371,13 +371,16 @@ def loadYaml(test_dir, name):
         return None
 
 
-def kast_diff(kast1, kast2, kast1Caption, kast2Caption):
+def kast_diff(kast1, kast2, kast1Caption, kast2Caption, allow_diff = True):
     if kast1 != kast2:
-        _warning('%s and %s differ!' % (kast1Caption, kast2Caption))
+        header = 'WARNING' if allow_diff else 'ERROR'
+        _notif('[%s] %s and %s differ!' % (header, kast1Caption, kast2Caption))
         for line in difflib.unified_diff(kast1.split('\n'), kast2.split('\n'), fromfile=kast1Caption,
                                          tofile=kast2Caption, lineterm='\n'):
             sys.stderr.write(line + '\n')
         sys.stderr.flush()
+        if not allow_diff:
+            sys.exit(3)
 
 def buildPreConfigSubst(test_dir):
     test_runner = test_dir.parts[-4]
@@ -438,6 +441,7 @@ def main():
     arguments.add_argument('command'        , choices = ['parse'])
     arguments.add_argument('-o', '--output' , type = argparse.FileType('w'), default = '-')
     arguments.add_argument('--test'         , type = argparse.FileType('r'), default = '-')
+    arguments.add_argument('--allow-diff'   , dest='allow_diff', action='store_true')
     arguments.add_argument('-d', '--debug'  , dest='debug', action='store_true')
 
     args = arguments.parse_args()
@@ -504,7 +508,7 @@ def main():
             if returnCode != 0:
                 _fatal('kast returned non-zero exit code: ' + test_title, code = returnCode)
 
-            kast_diff(krunPrinted, postKastPrinted, 'krun_out', 'expected_post_state')
+            kast_diff(krunPrinted, postKastPrinted, 'krun_out', 'expected_post_state', args.allow_diff)
     else:
         print("\nNo post file", flush=True)
 

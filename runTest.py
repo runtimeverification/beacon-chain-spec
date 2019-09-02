@@ -399,7 +399,14 @@ def buildKCell(test_dir):
     test_runner = test_dir.parts[-4]
     test_handler = test_dir.parts[-3]
     if test_runner == 'ssz_static':
-        entry_point = 'hash_tree_root'
+        if test_handler == 'BeaconState':
+            entry_point = 'hash_tree_root_state'
+        elif test_handler == 'BeaconBlock':
+            entry_point = 'hash_tree_root_block'
+        elif test_handler == 'BeaconBlockBody':
+            entry_point = 'hash_tree_root_blockBody'
+        else:
+            entry_point = 'hash_tree_root'
         arg_converter = data_class_to_converter[test_handler]
         file_name = 'value.yaml'
     elif test_runner in ('operations', 'epoch_processing'):

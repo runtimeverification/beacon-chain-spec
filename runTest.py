@@ -327,6 +327,13 @@ def gatherKeyChains(yaml_input):
                 key_chains.append([k] + sub_key_chain)
     return key_chains
 
+def coversKeyChain(used_chains, chain):
+    for used_chain in used_chains:
+        if len(used_chain) > len(chain):
+            continue
+        if all(chain[index] == val for index, val in enumerate(used_chain)):
+            return True
+    return False
 
 def buildConfigSubstitution(test_pre_state, config_cells, skip_keys = [], debug_keys = []):
     new_key_table = {}
@@ -347,9 +354,9 @@ def buildConfigSubstitution(test_pre_state, config_cells, skip_keys = [], debug_
                 used_key_chains.append(pre_keys)
         else:
             _warning('Unset configuration variable: ' + cell_var)
-    for pre_key in gatherKeyChains(test_pre_state):
-        if pre_key not in used_key_chains:
-            _warning('Unused pre_key: ' + str(pre_key))
+    for yaml_chain in gatherKeyChains(test_pre_state):
+        if not coversKeyChain(used_key_chains, yaml_chain):
+            _warning('Unused yaml key: ' + str(yaml_chain))
 
     return new_key_table
 

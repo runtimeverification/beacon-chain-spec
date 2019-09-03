@@ -59,11 +59,9 @@ libsecp256k1: $(libsecp256k1_out)
 libff: $(libff_out)
 
 $(DEPS_DIR)/secp256k1/autogen.sh:
-	@echo "== submodule: $(DEPS_DIR)/secp256k1"
 	git submodule update --init --recursive -- $(DEPS_DIR)/secp256k1
 
 $(PLUGIN_SUBMODULE)/make.timestamp:
-	@echo "== submodule: $@"
 	git submodule update --init --recursive -- $(PLUGIN_SUBMODULE)
 	touch $(PLUGIN_SUBMODULE)/make.timestamp
 
@@ -88,7 +86,6 @@ LIBFF_CC ?=clang-8
 LIBFF_CXX?=clang++-8
 
 $(DEPS_DIR)/libff/CMakeLists.txt:
-	@echo "== submodule: $(DEPS_DIR)/libff"
 	git submodule update --init --recursive -- $(DEPS_DIR)/libff
 
 $(libff_out): $(DEPS_DIR)/libff/CMakeLists.txt
@@ -109,12 +106,10 @@ deps-tests: $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
 deps-plugin: $(PLUGIN_SUBMODULE)/make.timestamp
 
 %/submodule.timestamp:
-	@echo "== submodule: $*"
 	git submodule update --init --recursive -- $*
 	touch $@
 
 $(K_SUBMODULE)/mvn.timestamp: $(K_SUBMODULE)/submodule.timestamp
-	@echo "== building: $*"
 	cd $(K_SUBMODULE) && mvn package -DskipTests
 	touch $(K_SUBMODULE)/mvn.timestamp
 
@@ -145,19 +140,16 @@ defn-llvm: $(llvm_files)
 defn-haskell: $(haskell_files)
 
 $(DEFN_DIR)/llvm/%.k: %.k
-	@echo "==  copying: $@"
 	mkdir -p $(dir $@)
 	cp $< $@
 
 $(DEFN_DIR)/haskell/%.k: %.k
-	@echo "==  copying: $@"
 	mkdir -p $(dir $@)
 	cp $< $@
 
 # LLVM Backend
 
 $(llvm_kompiled): $(llvm_files) $(libff_out)
-	@echo "== kompile: $@"
 	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm                   \
 	                 --syntax-module $(SYNTAX_MODULE) $(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE).k \
 	                 --directory $(DEFN_DIR)/llvm -I $(DEFN_DIR)/llvm                      \
@@ -172,7 +164,6 @@ $(llvm_kompiled): $(llvm_files) $(libff_out)
 # Haskell Backend
 
 $(haskell_kompiled): $(haskell_files)
-	@echo "== kompile: $@"
 	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend haskell                   \
 	                 --syntax-module $(SYNTAX_MODULE) $(DEFN_DIR)/haskell/$(MAIN_DEFN_FILE).k \
 	                 --directory $(DEFN_DIR)/haskell -I $(DEFN_DIR)/haskell

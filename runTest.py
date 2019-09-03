@@ -142,8 +142,8 @@ eth1DataTerm = labelWithKeyPairs('#Eth1Data', [ ('deposit_root'  , hashToken)
                                               ]
                                 )
 
-historicalBatchTerm = labelWithKeyPairs('#HistoricalBatch', [ ('block_roots' , bitListTerm)
-                                                            , ('state_roots' , bitListTerm)
+historicalBatchTerm = labelWithKeyPairs('#HistoricalBatch', [ ('block_roots' , bytesListTerm)
+                                                            , ('state_roots' , bytesListTerm)
                                                             ]
                                        )
 

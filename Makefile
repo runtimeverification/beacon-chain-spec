@@ -1,37 +1,40 @@
 # Settings
 # --------
 
-BUILD_DIR:=.build
-DEFN_DIR:=$(BUILD_DIR)/defn
-BUILD_LOCAL:=$(CURDIR)/$(BUILD_DIR)/local
-LIBRARY_PATH:=$(BUILD_LOCAL)/lib
-INCLUDE_PATH:=$(BUILD_LOCAL)/include
-PKG_CONFIG_PATH:=$(LIBRARY_PATH)/pkgconfig
+BUILD_DIR   := .build
+DEFN_DIR    := $(BUILD_DIR)/defn
+BUILD_LOCAL := $(CURDIR)/$(BUILD_DIR)/local
+
+LIBRARY_PATH    := $(BUILD_LOCAL)/lib
+INCLUDE_PATH    := $(BUILD_LOCAL)/include
+PKG_CONFIG_PATH := $(LIBRARY_PATH)/pkgconfig
+
 export LIBRARY_PATH
+export INCLUDE_PATH
 export PKG_CONFIG_PATH
 
-DEPS_DIR:=deps
-K_SUBMODULE:=$(abspath $(DEPS_DIR)/k)
-PANDOC_TANGLE_SUBMODULE:=$(DEPS_DIR)/pandoc-tangle
-PLUGIN_SUBMODULE:=$(abspath $(DEPS_DIR)/plugin)
+DEPS_DIR                := deps
+K_SUBMODULE             := $(abspath $(DEPS_DIR)/k)
+PANDOC_TANGLE_SUBMODULE := $(DEPS_DIR)/pandoc-tangle
+PLUGIN_SUBMODULE        := $(abspath $(DEPS_DIR)/plugin)
 
-K_RELEASE:=$(K_SUBMODULE)/k-distribution/target/release/k
-K_BIN:=$(K_RELEASE)/bin
-K_LIB:=$(K_RELEASE)/lib
+K_RELEASE := $(K_SUBMODULE)/k-distribution/target/release/k
+K_BIN     := $(K_RELEASE)/bin
+K_LIB     := $(K_RELEASE)/lib
 
-PATH:=$(K_BIN):$(PATH)
+PATH := $(K_BIN):$(PATH)
 export PATH
 
-PYTHONPATH:=$(K_LIB)
+PYTHONPATH := $(K_LIB)
 export PYTHONPATH
 
-TANGLER:=$(PANDOC_TANGLE_SUBMODULE)/tangle.lua
-LUA_PATH:=$(PANDOC_TANGLE_SUBMODULE)/?.lua;;
+TANGLER  := $(PANDOC_TANGLE_SUBMODULE)/tangle.lua
+LUA_PATH := $(PANDOC_TANGLE_SUBMODULE)/?.lua;;
 export TANGLER
 export LUA_PATH
 
-TEST_DIR:=tests
-ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-spec-tests
+TEST_DIR             := tests
+ETH2_TESTS_SUBMODULE := $(TEST_DIR)/eth2.0-spec-tests
 
 .PHONY: all clean \
         libff libsecp256k1 \

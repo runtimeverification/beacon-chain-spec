@@ -138,10 +138,10 @@ build-haskell: $(haskell_kompiled)
 k_files := $(MAIN_DEFN_FILE).k beacon-chain.k hash-tree.k types.k config.k constants-minimal.k
 
 llvm_dir   := $(DEFN_DIR)/llvm
-llvm_files := $(patsubst %,$(DEFN_DIR)/llvm/%,$(k_files))
+llvm_files := $(patsubst %,$(llvm_dir)/%,$(k_files))
 
 haskell_dir   := $(DEFN_DIR)/haskell
-haskell_files := $(patsubst %,$(DEFN_DIR)/haskell/%,$(k_files))
+haskell_files := $(patsubst %,$(haskell_dir)/%,$(k_files))
 
 defn: llvm-defn haskell-defn
 defn-llvm:    $(llvm_files)
@@ -162,23 +162,23 @@ $(haskell_dir):
 # LLVM Backend
 
 $(llvm_kompiled): $(llvm_files) $(libff_out)
-	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm                   \
-	                 --syntax-module $(SYNTAX_MODULE) $(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE).k \
-	                 --directory $(DEFN_DIR)/llvm -I $(DEFN_DIR)/llvm                      \
-	                 --hook-namespaces KRYPTO                                              \
-	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                        \
-	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp                 \
-	                 $(addprefix -ccopt ,$(LINK_PROCPS))                                   \
-			 -ccopt -g -ccopt -std=c++11 -ccopt -O2                                \
-	                 -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                     \
+	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm              \
+	                 --syntax-module $(SYNTAX_MODULE) $(llvm_dir)/$(MAIN_DEFN_FILE).k \
+	                 --directory $(llvm_dir) -I $(llvm_dir)                           \
+	                 --hook-namespaces KRYPTO                                         \
+	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                   \
+	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp            \
+	                 $(addprefix -ccopt ,$(LINK_PROCPS))                              \
+	                 -ccopt -g -ccopt -std=c++11 -ccopt -O2                           \
+	                 -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                \
 	                 $(LLVM_KOMPILE_OPTS)
 
 # Haskell Backend
 
 $(haskell_kompiled): $(haskell_files)
-	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend haskell                   \
-	                 --syntax-module $(SYNTAX_MODULE) $(DEFN_DIR)/haskell/$(MAIN_DEFN_FILE).k \
-	                 --directory $(DEFN_DIR)/haskell -I $(DEFN_DIR)/haskell
+	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend haskell              \
+	                 --syntax-module $(SYNTAX_MODULE) $(haskell_dir)/$(MAIN_DEFN_FILE).k \
+	                 --directory $(haskell_dir) -I $(haskell_dir)
 
 # Testing
 # -------

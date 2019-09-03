@@ -455,6 +455,7 @@ for layer in range(1, 100):
   rule mix_in_length(ROOT, LEN) => hashConcat(ROOT, to_bytes(LEN, 32))
 
 /* def chunk_count(typ: SSZType) -> int:
+    # note that for lists, .length *on the type* describes the list limit.
     if isinstance(typ, BasicType):
         return 1
     elif issubclass(typ, Bits):

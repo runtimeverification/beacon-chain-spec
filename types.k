@@ -396,14 +396,27 @@ class Transfer(Container):
   // Type conversion functions
   //====================================================
 
-  syntax Int ::= toInt( bitlist: BitList)                             [function]
-               | toInt( bitlist: BitList, result: Int )               [function]
-  rule toInt(BL) => toInt(BL, 0)
-  rule toInt(BIT BL => BL, RES => 2 *Int RES +Int toInt(BIT))
-  rule toInt(.BitList, RES) => RES
+/*    def as_bytes(Bits):
+        as_bytearray = [0] * ((len(self) + 7) // 8)
+        for i in range(len(self)):
+            as_bytearray[i // 8] |= int(self[i]) << (i % 8)
+        return bytes(as_bytearray)  */
+  syntax Bytes ::= "as_bytes" "(" BitList ")"                         [function]
+                 | "as_bytes" "(" bits: BitList "," asBytearray: List "," i: Int ")" [function]
+  rule as_bytes(BL) => as_bytes(BL, initBuiltinListOfInt((len(BL) +Int 7) /Int 8), 0)
+  rule as_bytes(BIT BL => BL,
+                AsBytearray => AsBytearray[ I /Int 8 <- {AsBytearray[I /Int 8]}:>Int |Int (toInt(BIT) <<Int (I %Int 8)) ],
+                I => I +Int 1)
+  rule as_bytes(.BitList, ListItem(ELEM) AsBytearray, I) => chrChar(ELEM) +Bytes as_bytes(.BitList, AsBytearray, I)
+  rule as_bytes(.BitList, .List, _) => ""
 
   syntax Int ::= toInt( Bool )                                        [function]
   rule toInt(B:Bool) => #if B #then 1 #else 0 #fi
+
+  syntax List ::= initBuiltinListOfInt ( Int )                        [function]
+  rule initBuiltinListOfInt(SIZE) => ListItem(0) initBuiltinListOfInt(SIZE -Int 1)
+    requires SIZE >Int 0
+  rule initBuiltinListOfInt(0) => .List
 
 /* NOTE: this implementation is LITTLE ENDIAN, as expected by Beacon Chain spec everywhere.
 

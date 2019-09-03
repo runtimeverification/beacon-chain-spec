@@ -65,13 +65,11 @@ Input `String` is interpreted as byte array, e.g. it is NOT hex-encoded.
 def pack(values: Series):
     if isinstance(values, bytes):  # Bytes and BytesN are already packed
         return values
-    elif isinstance(values, Bitvector):
-        as_integer = sum([values[i] << i for i in range(len(values))])
-        return as_integer.to_bytes((values.length + 7) // 8, "little")
-    elif isinstance(values, Bitlist):
-        as_integer = sum([values[i] << i for i in range(len(values))])
-        return as_integer.to_bytes((values.length + 7) // 8, "little")
-    return b''.join([serialize_basic(value) for value in values])*/
+    elif isinstance(values, Bits):
+        # packs the bits in bytes, left-aligned.
+        # Exclusive length delimiting bits for bitlists.
+        return values.as_bytes()
+    return b''.join([serialize_basic(value) for value in values]) */
   //Version for byte array
   syntax Bytes ::= pack ( Bytes )                                     [function]
   rule pack(B:Bytes) => B
@@ -79,13 +77,11 @@ def pack(values: Series):
   //Version for lists
   syntax Bytes ::= pack ( list: ValueList, staticLen: Int, elemType: ElementType ) [function]
 
-  //Using StaticLEN here. Python code above also uses static length in "values.length".
-/*      as_integer = sum([values[i] << i for i in range(len(values))])
-        return as_integer.to_bytes((values.length + 7) // 8, "little")
-*/
-  rule pack(BL:BitList, StaticLEN, %bool) => to_bytes( toInt(BL), (StaticLEN +Int 7) /Int 8 )
+//  return values.as_bytes()
+  rule pack(BL:BitList, StaticLEN, %bool) => as_bytes(BL)
 
   // Int lists will be padded to their static size later anyway. So it doesn't matter if LEN here is static or dynamic.
+  // return b''.join([serialize_basic(value) for value in values])
   rule pack(I:Int IL:IntList, StaticLEN, ElemType) => serialize_basic(I, ElemType) +Bytes pack(IL, StaticLEN -Int 1, ElemType)
   rule pack(.IntList, StaticLEN, ElemType) => serialize_basic(0, ElemType) +Bytes pack(.IntList, StaticLEN -Int 1, ElemType)
     requires StaticLEN >Int 0

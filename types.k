@@ -182,7 +182,7 @@ class AttestationDataAndCustodyBit(Container):
     data: AttestationData
     custody_bit: bit  # Challengeable bit (SSZ-bool, 1 byte) for the custody of crosslink data
   */
-  syntax AttestationDataAndCustodyBit ::= #AttestationDataAndCustodyBit( AttestationData, Bit )
+  syntax AttestationDataAndCustodyBit ::= #AttestationDataAndCustodyBit( AttestationData, Bit ) [klabel(#AttestationDataAndCustodyBit), symbol]
 
   /*
 class IndexedAttestation(Container):
@@ -238,7 +238,7 @@ class HistoricalBatch(Container):
     block_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
     state_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
   */
-  syntax HistoricalBatch ::= #HistoricalBatch( BytesList, BytesList )
+  syntax HistoricalBatch ::= #HistoricalBatch( BytesList, BytesList ) [klabel(#HistoricalBatch), symbol]
 
   /*
 class DepositData(Container):
@@ -261,7 +261,7 @@ class CompactCommittee(Container):
     pubkeys: List[BLSPubkey, MAX_VALIDATORS_PER_COMMITTEE]
     compact_validators: List[uint64, MAX_VALIDATORS_PER_COMMITTEE]
   */
-  syntax CompactCommittee ::= #CompactCommittee( BytesList, IntList )
+  syntax CompactCommittee ::= #CompactCommittee( BytesList, IntList ) [klabel(#CompactCommittee), symbol]
 
   syntax BytesList ::= CompactCommittee "." "pubkeys"             [function]
   rule #CompactCommittee(PUBKEYS, _).pubkeys => PUBKEYS

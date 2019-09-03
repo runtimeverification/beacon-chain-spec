@@ -268,7 +268,7 @@ for layer in range(1, 100):
     else:
         return merkleize_chunks(leaves)
 */
-  syntax Hash ::= "hash_tree_root" "(" BytesOrContainer ")"           [function]
+  syntax Hash ::= "hash_tree_root" "(" BytesOrContainer ")"           [function, klabel(hash_tree_root), symbol]
   rule hash_tree_root(VAL:Container) => hash_tree_root(VAL, %container, false)
   rule hash_tree_root(BYTES:Bytes) => hash_tree_root(BYTES, %bytes)
 
@@ -496,7 +496,7 @@ for layer in range(1, 100):
 
   // hash_tree_root() - BeaconBlock, stored in <block> in configuration
   //====================================================
-  syntax Hash ::= "hash_tree_root_block" "(" ")"                      [function]
+  syntax Hash ::= "hash_tree_root_block" "(" ")"                      [function, klabel(hash_tree_root_block), symbol]
   rule [[ hash_tree_root_block()
        => hash_tree_root_part2_v2(hash_tree_root(SLOT, %uint64) hash_tree_root(PARENTROOT) hash_tree_root(STATEROOT)
                                   hash_tree_root_blockBody() hash_tree_root(SIG) .BytesList) ]]
@@ -505,7 +505,7 @@ for layer in range(1, 100):
     <state-root> STATEROOT </state-root>
     <signature> SIG </signature>
 
-  syntax Hash ::= "hash_tree_root_blockBody" "(" ")"                  [function]
+  syntax Hash ::= "hash_tree_root_blockBody" "(" ")"                  [function, klabel(hash_tree_root_blockBody), symbol]
   rule [[ hash_tree_root_blockBody()
        => hash_tree_root_part2_v2(
             hash_tree_root(RANDAO)
@@ -546,7 +546,7 @@ for layer in range(1, 100):
 
   // hash_tree_root() - BeaconState, stored in <state> in configuration
   //====================================================
-  syntax Hash ::= "hash_tree_root_state" "(" ")"                      [function]
+  syntax Hash ::= "hash_tree_root_state" "(" ")"                      [function, klabel(hash_tree_root_state), symbol]
   rule [[ hash_tree_root_state()
        => hash_tree_root_part2_v2(
             hash_tree_root(GenesisTime, %uint64)
@@ -609,7 +609,7 @@ for layer in range(1, 100):
     leaves = [hash_tree_root(f) for f in fields]
     return merkleize_chunks(chunkify(b''.join(leaves)))
 */
-  syntax Hash ::= "signing_root" "(" val: Container ")"               [function]
+  syntax Hash ::= "signing_root" "(" val: Container ")"               [function, klabel(signing_root), symbol]
   rule signing_root(VAL) => hash_tree_root(VAL, %container, true)
 
   // Utility functions

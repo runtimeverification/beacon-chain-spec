@@ -195,11 +195,14 @@ test-python-config: buildConfig.py $(llvm_kompiled)
 
 operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/transfer/pyspec_tests/*/pre.yaml)
 
-test-operations-minimal: $(operations_minimal_tests:=.test-parse)
+test-operations-minimal: $(operations_minimal_tests:=.test-allow-diff)
 
-%.yaml.test-parse: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse --pre $*.yaml
+%.yaml.test: %.yaml $(llvm_kompiled)
+	python3 runTest.py parse --test $*.yaml
 
-# Same as above, but invokes krun with --debug
+%.yaml.test-allow-diff: %.yaml $(llvm_kompiled)
+	python3 runTest.py parse --test $*.yaml --allow-diff
+
+# Same as above, but invokes krun with --debug and does not halt when diff vs expected state is detected
 %.yaml.test-debug: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse --pre $*.yaml --debug
+	python3 runTest.py parse --test $*.yaml --debug --allow-diff

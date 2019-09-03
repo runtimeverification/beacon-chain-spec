@@ -119,14 +119,15 @@ $(PLUGIN_SUBMODULE)/make.timestamp:
 # Building
 # --------
 
-MAIN_MODULE:=BEACON-CHAIN
-SYNTAX_MODULE:=$(MAIN_MODULE)
-MAIN_DEFN_FILE:=beacon-chain
-KOMPILE_OPTS?=
-LLVM_KOMPILE_OPTS:=$(KOMPILE_OPTS)
+MAIN_MODULE    := BEACON-CHAIN
+SYNTAX_MODULE  := $(MAIN_MODULE)
+MAIN_DEFN_FILE := beacon-chain
 
-llvm_kompiled:=$(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE)-kompiled/interpreter
-haskell_kompiled:=$(DEFN_DIR)/haskell/$(MAIN_DEFN_FILE)-kompiled/definition.kore
+KOMPILE_OPTS      ?=
+LLVM_KOMPILE_OPTS := $(KOMPILE_OPTS)
+
+llvm_kompiled    := $(llvm_dir)/$(MAIN_DEFN_FILE)-kompiled/interpreter
+haskell_kompiled := $(haskell_dir)/$(MAIN_DEFN_FILE)-kompiled/definition.kore
 
 build: build-llvm build-haskell
 build-llvm:    $(llvm_kompiled)

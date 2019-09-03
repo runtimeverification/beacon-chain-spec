@@ -198,7 +198,7 @@ test-python-config: buildConfig.py $(llvm_kompiled)
 
 operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/transfer/pyspec_tests/*/pre.yaml)
 
-ssz_tests = $(filter-out tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/Beacon*/*/*/value.yaml, \
+ssz_tests = $(filter-out $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/Beacon*/*/*/value.yaml), \
 	$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*/*/*/value.yaml))
 
 test-operations-minimal: $(operations_minimal_tests:=.test-allow-diff)

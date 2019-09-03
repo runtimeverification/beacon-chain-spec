@@ -3,15 +3,11 @@
 import argparse
 import copy
 import difflib
-import json
-import sys
-import tempfile
-from collections import Iterator
 
 import yaml
 
 from pyk.kast    import _notif, _warning, _fatal
-from pyk.kast      import combineDicts, appliedLabelStr, constLabel, underbarUnparsing, K_symbols, KApply, KConstant, KSequence, KVariable, KToken
+from pyk.kast      import KApply
 from buildConfig import *
 from pathlib import Path
 
@@ -158,12 +154,23 @@ transferTerm = labelWithKeyPairs('#Transfer' , [ ('sender'    , intToken)
                                 )
 
 test_type_to_term = {
+    # operations
     'proposer_slashing': proposerSlashingTerm,
     'attester_slashing': attesterSlashingTerm,
     'attestation'      : attestationTerm,
     'deposit'          : depositTerm,
     'voluntary_exit'   : voluntaryExitTerm,
-    'transfer'         : transferTerm
+    'transfer'         : transferTerm,
+
+    'block_header'                      : None,
+
+    # epoch_processing
+    'crosslinks'                        : None,
+    'final_updates'                     : None,
+    'justification_and_finalization'    : None,
+    'registry_updates'                  : None,
+    'slashings'                         : None,
+    'rewards_and_penalties'             : None #planned
 }
 
 init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']                       , intToken)
@@ -192,13 +199,24 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL' : (['previous_justified_checkpoint']      , checkpointTerm)
                     , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'  : (['current_justified_checkpoint']       , checkpointTerm)
                     , 'FINALIZED_CHECKPOINT_CELL'          : (['finalized_checkpoint']               , checkpointTerm)
-                    # Later: only when test 2nd arg is a Block.
-                    # , 'BLOCKSLOT_CELL'                     : (['latest_block_header', 'slot']        , intToken)
-                    # , 'PARENT_ROOT_CELL'                   : (['latest_block_header', 'parent_root'] , hashToken)
-                    # , 'STATE_ROOT_CELL'                    : (['latest_block_header', 'state_root']  , hashToken)
-                    # , 'SIGNATURE_CELL'                     : (['latest_block_header', 'signature']   , hashToken)
-                    # , 'TRANSFERS_CELL'                     : (['transfers']                          , listOf('Transfer', converter = transferTerm))
                     }
+
+block_cells = { 'BLOCKSLOT_CELL'            : (['slot']                         , intToken)
+              , 'PARENT_ROOT_CELL'          : (['parent_root']                  , hashToken)
+              , 'STATE_ROOT_CELL'           : (['state_root']                   , hashToken)
+
+              , 'RANDAO_REVEAL_CELL'        : (['body', 'randao_reveal']        , hashToken)
+              , 'BLOCK_ETH1_DATA_CELL'      : (['body', 'eth1_data']            , eth1dataTerm)
+              , 'GRAFFITI_CELL'             : (['body', 'graffiti']             , hashToken)
+              , 'PROPOSER_SLASHINGS_CELL'   : (['body', 'proposer_slashings']   , indexedMapOf(converter = proposerSlashingTerm))
+              , 'ATTESTER_SLASHINGS_CELL'   : (['body', 'attester_slashings']   , listOf('AttesterSlashing', converter = attesterSlashingTerm))
+              , 'ATTESTATIONS_CELL'         : (['body', 'attestations']         , listOf('Attestation', converter = attestationTerm))
+              , 'DEPOSITS_CELL'             : (['body', 'deposits']             , listOf('Deposit', converter = depositTerm))
+              , 'VOLUNTARY_EXITS_CELL'      : (['body', 'voluntary_exits']      , listOf('VoluntaryExit', converter = voluntaryExitTerm))
+              , 'TRANSFERS_CELL'            : (['body', 'transfers']            , listOf('Transfer', converter = transferTerm))
+
+              , 'SIGNATURE_CELL'            : (['signature']                    , hashToken)
+              }
 
 def getKeyChain(yaml_input, key_chain):
     output = copy.deepcopy(yaml_input)
@@ -223,12 +241,12 @@ def gatherKeyChains(yaml_input):
     return key_chains
 
 
-def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_keys = [], debug_keys = []):
+def buildConfigSubstitution(test_pre_state, config_cells, key_table = init_cells, skip_keys = [], debug_keys = []):
     new_key_table = {}
     used_key_chains = []
     for cell_var in key_table:
-        if cell_var in init_config_cells and cell_var not in skip_keys:
-            (pre_keys, converter) = init_config_cells[cell_var]
+        if cell_var in config_cells and cell_var not in skip_keys:
+            (pre_keys, converter) = config_cells[cell_var]
             test_field = getKeyChain(test_pre_state, pre_keys)
             if test_field is None:
                 new_key_table[cell_var] = key_table[cell_var]
@@ -251,20 +269,13 @@ def buildInitConfigSubstitution(test_pre_state, key_table = init_cells, skip_key
     return new_key_table
 
 
-def loadYamlOperation(pre_name, operation):
-    operation_file = Path.joinpath(Path(pre_name).parent, "%s.yaml" % operation).as_posix()
-    print("Operation file: %s\n" % operation_file)
-    return yaml.load(open(operation_file, 'r'), Loader=yaml.FullLoader)
-
-
-def loadPostYaml(pre_name):
+def loadYaml(name, pre_name):
     try:
-        post_file = Path.joinpath(Path(pre_name).parent, "post.yaml").as_posix()
-        result = yaml.load(open(post_file, 'r'), Loader=yaml.FullLoader)
-        print("\nPost file: %s\n" % post_file)
+        post_file = Path.joinpath(Path(pre_name).parent, name).as_posix()
+        result = yaml.load(open(post_file, 'r'), Loader = yaml.FullLoader)
+        print("\n%s file: %s\n" % (name, post_file))
         return result
     except FileNotFoundError:
-        print("\nNo post file")
         return None
 
 
@@ -287,13 +298,14 @@ if __name__ == '__main__':
 
     args = arguments.parse_args()
 
-    yaml_pre = yaml.load(args.pre, Loader = yaml.FullLoader)
+    pre_yaml = yaml.load(args.pre, Loader = yaml.FullLoader)
     test_title = args.pre.name
     _notif(test_title)
 
-    # TODO bls_setting is in meta.yaml
-    if 'bls_setting' in yaml_pre and yaml_pre['bls_setting'] > 1:
-        _warning('Skipping test with `bls_setting` set to ' + str(yaml_pre['bls_setting']))
+    meta_yaml = loadYaml("meta.yaml", args.pre.name)
+    if meta_yaml is not None and 'bls_setting' in meta_yaml and meta_yaml['bls_setting'] == 1:
+        _warning('Skipping test with `bls_setting` enabled')
+        sys.exit()
 
     all_keys = list(init_cells.keys())
 
@@ -331,14 +343,24 @@ if __name__ == '__main__':
                 ]
 
     debug_keys = [ ]
-    init_config_subst = buildInitConfigSubstitution(yaml_pre, skip_keys = skip_keys, debug_keys = debug_keys)
+
+    # Process block.yaml if present
+    block_yaml = loadYaml("block.yaml", args.pre.name)
+    block_config_subst = buildConfigSubstitution(block_yaml, block_cells, skip_keys = skip_keys, debug_keys = debug_keys) \
+        if block_yaml is not None else {}
+
+    init_config_subst = buildConfigSubstitution(pre_yaml, init_config_cells,
+                                                skip_keys = skip_keys, debug_keys = debug_keys)
+    init_config_subst.update(block_config_subst)
 
     # build <k> cell
     test_type = Path(args.pre.name).parts[-4]
     if test_type not in test_type_to_term.keys():
         raise Exception("Invalid test type: " + test_type)
-    yaml_operation = loadYamlOperation(args.pre.name, test_type)
-    init_config_subst['K_CELL'] = KApply('process_%s' % test_type, [test_type_to_term[test_type](yaml_operation)])
+    yaml_operation = loadYaml("%s.yaml" % test_type, args.pre.name)
+    init_config_subst['K_CELL'] = KApply('process_%s' % test_type,
+                                         [test_type_to_term[test_type](yaml_operation)]
+                                         if test_type_to_term[test_type] is not None else [])
 
     init_config = substitute(symbolic_configuration, init_config_subst)
     kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
@@ -364,9 +386,11 @@ if __name__ == '__main__':
             _fatal('krun returned non-zero exit code: ' + test_title, code = returnCode)
 
     # Printing the post state
-    post_json = loadPostYaml(args.pre.name)
-    if post_json is not None:
-        post_config_subst = buildInitConfigSubstitution(post_json, skip_keys = skip_keys, debug_keys = debug_keys)
+    post_yaml = loadYaml("post.yaml", args.pre.name)
+    if post_yaml is not None:
+        post_config_subst = buildConfigSubstitution(post_yaml, init_config_cells,
+                                                    skip_keys = skip_keys, debug_keys = debug_keys)
+        post_config_subst.update(block_config_subst)
         # todo use a copy of symbolic configuration?
         post_config = substitute(symbolic_configuration, post_config_subst)
         post_kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : post_config }
@@ -374,9 +398,13 @@ if __name__ == '__main__':
             json.dump(post_kast_json, post_json_file)
             post_json_file.flush()
 
-            (returnCode, postKastPrinted, _) = kast(post_json_file.name, '--input', 'json', '--output', 'pretty', '--debug')
+            # (returnCode, postKastPrinted, _) = kast(post_json_file.name, '--input', 'json', '--output', 'pretty', '--debug')
+            # Using krun to get same string encoding as for main krun
+            (returnCode, postKastPrinted, _) = krun(post_json_file.name, '--term', '--parser', 'cat')
             postKastPrinted = postKastPrinted.strip()
             if returnCode != 0:
                 _fatal('kast returned non-zero exit code: ' + test_title, code = returnCode)
 
             kast_diff(krunPrinted, postKastPrinted, 'krun_out', 'expected_post_state')
+    else:
+        print("\nNo post file")

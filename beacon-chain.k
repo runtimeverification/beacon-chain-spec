@@ -9,6 +9,8 @@ module BEACON-CHAIN
   imports DOMAINS
   imports HASH-TREE
 
+  rule <k> . => .Pgm </k> //todo hack to make comparison with post-state happy, until bugs in pyk get fixed
+
   // Helper functions -- Math
   //====================================================
 
@@ -1395,7 +1397,7 @@ def process_justification_and_finalization(state: BeaconState) -> None:
     if all(bits[0:2]) and old_current_justified_checkpoint.epoch + 1 == current_epoch:
         state.finalized_checkpoint = old_current_justified_checkpoint
 */
-  syntax KItem ::= "process_justification_and_finalization" "(" ")"
+  syntax KItem ::= "process_justification_and_finalization" "(" ")" [klabel(process_justification_and_finalization), symbol]
 
   // too early to proceed with processing
   rule <k> (process_justification_and_finalization() => .K) ... </k>
@@ -1494,7 +1496,7 @@ def process_crosslinks(state: BeaconState) -> None:
             if 3 * get_total_balance(state, attesting_indices) >= 2 * get_total_balance(state, crosslink_committee):
                 state.current_crosslinks[shard] = winning_crosslink
 */
-  syntax KItem ::= "process_crosslinks" "(" ")"
+  syntax KItem ::= "process_crosslinks" "(" ")" [klabel(process_crosslinks), symbol]
   rule <k> process_crosslinks()
            => processCrosslinksForEpoch(get_previous_epoch())
            ~> processCrosslinksForEpoch(get_current_epoch()) ... </k>
@@ -1846,7 +1848,7 @@ def process_rewards_and_penalties(state: BeaconState) -> None:
         increase_balance(state, ValidatorIndex(index), rewards1[index] + rewards2[index])
         decrease_balance(state, ValidatorIndex(index), penalties1[index] + penalties2[index])
 */
-  syntax KItem ::= "process_rewards_and_penalties" "(" ")"
+  syntax KItem ::= "process_rewards_and_penalties" "(" ")" [klabel(process_rewards_and_penalties), symbol]
   rule <k> process_rewards_and_penalties()
        => #if get_current_epoch() ==K GENESIS_EPOCH
           #then .K
@@ -1897,7 +1899,7 @@ def process_registry_updates(state: BeaconState) -> None:
         if validator.activation_epoch == FAR_FUTURE_EPOCH:
             validator.activation_epoch = compute_activation_exit_epoch(get_current_epoch(state))
 */
-  syntax KItem ::= "process_registry_updates" "(" ")"
+  syntax KItem ::= "process_registry_updates" "(" ")" [klabel(process_registry_updates), symbol]
   rule <k> process_registry_updates()
            => processRegistryUpdatesLoop1(VALIDATORS)
            ~> processActivationQueue()
@@ -2000,7 +2002,7 @@ def process_slashings(state: BeaconState) -> None:
             penalty = penalty_numerator // total_balance * increment
             decrease_balance(state, ValidatorIndex(index), penalty)
 */
-  syntax KItem ::= "process_slashings" "(" ")"
+  syntax KItem ::= "process_slashings" "(" ")" [klabel(process_slashings), symbol]
   rule <k> process_slashings() =>
            processSlashingsLoop(
              {keys_list(ValMap)}:>IntList,
@@ -2063,7 +2065,7 @@ def process_final_updates(state: BeaconState) -> None:
     state.previous_epoch_attestations = state.current_epoch_attestations
     state.current_epoch_attestations = []
 */
-  syntax KItem ::= "process_final_updates" "(" ")"
+  syntax KItem ::= "process_final_updates" "(" ")" [klabel(process_final_updates), symbol]
   rule <k> process_final_updates()
            => updateEffectiveBalances({keys_list(ValMap)}:>IntList, EFFECTIVE_BALANCE_INCREMENT /Int 2)             // param: HALF_INCREMENT
            ~> setActiveIndexRoots(get_current_epoch() +Int 1 +Int ACTIVATION_EXIT_DELAY) // param: index_epoch
@@ -2198,7 +2200,7 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
     # Verify proposer signature
     assert bls_verify(proposer.pubkey, signing_root(block), block.signature, get_domain(state, DOMAIN_BEACON_PROPOSER))
 */
-  syntax KItem ::= "process_block_header" "(" ")"
+  syntax KItem ::= "process_block_header" "(" ")"           [klabel(process_block_header), symbol]
   rule <k> process_block_header() => .K ... </k>
        <latest-block-header>
          OldBlockHEADER  => #BeaconBlockHeader(

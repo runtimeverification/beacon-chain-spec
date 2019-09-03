@@ -126,26 +126,34 @@ llvm_kompiled:=$(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE)-kompiled/interpreter
 haskell_kompiled:=$(DEFN_DIR)/haskell/$(MAIN_DEFN_FILE)-kompiled/definition.kore
 
 build: build-llvm build-haskell
-build-llvm: $(llvm_kompiled)
+build-llvm:    $(llvm_kompiled)
 build-haskell: $(haskell_kompiled)
 
 # Generate definitions from source files
 
-k_files=$(MAIN_DEFN_FILE).k beacon-chain.k hash-tree.k types.k config.k constants-minimal.k
-llvm_files=$(patsubst %,$(DEFN_DIR)/llvm/%,$(k_files))
-haskell_files=$(patsubst %,$(DEFN_DIR)/haskell/%,$(k_files))
+k_files := $(MAIN_DEFN_FILE).k beacon-chain.k hash-tree.k types.k config.k constants-minimal.k
+
+llvm_dir   := $(DEFN_DIR)/llvm
+llvm_files := $(patsubst %,$(DEFN_DIR)/llvm/%,$(k_files))
+
+haskell_dir   := $(DEFN_DIR)/haskell
+haskell_files := $(patsubst %,$(DEFN_DIR)/haskell/%,$(k_files))
 
 defn: llvm-defn haskell-defn
-defn-llvm: $(llvm_files)
+defn-llvm:    $(llvm_files)
 defn-haskell: $(haskell_files)
 
-$(DEFN_DIR)/llvm/%.k: %.k
-	mkdir -p $(dir $@)
+$(llvm_dir)/%.k: %.k $(llvm_dir)
 	cp $< $@
 
-$(DEFN_DIR)/haskell/%.k: %.k
-	mkdir -p $(dir $@)
+$(haskell_dir)/%.k: %.k $(haskell_dir)
 	cp $< $@
+
+$(llvm_dir):
+	mkdir -p $@
+
+$(haskell_dir):
+	mkdir -p $@
 
 # LLVM Backend
 

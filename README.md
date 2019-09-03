@@ -21,7 +21,6 @@ apt install --yes                                                           \
 
 git submodule update --init --recursive
 
-./deps/k/llvm-backend/src/main/native/llvm-backend/install-rust
 ```
 
 #### MacOS
@@ -32,17 +31,10 @@ In addition to the dependencies listed at [KEVM](https://github.com/kframework/e
 brew install jemalloc llvm libyaml git-lfs cryptopp
 ```
 
-and rust to use K's LLVM backend:
-
-```sh
-git submodule update --init --recursive
-
-./deps/k/llvm-backend/src/main/native/llvm-backend/install-rust
-```
-
 Build K and K's dependencies, and build local version of `libsecp256k1`.
 
 ```sh
+git submodule update --init --recursive
 make deps libsecp256k1
 ```
 

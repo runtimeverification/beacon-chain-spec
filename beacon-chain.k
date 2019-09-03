@@ -428,11 +428,11 @@ def get_seed(state: BeaconState, epoch: Epoch) -> Hash:
 */
   syntax Hash ::= "get_seed" "(" Int ")" [function]
   rule [[ get_seed(Epoch)
-    => hash(
-         get_randao_mix(Epoch +Int EPOCHS_PER_HISTORICAL_VECTOR -Int MIN_SEED_LOOKAHEAD -Int 1) +Bytes
-         (AIRS[Epoch %Int EPOCHS_PER_HISTORICAL_VECTOR] +Bytes to_bytes(Epoch, 32))
-       ) ]]
-    <active-index-roots> AIRS </active-index-roots>
+    => hash( get_randao_mix(Epoch +Int EPOCHS_PER_HISTORICAL_VECTOR -Int MIN_SEED_LOOKAHEAD -Int 1)
+             +Bytes (ActiveIndexRoots[Epoch %Int EPOCHS_PER_HISTORICAL_VECTOR]
+             +Bytes to_bytes(Epoch, 32))
+           ) ]]
+    <active-index-roots> ActiveIndexRoots </active-index-roots>
 
 /*
 def get_committee_count(state: BeaconState, epoch: Epoch) -> uint64:

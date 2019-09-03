@@ -439,11 +439,6 @@ def bytes_to_int(data: bytes) -> uint64:
     requires A =/=Int 0
   rule bit_length(0) => 0
 
-  syntax Int ::= get( IntList, Int ) [function]
-  rule get( _:Int L => L, I => I -Int 1)
-    requires I >Int 0
-  rule get( ELEM _:IntList, 0) => ELEM
-
   syntax Int ::= sum( IntList ) [function]
   rule sum( IL ) => sumAux(IL, 0)
 
@@ -633,6 +628,11 @@ def bytes_to_int(data: bytes) -> uint64:
   rule allOnes(false BL) => false
   rule allOnes(.BitList) => true
 
+  syntax Int ::= IntList "[" Int "]"                                  [function]
+  rule (J:Int JL:IntList)[I] => JL[I -Int 1]
+    requires I >Int 0
+  rule (J:Int JL:IntList)[0] => J
+
   syntax Bytes ::= BytesList "[" Int "]"                              [function]
   rule (H:Bytes HL:BytesList)[I] => HL[I -Int 1]
     requires I >Int 0
@@ -640,11 +640,6 @@ def bytes_to_int(data: bytes) -> uint64:
   //Vector types might have less elements then their static size in the tests.
   //We must consider missing elements present and initialized with default value.
   rule (.BytesList)[I] => {defaultBytes32()}:>String //NOTEH will not work for Bytes of length != 32.
-
-  syntax Int ::= IntList "[" Int "]"                              [function]
-  rule (J:Int JL:IntList)[I] => JL[I -Int 1]
-    requires I >Int 0
-  rule (J:Int JL:IntList)[0] => J
 
   syntax CompactCommittee ::= CompactCommitteeList "[" Int "]"        [function]
   rule (H:CompactCommittee HL:CompactCommitteeList)[I] => HL[I -Int 1]

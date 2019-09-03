@@ -61,10 +61,6 @@ libff: $(libff_out)
 $(DEPS_DIR)/secp256k1/autogen.sh:
 	git submodule update --init --recursive -- $(DEPS_DIR)/secp256k1
 
-$(PLUGIN_SUBMODULE)/make.timestamp:
-	git submodule update --init --recursive -- $(PLUGIN_SUBMODULE)
-	touch $(PLUGIN_SUBMODULE)/make.timestamp
-
 $(libsecp256k1_out): $(DEPS_DIR)/secp256k1/autogen.sh
 	cd $(DEPS_DIR)/secp256k1/ \
 	    && ./autogen.sh \
@@ -100,9 +96,9 @@ $(libff_out): $(DEPS_DIR)/libff/CMakeLists.txt
 # ------------
 
 deps: deps-k deps-tangle deps-tests deps-plugin
-deps-k: $(K_SUBMODULE)/mvn.timestamp
+deps-k:      $(K_SUBMODULE)/mvn.timestamp
 deps-tangle: $(PANDOC_TANGLE_SUBMODULE)/submodule.timestamp
-deps-tests: $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
+deps-tests:  $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
 deps-plugin: $(PLUGIN_SUBMODULE)/make.timestamp
 
 %/submodule.timestamp:
@@ -112,6 +108,10 @@ deps-plugin: $(PLUGIN_SUBMODULE)/make.timestamp
 $(K_SUBMODULE)/mvn.timestamp: $(K_SUBMODULE)/submodule.timestamp
 	cd $(K_SUBMODULE) && mvn package -DskipTests
 	touch $(K_SUBMODULE)/mvn.timestamp
+
+$(PLUGIN_SUBMODULE)/make.timestamp:
+	git submodule update --init --recursive -- $(PLUGIN_SUBMODULE)
+	touch $(PLUGIN_SUBMODULE)/make.timestamp
 
 # Building
 # --------

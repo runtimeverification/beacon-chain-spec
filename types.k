@@ -396,14 +396,11 @@ class Transfer(Container):
   // Type conversion functions
   //====================================================
 
-  syntax Int ::= toInt( BitList , Int /*size in bits*/  )             [function]
-               | toInt( BitList , Int /*size*/ , Int /*result*/ )     [function]
-  rule toInt(BL, SIZE) => toInt(BL, SIZE, 0)
-  rule toInt(BIT BL => BL, SIZE => SIZE -Int 1, RES => 2 *Int RES +Int toInt(BIT))
-    requires SIZE >Int 0
-  rule toInt(.BitList, SIZE => SIZE -Int 1, RES => 2 *Int RES)
-    requires SIZE >Int 0
-  rule toInt(.BitList, 0, RES) => RES
+  syntax Int ::= toInt( bitlist: BitList)                             [function]
+               | toInt( bitlist: BitList, result: Int )               [function]
+  rule toInt(BL) => toInt(BL, 0)
+  rule toInt(BIT BL => BL, RES => 2 *Int RES +Int toInt(BIT))
+  rule toInt(.BitList, RES) => RES
 
   syntax Int ::= toInt( Bool )                                        [function]
   rule toInt(B:Bool) => #if B #then 1 #else 0 #fi

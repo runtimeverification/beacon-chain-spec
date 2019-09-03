@@ -80,8 +80,10 @@ def pack(values: Series):
   syntax Bytes ::= pack ( list: ValueList, staticLen: Int, elemType: ElementType ) [function]
 
   //Using StaticLEN here. Python code above also uses static length in "values.length".
-  rule pack(BL:BitList, StaticLEN, %bool) => to_bytes( toInt(BL, (StaticLEN +Int 7) /Int 8 *Int 8),
-                                                       (StaticLEN +Int 7) /Int 8 )
+/*      as_integer = sum([values[i] << i for i in range(len(values))])
+        return as_integer.to_bytes((values.length + 7) // 8, "little")
+*/
+  rule pack(BL:BitList, StaticLEN, %bool) => to_bytes( toInt(BL), (StaticLEN +Int 7) /Int 8 )
 
   // Int lists will be padded to their static size later anyway. So it doesn't matter if LEN here is static or dynamic.
   rule pack(I:Int IL:IntList, StaticLEN, ElemType) => serialize_basic(I, ElemType) +Bytes pack(IL, StaticLEN -Int 1, ElemType)

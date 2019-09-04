@@ -1,37 +1,40 @@
 # Settings
 # --------
 
-BUILD_DIR:=.build
-DEFN_DIR:=$(BUILD_DIR)/defn
-BUILD_LOCAL:=$(CURDIR)/$(BUILD_DIR)/local
-LIBRARY_PATH:=$(BUILD_LOCAL)/lib
-INCLUDE_PATH:=$(BUILD_LOCAL)/include
-PKG_CONFIG_PATH:=$(LIBRARY_PATH)/pkgconfig
+BUILD_DIR   := .build
+DEFN_DIR    := $(BUILD_DIR)/defn
+BUILD_LOCAL := $(CURDIR)/$(BUILD_DIR)/local
+
+LIBRARY_PATH    := $(BUILD_LOCAL)/lib
+INCLUDE_PATH    := $(BUILD_LOCAL)/include
+PKG_CONFIG_PATH := $(LIBRARY_PATH)/pkgconfig
+
 export LIBRARY_PATH
+export INCLUDE_PATH
 export PKG_CONFIG_PATH
 
-DEPS_DIR:=deps
-K_SUBMODULE:=$(abspath $(DEPS_DIR)/k)
-PANDOC_TANGLE_SUBMODULE:=$(DEPS_DIR)/pandoc-tangle
-PLUGIN_SUBMODULE:=$(abspath $(DEPS_DIR)/plugin)
+DEPS_DIR                := deps
+K_SUBMODULE             := $(abspath $(DEPS_DIR)/k)
+PANDOC_TANGLE_SUBMODULE := $(DEPS_DIR)/pandoc-tangle
+PLUGIN_SUBMODULE        := $(abspath $(DEPS_DIR)/plugin)
 
-K_RELEASE:=$(K_SUBMODULE)/k-distribution/target/release/k
-K_BIN:=$(K_RELEASE)/bin
-K_LIB:=$(K_RELEASE)/lib
+K_RELEASE := $(K_SUBMODULE)/k-distribution/target/release/k
+K_BIN     := $(K_RELEASE)/bin
+K_LIB     := $(K_RELEASE)/lib
 
-PATH:=$(K_BIN):$(PATH)
+PATH := $(K_BIN):$(PATH)
 export PATH
 
-PYTHONPATH:=$(K_LIB)
+PYTHONPATH := $(K_LIB)
 export PYTHONPATH
 
-TANGLER:=$(PANDOC_TANGLE_SUBMODULE)/tangle.lua
-LUA_PATH:=$(PANDOC_TANGLE_SUBMODULE)/?.lua;;
+TANGLER  := $(PANDOC_TANGLE_SUBMODULE)/tangle.lua
+LUA_PATH := $(PANDOC_TANGLE_SUBMODULE)/?.lua;;
 export TANGLER
 export LUA_PATH
 
-TEST_DIR:=tests
-ETH2_TESTS_SUBMODULE:=$(TEST_DIR)/eth2.0-spec-tests
+TEST_DIR             := tests
+ETH2_TESTS_SUBMODULE := $(TEST_DIR)/eth2.0-spec-tests
 
 .PHONY: all clean \
         libff libsecp256k1 \
@@ -59,13 +62,7 @@ libsecp256k1: $(libsecp256k1_out)
 libff: $(libff_out)
 
 $(DEPS_DIR)/secp256k1/autogen.sh:
-	@echo "== submodule: $(DEPS_DIR)/secp256k1"
 	git submodule update --init --recursive -- $(DEPS_DIR)/secp256k1
-
-$(PLUGIN_SUBMODULE)/make.timestamp:
-	@echo "== submodule: $@"
-	git submodule update --init --recursive -- $(PLUGIN_SUBMODULE)
-	touch $(PLUGIN_SUBMODULE)/make.timestamp
 
 $(libsecp256k1_out): $(DEPS_DIR)/secp256k1/autogen.sh
 	cd $(DEPS_DIR)/secp256k1/ \
@@ -88,7 +85,6 @@ LIBFF_CC ?=clang-8
 LIBFF_CXX?=clang++-8
 
 $(DEPS_DIR)/libff/CMakeLists.txt:
-	@echo "== submodule: $(DEPS_DIR)/libff"
 	git submodule update --init --recursive -- $(DEPS_DIR)/libff
 
 $(libff_out): $(DEPS_DIR)/libff/CMakeLists.txt
@@ -103,79 +99,86 @@ $(libff_out): $(DEPS_DIR)/libff/CMakeLists.txt
 # ------------
 
 deps: deps-k deps-tangle deps-tests deps-plugin
-deps-k: $(K_SUBMODULE)/mvn.timestamp
+deps-k:      $(K_SUBMODULE)/mvn.timestamp
 deps-tangle: $(PANDOC_TANGLE_SUBMODULE)/submodule.timestamp
-deps-tests: $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
+deps-tests:  $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
 deps-plugin: $(PLUGIN_SUBMODULE)/make.timestamp
 
 %/submodule.timestamp:
-	@echo "== submodule: $*"
 	git submodule update --init --recursive -- $*
 	touch $@
 
 $(K_SUBMODULE)/mvn.timestamp: $(K_SUBMODULE)/submodule.timestamp
-	@echo "== building: $*"
 	cd $(K_SUBMODULE) && mvn package -DskipTests
 	touch $(K_SUBMODULE)/mvn.timestamp
+
+$(PLUGIN_SUBMODULE)/make.timestamp:
+	git submodule update --init --recursive -- $(PLUGIN_SUBMODULE)
+	touch $(PLUGIN_SUBMODULE)/make.timestamp
 
 # Building
 # --------
 
-MAIN_MODULE:=BEACON-CHAIN
-SYNTAX_MODULE:=$(MAIN_MODULE)
-MAIN_DEFN_FILE:=beacon-chain
-KOMPILE_OPTS?=
-LLVM_KOMPILE_OPTS:=$(KOMPILE_OPTS)
+MAIN_MODULE    := BEACON-CHAIN
+SYNTAX_MODULE  := $(MAIN_MODULE)
+MAIN_DEFN_FILE := beacon-chain
 
-llvm_kompiled:=$(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE)-kompiled/interpreter
-haskell_kompiled:=$(DEFN_DIR)/haskell/$(MAIN_DEFN_FILE)-kompiled/definition.kore
+KOMPILE_OPTS      ?=
+LLVM_KOMPILE_OPTS := $(KOMPILE_OPTS)
+
+llvm_kompiled    := $(llvm_dir)/$(MAIN_DEFN_FILE)-kompiled/interpreter
+haskell_kompiled := $(haskell_dir)/$(MAIN_DEFN_FILE)-kompiled/definition.kore
 
 build: build-llvm build-haskell
-build-llvm: $(llvm_kompiled)
+build-llvm:    $(llvm_kompiled)
 build-haskell: $(haskell_kompiled)
 
 # Generate definitions from source files
 
-k_files=$(MAIN_DEFN_FILE).k beacon-chain.k hash-tree.k types.k config.k constants-minimal.k
-llvm_files=$(patsubst %,$(DEFN_DIR)/llvm/%,$(k_files))
-haskell_files=$(patsubst %,$(DEFN_DIR)/haskell/%,$(k_files))
+k_files := $(MAIN_DEFN_FILE).k beacon-chain.k hash-tree.k types.k config.k constants-minimal.k
+
+llvm_dir   := $(DEFN_DIR)/llvm
+llvm_files := $(patsubst %,$(llvm_dir)/%,$(k_files))
+
+haskell_dir   := $(DEFN_DIR)/haskell
+haskell_files := $(patsubst %,$(haskell_dir)/%,$(k_files))
 
 defn: llvm-defn haskell-defn
-defn-llvm: $(llvm_files)
+defn-llvm:    $(llvm_files)
 defn-haskell: $(haskell_files)
 
-$(DEFN_DIR)/llvm/%.k: %.k
-	@echo "==  copying: $@"
-	mkdir -p $(dir $@)
+$(llvm_dir)/%.k: %.k $(llvm_dir)
 	cp $< $@
 
-$(DEFN_DIR)/haskell/%.k: %.k
-	@echo "==  copying: $@"
-	mkdir -p $(dir $@)
+$(haskell_dir)/%.k: %.k $(haskell_dir)
 	cp $< $@
+
+$(llvm_dir):
+	mkdir -p $@
+
+$(haskell_dir):
+	mkdir -p $@
 
 # LLVM Backend
 
 $(llvm_kompiled): $(llvm_files) $(libff_out)
-	@echo "== kompile: $@"
-	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm                   \
-	                 --syntax-module $(SYNTAX_MODULE) $(DEFN_DIR)/llvm/$(MAIN_DEFN_FILE).k \
-	                 --directory $(DEFN_DIR)/llvm -I $(DEFN_DIR)/llvm                      \
-	                 --hook-namespaces KRYPTO                                              \
-	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                        \
-	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp                 \
-	                 $(addprefix -ccopt ,$(LINK_PROCPS))                                   \
-			 -ccopt -g -ccopt -std=c++11 -ccopt -O2                                \
-	                 -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                     \
+	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm              \
+	                 --syntax-module $(SYNTAX_MODULE) $(llvm_dir)/$(MAIN_DEFN_FILE).k \
+	                 --directory $(llvm_dir) -I $(llvm_dir)                           \
+	                 --hook-namespaces KRYPTO                                         \
+	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                   \
+	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp            \
+	                 $(addprefix -ccopt ,$(LINK_PROCPS))                              \
+	                 -ccopt -g -ccopt -O2                                             \
+	                 -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                \
 	                 $(LLVM_KOMPILE_OPTS)
 
 # Haskell Backend
 
 $(haskell_kompiled): $(haskell_files)
-	@echo "== kompile: $@"
-	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend haskell                   \
-	                 --syntax-module $(SYNTAX_MODULE) $(DEFN_DIR)/haskell/$(MAIN_DEFN_FILE).k \
-	                 --directory $(DEFN_DIR)/haskell -I $(DEFN_DIR)/haskell
+	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend haskell              \
+	                 --syntax-module $(SYNTAX_MODULE) $(haskell_dir)/$(MAIN_DEFN_FILE).k \
+	                 --directory $(haskell_dir) -I $(haskell_dir)
 
 # Testing
 # -------

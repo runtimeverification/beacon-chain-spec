@@ -41,7 +41,7 @@ ETH2_TESTS_SUBMODULE := $(TEST_DIR)/eth2.0-spec-tests
         deps deps-k deps-tangle deps-plugin deps-tests \
         defn defn-llvm defn-haskell \
         build build-llvm build-haskell \
-        test test-split test-python-config test-operations-minimal
+        test test-split test-python-config test-transfer test-ssz
 .SECONDARY:
 
 all: build
@@ -191,14 +191,14 @@ test-split:
 
 TEST_CONCRETE_BACKEND:=llvm
 
-test: test-python-config test-ssz
+test: test-python-config test-transfer test-ssz
 
 test-python-config: buildConfig.py $(llvm_kompiled)
 	python3 $<
 
-operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/transfer/pyspec_tests/*/pre.yaml)
+transfer_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/transfer/pyspec_tests/*/pre.yaml)
 
-test-operations-minimal: $(operations_minimal_tests:=.test-allow-diff)
+test-transfer: $(transfer_tests:=.test)
 
 ssz_tests = $(filter-out $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/Beacon*/*/*/value.yaml), \
 	$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*/*/case_0/value.yaml))

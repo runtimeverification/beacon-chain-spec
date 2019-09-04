@@ -36,11 +36,11 @@ export LUA_PATH
 TEST_DIR             := tests
 ETH2_TESTS_SUBMODULE := $(TEST_DIR)/eth2.0-spec-tests
 
-.PHONY: all clean \
-        libff libsecp256k1 \
+.PHONY: all clean                                      \
+        libff libsecp256k1                             \
         deps deps-k deps-tangle deps-plugin deps-tests \
-        defn defn-llvm defn-haskell \
-        build build-llvm build-haskell \
+        defn defn-llvm defn-haskell                    \
+        build build-llvm build-haskell                 \
         test test-split test-python-config test-transfer test-ssz
 .SECONDARY:
 
@@ -123,16 +123,6 @@ MAIN_MODULE    := BEACON-CHAIN
 SYNTAX_MODULE  := $(MAIN_MODULE)
 MAIN_DEFN_FILE := beacon-chain
 
-KOMPILE_OPTS      ?=
-LLVM_KOMPILE_OPTS := $(KOMPILE_OPTS)
-
-llvm_kompiled    := $(llvm_dir)/$(MAIN_DEFN_FILE)-kompiled/interpreter
-haskell_kompiled := $(haskell_dir)/$(MAIN_DEFN_FILE)-kompiled/definition.kore
-
-build: build-llvm build-haskell
-build-llvm:    $(llvm_kompiled)
-build-haskell: $(haskell_kompiled)
-
 # Generate definitions from source files
 
 k_files := $(MAIN_DEFN_FILE).k beacon-chain.k hash-tree.k types.k config.k constants-minimal.k
@@ -158,6 +148,18 @@ $(llvm_dir):
 
 $(haskell_dir):
 	mkdir -p $@
+
+# Building
+
+KOMPILE_OPTS      ?=
+LLVM_KOMPILE_OPTS := $(KOMPILE_OPTS)
+
+llvm_kompiled    := $(llvm_dir)/$(MAIN_DEFN_FILE)-kompiled/interpreter
+haskell_kompiled := $(haskell_dir)/$(MAIN_DEFN_FILE)-kompiled/definition.kore
+
+build: build-llvm build-haskell
+build-llvm:    $(llvm_kompiled)
+build-haskell: $(haskell_kompiled)
 
 # LLVM Backend
 

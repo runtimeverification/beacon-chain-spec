@@ -142,8 +142,8 @@ eth1DataTerm = labelWithKeyPairs('#Eth1Data', [ ('deposit_root'  , hashToken)
                                               ]
                                 )
 
-historicalBatchTerm = labelWithKeyPairs('#HistoricalBatch', [ ('block_roots' , bitListTerm)
-                                                            , ('state_roots' , bitListTerm)
+historicalBatchTerm = labelWithKeyPairs('#HistoricalBatch', [ ('block_roots' , bytesListTerm)
+                                                            , ('state_roots' , bytesListTerm)
                                                             ]
                                        )
 
@@ -410,11 +410,11 @@ def buildKCell(test_dir):
     test_handler = test_dir.parts[-3]
     if test_runner == 'ssz_static':
         if test_handler == 'BeaconState':
-            entry_point = 'hash_tree_root_state'
+            entry_point = 'wrap_hash_tree_root_state'
         elif test_handler == 'BeaconBlock':
-            entry_point = 'hash_tree_root_block'
+            entry_point = 'wrap_hash_tree_root_block'
         elif test_handler == 'BeaconBlockBody':
-            entry_point = 'hash_tree_root_blockBody'
+            entry_point = 'wrap_hash_tree_root_blockBody'
         else:
             entry_point = 'hash_tree_root'
         arg_converter = data_class_to_converter[test_handler]

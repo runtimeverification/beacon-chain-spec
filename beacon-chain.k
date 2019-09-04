@@ -9,7 +9,18 @@ module BEACON-CHAIN
   imports DOMAINS
   imports HASH-TREE
 
+  // Hacks around pyk/json front-end limitations
+  //====================================================
+
   rule <k> . => .Pgm </k> //todo hack to make comparison with post-state happy, until bugs in pyk get fixed
+
+  //Workarounds to make kast happy. Cannot put a function with no-args in init <k>, with json input.
+  syntax KItem ::= "wrap_hash_tree_root_block" "(" ")" [klabel(wrap_hash_tree_root_block), symbol]
+                 | "wrap_hash_tree_root_blockBody" "(" ")" [klabel(wrap_hash_tree_root_blockBody), symbol]
+                 | "wrap_hash_tree_root_state" "(" ")" [klabel(wrap_hash_tree_root_state), symbol]
+  rule wrap_hash_tree_root_block() => hash_tree_root_block()
+  rule wrap_hash_tree_root_blockBody() => hash_tree_root_blockBody()
+  rule wrap_hash_tree_root_state() => hash_tree_root_state()
 
   // Helper functions -- Math
   //====================================================
@@ -417,11 +428,11 @@ def get_seed(state: BeaconState, epoch: Epoch) -> Hash:
 */
   syntax Hash ::= "get_seed" "(" Int ")" [function]
   rule [[ get_seed(Epoch)
-    => hash(
-         get_randao_mix(Epoch +Int EPOCHS_PER_HISTORICAL_VECTOR -Int MIN_SEED_LOOKAHEAD -Int 1) +Bytes
-         (AIRS[Epoch %Int EPOCHS_PER_HISTORICAL_VECTOR] +Bytes to_bytes(Epoch, 32))
-       ) ]]
-    <active-index-roots> AIRS </active-index-roots>
+    => hash( get_randao_mix(Epoch +Int EPOCHS_PER_HISTORICAL_VECTOR -Int MIN_SEED_LOOKAHEAD -Int 1)
+             +Bytes (ActiveIndexRoots[Epoch %Int EPOCHS_PER_HISTORICAL_VECTOR]
+             +Bytes to_bytes(Epoch, 32))
+           ) ]]
+    <active-index-roots> ActiveIndexRoots </active-index-roots>
 
 /*
 def get_committee_count(state: BeaconState, epoch: Epoch) -> uint64:

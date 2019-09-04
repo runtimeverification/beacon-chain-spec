@@ -396,17 +396,27 @@ class Transfer(Container):
   // Type conversion functions
   //====================================================
 
-  syntax Int ::= toInt( BitList , Int /*size in bits*/  )             [function]
-               | toInt( BitList , Int /*size*/ , Int /*result*/ )     [function]
-  rule toInt(BL, SIZE) => toInt(BL, SIZE, 1)
-  rule toInt(BIT BL => BL, SIZE => SIZE -Int 1, RES => 2 *Int RES +Int toInt(BIT))
-    requires SIZE >Int 0
-  rule toInt(.BitList, SIZE => SIZE -Int 1, RES => 2 *Int RES)
-    requires SIZE >Int 0
-  rule toInt(.BitList, 0, RES) => RES
+/*    def as_bytes(Bits):
+        as_bytearray = [0] * ((len(self) + 7) // 8)
+        for i in range(len(self)):
+            as_bytearray[i // 8] |= int(self[i]) << (i % 8)
+        return bytes(as_bytearray)  */
+  syntax Bytes ::= "as_bytes" "(" BitList ")"                         [function]
+                 | "as_bytes" "(" bits: BitList "," asBytearray: List "," i: Int ")" [function]
+  rule as_bytes(BL) => as_bytes(BL, initBuiltinListOfInt((len(BL) +Int 7) /Int 8), 0)
+  rule as_bytes(BIT BL => BL,
+                AsBytearray => AsBytearray[ I /Int 8 <- {AsBytearray[I /Int 8]}:>Int |Int (toInt(BIT) <<Int (I %Int 8)) ],
+                I => I +Int 1)
+  rule as_bytes(.BitList, ListItem(ELEM) AsBytearray, I) => chrChar(ELEM) +Bytes as_bytes(.BitList, AsBytearray, I)
+  rule as_bytes(.BitList, .List, _) => ""
 
   syntax Int ::= toInt( Bool )                                        [function]
   rule toInt(B:Bool) => #if B #then 1 #else 0 #fi
+
+  syntax List ::= initBuiltinListOfInt ( Int )                        [function]
+  rule initBuiltinListOfInt(SIZE) => ListItem(0) initBuiltinListOfInt(SIZE -Int 1)
+    requires SIZE >Int 0
+  rule initBuiltinListOfInt(0) => .List
 
 /* NOTE: this implementation is LITTLE ENDIAN, as expected by Beacon Chain spec everywhere.
 
@@ -435,14 +445,9 @@ def bytes_to_int(data: bytes) -> uint64:
   //====================================================
 
   syntax Int ::= "bit_length" "(" Int ")"                             [function]
-  rule bit_length(A) => log2Int(A) +Int 1
-    requires A >Int 0
+  rule bit_length(A) => log2Int(absInt(A)) +Int 1
+    requires A =/=Int 0
   rule bit_length(0) => 0
-
-  syntax Int ::= get( IntList, Int ) [function]
-  rule get( _:Int L => L, I => I -Int 1)
-    requires I >Int 0
-  rule get( ELEM _:IntList, 0) => ELEM
 
   syntax Int ::= sum( IntList ) [function]
   rule sum( IL ) => sumAux(IL, 0)
@@ -633,6 +638,11 @@ def bytes_to_int(data: bytes) -> uint64:
   rule allOnes(false BL) => false
   rule allOnes(.BitList) => true
 
+  syntax Int ::= IntList "[" Int "]"                                  [function]
+  rule (J:Int JL:IntList)[I] => JL[I -Int 1]
+    requires I >Int 0
+  rule (J:Int JL:IntList)[0] => J
+
   syntax Bytes ::= BytesList "[" Int "]"                              [function]
   rule (H:Bytes HL:BytesList)[I] => HL[I -Int 1]
     requires I >Int 0
@@ -640,11 +650,6 @@ def bytes_to_int(data: bytes) -> uint64:
   //Vector types might have less elements then their static size in the tests.
   //We must consider missing elements present and initialized with default value.
   rule (.BytesList)[I] => {defaultBytes32()}:>String //NOTEH will not work for Bytes of length != 32.
-
-  syntax Int ::= IntList "[" Int "]"                              [function]
-  rule (J:Int JL:IntList)[I] => JL[I -Int 1]
-    requires I >Int 0
-  rule (J:Int JL:IntList)[0] => J
 
   syntax CompactCommittee ::= CompactCommitteeList "[" Int "]"        [function]
   rule (H:CompactCommittee HL:CompactCommitteeList)[I] => HL[I -Int 1]

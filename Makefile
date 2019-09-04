@@ -191,7 +191,7 @@ test-split:
 
 TEST_CONCRETE_BACKEND:=llvm
 
-test: test-python-config test-operations-minimal
+test: test-python-config test-ssz
 
 test-python-config: buildConfig.py $(llvm_kompiled)
 	python3 $<
@@ -199,6 +199,11 @@ test-python-config: buildConfig.py $(llvm_kompiled)
 operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/transfer/pyspec_tests/*/pre.yaml)
 
 test-operations-minimal: $(operations_minimal_tests:=.test-allow-diff)
+
+ssz_tests = $(filter-out $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/Beacon*/*/*/value.yaml), \
+	$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*/*/case_0/value.yaml))
+
+test-ssz: $(ssz_tests:=.test)
 
 %.yaml.test: %.yaml $(llvm_kompiled)
 	python3 runTest.py parse --test $*.yaml

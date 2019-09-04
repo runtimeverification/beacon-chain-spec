@@ -563,16 +563,26 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
        ]]
     <slot> SLOT </slot>
 
+/*  i = 0
+    while True:
+        candidate_index = first_committee[(epoch + i) % len(first_committee)]
+        random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
+        effective_balance = state.validators[candidate_index].effective_balance
+        if effective_balance * MAX_RANDOM_BYTE >= MAX_EFFECTIVE_BALANCE * random_byte:
+            return ValidatorIndex(candidate_index)
+        i += 1  */
   syntax ValidatorIndex ::= getBeaconProposerIndexLoop(
                               Int, Int, Int, Int, IntList, Int, Hash, Int) [function]
-  rule [[ getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I)
-    =>    getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
-                  FirstCommittee[(EPOCH +Int I) %Int len(FirstCommittee)] #as CandidateIndex,
-                  //random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
-                  getByte( hashConcat(SEED, to_bytes(I /Int 32, 8) ), I %Int 32) /*#as RandomByte*/,
-                  VAL.effectiveBalance
-          ) ]]
-    <validators>... CandidateIndex |-> VAL ...</validators>
+  rule getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I)
+       => #fun(CandidateIndex
+       => #fun(RandomByte
+       => #fun(EffectiveBalance
+       => getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
+                                        CandidateIndex, RandomByte, EffectiveBalance )
+          )(getValidator(CandidateIndex).effectiveBalance)
+          //random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
+          )(getByte( hashConcat(SEED, to_bytes(I /Int 32, 8) ), I %Int 32))
+          )(FirstCommittee[(EPOCH +Int I) %Int len(FirstCommittee)])
 
   syntax ValidatorIndex ::= getBeaconProposerIndexLoopAux(
                               Int, Int, Int, Int, IntList, Int, Hash, Int,
@@ -2649,8 +2659,12 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
     requires notBool (0 <Int getBalance(SENDER)    andBool    getBalance(SENDER) <Int MIN_DEPOSIT_AMOUNT)
      andBool notBool (0 <Int getBalance(RECIPIENT) andBool getBalance(RECIPIENT) <Int MIN_DEPOSIT_AMOUNT)
 
-  syntax Int ::= getBalance( ValidatorIndex ) [function]
+  syntax Int ::= getBalance( ValidatorIndex )                         [function]
   rule [[ getBalance(INDEX) => BAL ]]
     <balances> INDEX |-> BAL ...</balances>
+
+  syntax Validator ::= getValidator( ValidatorIndex )                 [function]
+  rule [[ getValidator(INDEX) => VAL ]]
+    <validators> INDEX |-> VAL ...</validators>
 
 endmodule

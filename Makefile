@@ -201,7 +201,7 @@ operations_minimal_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase
 test-operations-minimal: $(operations_minimal_tests:=.test-allow-diff)
 
 ssz_tests = $(filter-out $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/Beacon*/*/*/value.yaml), \
-	$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*/*/*/value.yaml))
+	$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*/*/case_0/value.yaml))
 
 test-ssz: $(ssz_tests:=.test)
 

@@ -41,7 +41,7 @@ ETH2_TESTS_SUBMODULE := $(TEST_DIR)/eth2.0-spec-tests
         deps deps-k deps-tangle deps-plugin deps-tests \
         defn defn-llvm defn-haskell                    \
         build build-llvm build-haskell                 \
-        test test-split test-python-config test-processing test-ssz
+        test test-split test-python-config test-processing test-ssz test-operations
 .SECONDARY:
 
 all: build
@@ -189,7 +189,7 @@ test-split:
 
 TEST_CONCRETE_BACKEND:=llvm
 
-test: test-python-config test-processing test-ssz
+test: test-python-config test-operations test-ssz
 
 test-python-config: buildConfig.py $(llvm_kompiled)
 	python3 $<
@@ -199,6 +199,10 @@ attestation_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/opera
 crosslink_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/crosslinks/*/*/post.yaml)
 
 test-processing: $(transfer_tests:=.test) $(attestation_tests:=.test) $(crosslink_tests:=.test)
+
+operations_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/*/*/*/pre.yaml)
+
+test-operations: $(operations_tests:=.test)
 
 ssz_tests = $(filter-out $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/Beacon*/*/*/value.yaml), \
 	$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*/*/case_0/value.yaml))

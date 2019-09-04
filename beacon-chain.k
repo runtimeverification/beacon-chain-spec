@@ -255,8 +255,8 @@ def compute_committee(indices: Sequence[ValidatorIndex],
   syntax IntList ::= "compute_committee" "(" IntList "," Hash "," Int "," Int ")" [function]
   rule compute_committee(INDICES, SEED, INDEX, COUNT)
     => computeCommitteeLoop(
-        len(INDICES) *Int INDEX /Int COUNT,
-        len(INDICES) *Int (INDEX +Int 1) /Int COUNT,
+        (len(INDICES) *Int INDEX) /Int COUNT,
+        (len(INDICES) *Int (INDEX +Int 1)) /Int COUNT,
         SEED,
         INDICES,
         .IntList
@@ -264,7 +264,7 @@ def compute_committee(indices: Sequence[ValidatorIndex],
 
   syntax IntList ::= computeCommitteeLoop( Int, Int, Hash, IntList, IntList )     [function]
   rule computeCommitteeLoop(I => I +Int 1, END, SEED, INDICES,
-                            RESULT => RESULT +append compute_shuffled_index(I, len(INDICES), SEED))
+                            RESULT => RESULT +append INDICES[compute_shuffled_index(I, len(INDICES), SEED)] )
     requires I <Int END
   rule computeCommitteeLoop(I, END, _,_, RESULT) => RESULT
     requires I >=Int END
@@ -487,7 +487,7 @@ def get_start_shard(state: BeaconState, epoch: Epoch) -> Shard:
   syntax Int ::= getStartShardAux( Int, Int, Int ) [function]
   rule getStartShardAux(
       CheckEP => CheckEP -Int 1,
-      SHARD => SHARD +Int SHARD_COUNT -Int get_shard_delta(CheckEP -Int 1) %Int SHARD_COUNT,
+      SHARD => (SHARD +Int SHARD_COUNT -Int get_shard_delta(CheckEP -Int 1)) %Int SHARD_COUNT,
       EPOCH
     )
     requires CheckEP >Int EPOCH
@@ -547,7 +547,7 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
           )(get_crosslink_committee(EPOCH, SHARD))
           )((get_start_shard(EPOCH) +Int OFFSET) %Int SHARD_COUNT)
           )(CommitteesPerSlot *Int (SLOT %Int SLOTS_PER_EPOCH))
-          )(get_committee_count(EPOCH))
+          )(get_committee_count(EPOCH) /Int SLOTS_PER_EPOCH)
           )(get_current_epoch())
        ]]
     <slot> SLOT </slot>

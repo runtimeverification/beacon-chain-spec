@@ -641,6 +641,11 @@ def bytes_to_int(data: bytes) -> uint64:
   //We must consider missing elements present and initialized with default value.
   rule (.BytesList)[I] => {defaultBytes32()}:>String //NOTEH will not work for Bytes of length != 32.
 
+  syntax Int ::= IntList "[" Int "]"                              [function]
+  rule (J:Int JL:IntList)[I] => JL[I -Int 1]
+    requires I >Int 0
+  rule (J:Int JL:IntList)[0] => J
+
   syntax CompactCommittee ::= CompactCommitteeList "[" Int "]"        [function]
   rule (H:CompactCommittee HL:CompactCommitteeList)[I] => HL[I -Int 1]
     requires I >Int 0

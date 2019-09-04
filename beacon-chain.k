@@ -556,7 +556,7 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
                               Int, Int, Int, Int, IntList, Int, Hash, Int) [function]
   rule [[ getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I)
     =>    getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
-                  get(FirstCommittee, (EPOCH +Int I) %Int len(FirstCommittee)) #as CandidateIndex,
+                  FirstCommittee[(EPOCH +Int I) %Int len(FirstCommittee)] #as CandidateIndex,
                   //random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
                   getByte( hashConcat(SEED, to_bytes(I /Int 32, 8) ), I %Int 32) /*#as RandomByte*/,
                   VAL.effectiveBalance

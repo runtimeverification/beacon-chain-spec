@@ -1538,15 +1538,20 @@ def process_crosslinks(state: BeaconState) -> None:
 
   syntax KItem ::= "processCrosslinksForEpochLoop" "(" Int "," Int "," Int ")"
   rule <k> processCrosslinksForEpochLoop(OFFSET => OFFSET +Int 1, COUNT, EP) ... </k>
-       <current-crosslinks>...
-         SHARD |-> (C => #if ( 3 *Int get_total_balance(get_winning_crosslink_and_attesting_indices(EP, SHARD).intList)
-                                 >=Int 2 *Int get_total_balance(get_crosslink_committee(EP, SHARD)) )
-                         #then get_winning_crosslink_and_attesting_indices(EP, SHARD).crosslink
-                         #else C
-                         #fi
-                   )
-       ...</current-crosslinks>
-    requires OFFSET <Int COUNT andBool SHARD ==K (get_start_shard(EP) +Int OFFSET) %Int SHARD_COUNT
+       <current-crosslinks>
+         CROSSLINKS
+         => #fun(SHARD
+         => #fun(CrosslinkCommittee
+         => #fun(WinCrossAndIndices
+         => #if ( 3 *Int get_total_balance(WinCrossAndIndices.intList) >=Int 2 *Int get_total_balance(CrosslinkCommittee) )
+              #then CROSSLINKS[SHARD <- WinCrossAndIndices.crosslink]
+              #else CROSSLINKS
+            #fi
+            )(get_winning_crosslink_and_attesting_indices(EP, SHARD))
+            )(get_crosslink_committee(EP, SHARD))
+            )((get_start_shard(EP) +Int OFFSET) %Int SHARD_COUNT)
+       </current-crosslinks>
+    requires OFFSET <Int COUNT
 
   rule <k> processCrosslinksForEpochLoop(OFFSET, COUNT, EP) => .K ... </k>
     requires OFFSET >=Int COUNT

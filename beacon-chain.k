@@ -1265,128 +1265,95 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
     return winning_crosslink, get_unslashed_attesting_indices(state, winning_attestations)
 */
   syntax CrosslinkIntListPair ::= "get_winning_crosslink_and_attesting_indices" "(" Int "," Int ")" [function]
-
-  // attestations == getMatchingShardSourceAttestations(EPOCH,SHARD)
-  //                 filterMatchingShard(get_matching_source_attestations(EP), SHARD, .PendingAttestationList)
-  // crosslinks == getCrosslinksOfMatchingShardSourceAttestations(EPOCH, SHARD)
-  //               getShardCrosslinks(crosslinksOf(attestations), SHARD, .CrosslinkList)
-  // winning_crosslink == getWinningCrosslink(crosslinks, epoch, shard)
-  //                      maxBasedOnDataRoot(maxBasedOnBalance(crosslinks, epoch, shard))
-  // winning_attestations == filterMatchingCrosslink( attestations, winning_crosslink, .PendingAttestationList)
-
-  rule get_winning_crosslink_and_attesting_indices(EPOCH, SHARD) =>
-    #crosslinkIntListPair( //winning crosslink
-                           getWinningCrosslink(EPOCH,SHARD),
-                           //Unslashed attesting indices (list)
-                           get_unslashed_attesting_indices(
-                             filterMatchingCrosslink(
-                               getMatchingShardSourceAttestations(EPOCH,SHARD),
-                               getWinningCrosslink(EPOCH,SHARD),
-                               .PendingAttestationList))
-                         )
+  rule get_winning_crosslink_and_attesting_indices(EPOCH, SHARD)
+       => #fun(ATTESTATIONS
+       => #fun(CROSSLINKS
+       => #fun(WinningCrosslink
+       => #fun(WinningAttestations
+       => #crosslinkIntListPair( WinningCrosslink, get_unslashed_attesting_indices(WinningAttestations) )
+          )(pendingAttestationsMatchingCrosslink(ATTESTATIONS, WinningCrosslink, .PendingAttestationList))
+          )(maxCrosslinkOnBalanceAndRoot(CROSSLINKS, ATTESTATIONS, .CrosslinkList, -1, ""))
+          )(getCrosslinksOfAttestationsMatchingShardCrosslink(ATTESTATIONS, SHARD, .CrosslinkList))
+          )(getMatchingShardSourceAttestations(EPOCH, SHARD))
 
 //attestations = [a for a in get_matching_source_attestations(state, epoch) if a.data.crosslink.shard == shard]
   syntax PendingAttestationList ::= getMatchingShardSourceAttestations(epoch: Int, shard: Int)      [function]
   rule getMatchingShardSourceAttestations(EPOCH, SHARD)
-       => filterMatchingShard(get_matching_source_attestations(EPOCH), SHARD, .PendingAttestationList)
+       => pendingAttestationsMatchingShard(get_matching_source_attestations(EPOCH), SHARD, .PendingAttestationList)
 
-  // extracts the list of attestations for the given shard
-  syntax PendingAttestationList ::= filterMatchingShard(PendingAttestationList, Int, PendingAttestationList) [function]
-  rule filterMatchingShard(PA PAList => PAList,
-                           SHARD,
-                           RES => #if PA.data.crosslink.shard ==Int SHARD
-                                    #then RES +append PA
-                                    #else RES
-                                  #fi)
-  rule filterMatchingShard(.PendingAttestationList, _, RES) => RES
-
-  syntax CrosslinkList ::= getCrosslinksOfMatchingShardSourceAttestations(Int, Int) [function]
-  rule getCrosslinksOfMatchingShardSourceAttestations(EPOCH, SHARD)
-       => getShardCrosslinks(crosslinksOf(getMatchingShardSourceAttestations(EPOCH,SHARD)), SHARD, .CrosslinkList)
-
-/*  attestations = [a for a in get_matching_source_attestations(state, epoch) if a.data.crosslink.shard == shard]
-    crosslinks = filter(
+/*  crosslinks = filter(
         lambda c: hash_tree_root(state.current_crosslinks[shard]) in (c.parent_root, hash_tree_root(c)),
         [a.data.crosslink for a in attestations]
     )
-    # Winning crosslink has the crosslink data root with the most balance voting for it (ties broken lexicographically)
-    winning_crosslink = max(crosslinks, key=lambda c: (
+*/
+  syntax CrosslinkList ::= getCrosslinksOfAttestationsMatchingShardCrosslink(PendingAttestationList, 
+                                                                             shard: Int, result: CrosslinkList) [function]
+  rule getCrosslinksOfAttestationsMatchingShardCrosslink(PATT PATTList, SHARD, RES)
+       => #fun(CROSSLINK
+       => getCrosslinksOfAttestationsMatchingShardCrosslink( PATTList, SHARD,
+            #if hash_tree_root(getCurrentCrosslink(SHARD))
+                in ( SetItem(CROSSLINK.parentRoot) SetItem(hash_tree_root(CROSSLINK)) )
+              #then RES +append CROSSLINK
+              #else RES
+            #fi
+          )
+          )(PATT.data.crosslink)
+
+  rule getCrosslinksOfAttestationsMatchingShardCrosslink(.PendingAttestationList, _, RES) => RES
+
+/*  winning_crosslink = max(crosslinks, key=lambda c: (
         get_attesting_balance(state, [a for a in attestations if a.data.crosslink == c]), c.data_root
     ), default=Crosslink())
 */
-  syntax Crosslink ::= getWinningCrosslink(Int, Int) [function]
-  rule getWinningCrosslink(EPOCH,SHARD)
-       => maxBasedOnDataRoot(maxBasedOnBalance(getCrosslinksOfMatchingShardSourceAttestations(EPOCH, SHARD),
-                                               EPOCH,
-                                               SHARD))
+  syntax Crosslink ::= maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendingAttestationList, 
+                                                    result: CrosslinkList, maxBalance: Int, maxRoot: Hash) [function]
+  rule maxCrosslinkOnBalanceAndRoot( CROSSLINK CrosslinkList, PendAttList, RES, MaxBalance, MaxRoot )
+        => #fun(BALANCE
+        => #fun(ROOT
+        => maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendAttList,
+                                        #if        BALANCE >Int MaxBalance 
+                                           orBool (BALANCE ==Int MaxBalance andBool ROOT >String MaxRoot)
+                                          #then CROSSLINK .CrosslinkList
+                                          #else RES
+                                        #fi,
+                                        #if        BALANCE >Int MaxBalance 
+                                           orBool (BALANCE ==Int MaxBalance andBool ROOT >String MaxRoot)
+                                          #then BALANCE
+                                          #else MaxBalance
+                                        #fi,
+                                        #if        BALANCE >Int MaxBalance 
+                                           orBool (BALANCE ==Int MaxBalance andBool ROOT >String MaxRoot)
+                                          #then ROOT
+                                          #else MaxRoot
+                                        #fi
+           )
+           )(CROSSLINK.dataRoot)
+           )( get_attesting_balance(pendingAttestationsMatchingCrosslink(PendAttList, CROSSLINK, .PendingAttestationList)) )
+  
+  rule maxCrosslinkOnBalanceAndRoot(.CrosslinkList, _, CROSSLINK:Crosslink, _,_ ) => CROSSLINK
+  rule maxCrosslinkOnBalanceAndRoot(.CrosslinkList, _, .CrosslinkList, _,_ ) => defaultCrosslink()
 
-  // extracts the list of crosslinks matching the condition given for 'crosslinks' in the python code
-  syntax CrosslinkList ::= getShardCrosslinks(CrosslinkList, Int, CrosslinkList) [function]
-  rule [[ getShardCrosslinks(C CL => CL, SHARD, CL' => CL' C) ]]
-    <current-crosslinks> SHARD |-> CURRC </current-crosslinks>
-      requires hash_tree_root(CURRC) ==K C.parentRoot
-        orBool hash_tree_root(CURRC) ==K hash_tree_root(C)
+  // extracts the list of attestations for the given shard
+  syntax PendingAttestationList ::= pendingAttestationsMatchingShard(PendingAttestationList, Int, 
+                                                                     PendingAttestationList) [function]
+  rule pendingAttestationsMatchingShard( PA PAList => PAList,
+                                         SHARD,
+                                         RES => #if PA.data.crosslink.shard ==Int SHARD
+                                                  #then RES +append PA
+                                                  #else RES
+                                                #fi)
+  rule pendingAttestationsMatchingShard(.PendingAttestationList, _, RES) => RES
 
-  rule [[ getShardCrosslinks(C CL => CL, SHARD, CL') ]]
-    <current-crosslinks> SHARD |-> CURRC </current-crosslinks>
-      requires hash_tree_root(CURRC) =/=K C.parentRoot
-       andBool hash_tree_root(CURRC) =/=K hash_tree_root(C)
-
-  rule getShardCrosslinks(.CrosslinkList, SHARD, CL') => CL'
-
-  // extracts the crosslinks of a given attestation list
-  syntax CrosslinkList ::= crosslinksOf(PendingAttestationList) [function]
-  rule crosslinksOf(PA PAL) => PA.data.crosslink crosslinksOf(PAL)
-  rule crosslinksOf(.PendingAttestationList) => .CrosslinkList
-
-  // extract from input the crosslinks with the maximum attestation balance
-  syntax CrosslinkList ::= maxBasedOnBalance(CrosslinkList, Int, Int) [function]
-  rule maxBasedOnBalance(CL, EP, SHARD) =>
-    maxBasedOnBalanceAux(CL, EP, SHARD, findMaxBalance(CL, EP, SHARD, 0), .CrosslinkList)
-
-  syntax Int ::= computeAttestingBalanceOfMatchingCrosslink(Int, Int, Crosslink)    [function]
-  rule computeAttestingBalanceOfMatchingCrosslink(EP, SHARD, C)
-       => get_attesting_balance(filterMatchingCrosslink(
-                                  getMatchingShardSourceAttestations(EP,SHARD), C, .PendingAttestationList))
-
-  syntax CrosslinkList ::= maxBasedOnBalanceAux(CrosslinkList, Int, Int, Int, CrosslinkList) [function]
-  rule maxBasedOnBalanceAux(C CL => CL, EP, SHARD, MAXBAL, CL' => CL' C)
-    requires computeAttestingBalanceOfMatchingCrosslink(EP, SHARD, C) ==K MAXBAL
-  rule maxBasedOnBalanceAux(C CL => CL, EP, SHARD, MAXBAL, CL')
-    requires computeAttestingBalanceOfMatchingCrosslink(EP, SHARD, C) =/=K MAXBAL
-  rule maxBasedOnBalanceAux(.CrosslinkList, EP, SHARD, MAXBAL, CL') => CL'
-
-  syntax Int ::= findMaxBalance(CrosslinkList, Int, Int, Int) [function]
-  rule findMaxBalance(C CL => CL,
-                      EP,
-                      SHARD,
-                      BALANCE => computeAttestingBalanceOfMatchingCrosslink(EP, SHARD, C) )
-    requires computeAttestingBalanceOfMatchingCrosslink(EP, SHARD, C) >Int BALANCE
-
-  rule findMaxBalance(C CL => CL,
-                      EP,
-                      SHARD,
-                      BALANCE)
-    requires computeAttestingBalanceOfMatchingCrosslink(EP, SHARD, C) <=Int BALANCE
-  rule findMaxBalance(.CrosslinkList, EP, SHARD, BALANCE) => BALANCE
-
-  syntax PendingAttestationList ::= filterMatchingCrosslink(PendingAttestationList, Crosslink, PendingAttestationList) [function]
-  rule filterMatchingCrosslink(PA PAL => PAL, C, PAL' => PAL' PA)
-    requires PA.data.crosslink ==K C
-  rule filterMatchingCrosslink(PA PAL => PAL, C, PAL')
-    requires PA.data.crosslink =/=K C
-  rule filterMatchingCrosslink(.PendingAttestationList, C, PAL') => PAL'
-
-  // get the crosslink with the maximum data root hash value
-  syntax Crosslink ::= maxBasedOnDataRoot(CrosslinkList) [function]
-  rule maxBasedOnDataRoot(C CL) => maxBasedOnDataRootAux(CL, C, C.dataRoot)
-
-  syntax Crosslink ::= maxBasedOnDataRootAux(CrosslinkList, Crosslink, Hash) [function]
-  rule maxBasedOnDataRootAux(C CL => CL, MAXC => C, MAXCDROOT => C.dataRoot)
-    requires {C.dataRoot}:>String >String MAXCDROOT
-  rule maxBasedOnDataRootAux(C CL => CL, MAXC, MAXCDROOT)
-    requires {C.dataRoot}:>String <=String MAXCDROOT
-  rule maxBasedOnDataRootAux(.CrosslinkList, MAXC, MAXCDROOT) => MAXC
+//winning_attestations = [a for a in attestations if a.data.crosslink == CROSSLINK]
+  syntax PendingAttestationList ::= pendingAttestationsMatchingCrosslink(PendingAttestationList, Crosslink,
+                                                                         PendingAttestationList) [function]
+  rule pendingAttestationsMatchingCrosslink( PA PAL => PAL,
+                                             CROSSLINK,
+                                             RES => #if PA.data.crosslink ==K CROSSLINK
+                                                      #then RES +append PA
+                                                      #else RES
+                                                    #fi)
+  rule pendingAttestationsMatchingCrosslink(.PendingAttestationList, _, RES) => RES
 
 /*
 def process_justification_and_finalization(state: BeaconState) -> None:
@@ -2681,5 +2648,9 @@ def process_transfer(state: BeaconState, transfer: Transfer) -> None:
   syntax Validator ::= getValidator( ValidatorIndex )                 [function]
   rule [[ getValidator(INDEX) => VAL ]]
     <validators> INDEX |-> VAL ...</validators>
+
+  syntax Crosslink ::= getCurrentCrosslink( Int )                     [function]
+  rule [[ getCurrentCrosslink(INDEX) => CROSSLINK ]]
+    <current-crosslinks> INDEX |-> CROSSLINK ...</current-crosslinks>
 
 endmodule

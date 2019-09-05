@@ -156,6 +156,9 @@ class Crosslink(Container):
   syntax Hash ::= Crosslink "." "dataRoot"                            [function]
   rule #Crosslink(_,_,_,_,ROOT).dataRoot => ROOT
 
+  syntax Crosslink ::= defaultCrosslink()                             [function]
+  rule defaultCrosslink() => #Crosslink(0, defaultHash(), 0, 0, defaultHash())
+
   /*
 class AttestationData(Container):
     # LMD GHOST vote
@@ -523,6 +526,10 @@ def bytes_to_int(data: bytes) -> uint64:
   syntax PendingAttestationList ::= PendingAttestationList "+append" PendingAttestation [function]
   rule (EL1:PendingAttestation LIST) +append EL2 => EL1 (LIST +append EL2)
   rule .PendingAttestationList +append EL => EL .PendingAttestationList
+
+  syntax CrosslinkList ::= CrosslinkList "+append" Crosslink          [function]
+  rule (EL1:Crosslink LIST) +append EL2 => EL1 (LIST +append EL2)
+  rule .CrosslinkList +append EL => EL .CrosslinkList
 
   syntax Eth1DataList ::= Eth1DataList "+append" Eth1Data             [function]
   rule (EL1:Eth1Data LIST) +append EL2 => EL1 (LIST +append EL2)

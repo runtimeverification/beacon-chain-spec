@@ -1285,11 +1285,20 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
                                .PendingAttestationList))
                          )
 
-  syntax PendingAttestationList ::= getMatchingShardSourceAttestations(Int, Int)      [function]
-  rule getMatchingShardSourceAttestations(EPOCH,SHARD)
-       => filterMatchingShard(get_matching_source_attestations(EPOCH),
-                                   SHARD,
-                                   .PendingAttestationList)
+//attestations = [a for a in get_matching_source_attestations(state, epoch) if a.data.crosslink.shard == shard]
+  syntax PendingAttestationList ::= getMatchingShardSourceAttestations(epoch: Int, shard: Int)      [function]
+  rule getMatchingShardSourceAttestations(EPOCH, SHARD)
+       => filterMatchingShard(get_matching_source_attestations(EPOCH), SHARD, .PendingAttestationList)
+
+  // extracts the list of attestations for the given shard
+  syntax PendingAttestationList ::= filterMatchingShard(PendingAttestationList, Int, PendingAttestationList) [function]
+  rule filterMatchingShard(PA PAList => PAList,
+                           SHARD,
+                           RES => #if PA.data.crosslink.shard ==Int SHARD
+                                    #then RES +append PA
+                                    #else RES
+                                  #fi)
+  rule filterMatchingShard(.PendingAttestationList, _, RES) => RES
 
   syntax CrosslinkList ::= getCrosslinksOfMatchingShardSourceAttestations(Int, Int) [function]
   rule getCrosslinksOfMatchingShardSourceAttestations(EPOCH, SHARD)
@@ -1310,14 +1319,6 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
        => maxBasedOnDataRoot(maxBasedOnBalance(getCrosslinksOfMatchingShardSourceAttestations(EPOCH, SHARD),
                                                EPOCH,
                                                SHARD))
-
-  // extracts the list of attestations for the given shard
-  syntax PendingAttestationList ::= filterMatchingShard(PendingAttestationList, Int, PendingAttestationList) [function]
-  rule filterMatchingShard(PA PAL => PAL, SHARD, PAL' => PAL' PA)
-    requires PA.data.crosslink.shard ==K SHARD
-  rule filterMatchingShard(PA PAL => PAL, SHARD, PAL')
-    requires PA.data.crosslink.shard =/=K SHARD
-  rule filterMatchingShard(.PendingAttestationList, _, PAL') => PAL'
 
   // extracts the list of crosslinks matching the condition given for 'crosslinks' in the python code
   syntax CrosslinkList ::= getShardCrosslinks(CrosslinkList, Int, CrosslinkList) [function]

@@ -1295,12 +1295,21 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
   rule getCrosslinksOfMatchingShardSourceAttestations(EPOCH, SHARD)
        => getShardCrosslinks(crosslinksOf(getMatchingShardSourceAttestations(EPOCH,SHARD)), SHARD, .CrosslinkList)
 
+/*  attestations = [a for a in get_matching_source_attestations(state, epoch) if a.data.crosslink.shard == shard]
+    crosslinks = filter(
+        lambda c: hash_tree_root(state.current_crosslinks[shard]) in (c.parent_root, hash_tree_root(c)),
+        [a.data.crosslink for a in attestations]
+    )
+    # Winning crosslink has the crosslink data root with the most balance voting for it (ties broken lexicographically)
+    winning_crosslink = max(crosslinks, key=lambda c: (
+        get_attesting_balance(state, [a for a in attestations if a.data.crosslink == c]), c.data_root
+    ), default=Crosslink())
+*/
   syntax Crosslink ::= getWinningCrosslink(Int, Int) [function]
   rule getWinningCrosslink(EPOCH,SHARD)
-       => maxBasedOnDataRoot(maxBasedOnDataRoot(maxBasedOnBalance(
-                                                   getCrosslinksOfMatchingShardSourceAttestations(EPOCH, SHARD),
-                                                   EPOCH,
-                                                   SHARD)))
+       => maxBasedOnDataRoot(maxBasedOnBalance(getCrosslinksOfMatchingShardSourceAttestations(EPOCH, SHARD),
+                                               EPOCH,
+                                               SHARD))
 
   // extracts the list of attestations for the given shard
   syntax PendingAttestationList ::= filterMatchingShard(PendingAttestationList, Int, PendingAttestationList) [function]
@@ -1537,7 +1546,7 @@ def process_crosslinks(state: BeaconState) -> None:
                          #fi
                    )
        ...</current-crosslinks>
-    requires OFFSET <Int COUNT andBool SHARD ==K (get_start_shard(EP) +Int OFFSET)
+    requires OFFSET <Int COUNT andBool SHARD ==K (get_start_shard(EP) +Int OFFSET) %Int SHARD_COUNT
 
   rule <k> processCrosslinksForEpochLoop(OFFSET, COUNT, EP) => .K ... </k>
     requires OFFSET >=Int COUNT

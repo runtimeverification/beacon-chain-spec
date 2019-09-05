@@ -156,6 +156,9 @@ class Crosslink(Container):
   syntax Hash ::= Crosslink "." "dataRoot"                            [function]
   rule #Crosslink(_,_,_,_,ROOT).dataRoot => ROOT
 
+  syntax Crosslink ::= defaultCrosslink()                             [function]
+  rule defaultCrosslink() => #Crosslink(0, defaultHash(), 0, 0, defaultHash())
+
   /*
 class AttestationData(Container):
     # LMD GHOST vote
@@ -524,6 +527,10 @@ def bytes_to_int(data: bytes) -> uint64:
   rule (EL1:PendingAttestation LIST) +append EL2 => EL1 (LIST +append EL2)
   rule .PendingAttestationList +append EL => EL .PendingAttestationList
 
+  syntax CrosslinkList ::= CrosslinkList "+append" Crosslink          [function]
+  rule (EL1:Crosslink LIST) +append EL2 => EL1 (LIST +append EL2)
+  rule .CrosslinkList +append EL => EL .CrosslinkList
+
   syntax Eth1DataList ::= Eth1DataList "+append" Eth1Data             [function]
   rule (EL1:Eth1Data LIST) +append EL2 => EL1 (LIST +append EL2)
   rule .Eth1DataList +append EL => EL .Eth1DataList
@@ -532,7 +539,10 @@ def bytes_to_int(data: bytes) -> uint64:
   //IntList merging (no duplicates)
   //Note: if the input lists duplicate-free, the resulting list will also be duplicate-free
   syntax IntList ::= IntList "++IntList" IntList     [function]
-  rule IL1 ++IntList I IL2 => #if contains(I, IL1) #then (IL1 ++IntList IL2) #else (IL1 I) ++IntList IL2 #fi
+  rule IL1 ++IntList I IL2 => #if contains(I, IL1)
+                                #then (IL1 ++IntList IL2)
+                                #else (IL1 +append I) ++IntList IL2
+                              #fi
   rule IL  ++IntList .IntList => IL
 
   syntax Bytes ::= Bytes "+Bytes" Bytes                               [function]

@@ -539,7 +539,10 @@ def bytes_to_int(data: bytes) -> uint64:
   //IntList merging (no duplicates)
   //Note: if the input lists duplicate-free, the resulting list will also be duplicate-free
   syntax IntList ::= IntList "++IntList" IntList     [function]
-  rule IL1 ++IntList I IL2 => #if contains(I, IL1) #then (IL1 ++IntList IL2) #else (IL1 I) ++IntList IL2 #fi
+  rule IL1 ++IntList I IL2 => #if contains(I, IL1)
+                                #then (IL1 ++IntList IL2)
+                                #else (IL1 +append I) ++IntList IL2
+                              #fi
   rule IL  ++IntList .IntList => IL
 
   syntax Bytes ::= Bytes "+Bytes" Bytes                               [function]

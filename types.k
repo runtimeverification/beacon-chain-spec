@@ -509,9 +509,11 @@ def bytes_to_int(data: bytes) -> uint64:
   rule listExcept((EXCEPT IL) => .IntList /*terminate*/, EXCEPT, REZ => REZ +IntList IL /*dump the rest of the list without EXCEPT*/)
   rule listExcept(.IntList, _, REZ) => REZ
 
-  syntax Int ::= sumIntList(IntList) [function]
-  rule sumIntList(I IL) => I +Int sumIntList(IL)
-  rule sumIntList(.IntList) => 0
+  syntax Int ::= sumMapIntValues( Map )                               [function]
+               | sumMapIntValues( Map, Int )                          [function]
+  rule sumMapIntValues(MAP) => sumMapIntValues(MAP, 0)
+  rule sumMapIntValues(MAP:Map (_ |-> VALUE:Int => .Map), S => S +Int VALUE)
+  rule sumMapIntValues(.Map, S) => S
 
   syntax Int ::= getByte(Hash, Int) [function]
   rule getByte(BYTES:String, I) => ordChar(substrString(BYTES, I, I +Int 1))

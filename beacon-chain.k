@@ -1995,27 +1995,30 @@ def process_slashings(state: BeaconState) -> None:
   syntax KItem ::= "process_slashings" "(" ")" [klabel(process_slashings), symbol]
   rule <k> process_slashings() =>
            processSlashingsLoop(
-             {keys_list(ValMap)}:>IntList,
+             0,
+             size(VALIDATORS),
              get_current_epoch(),
              get_total_active_balance()
            )
        ... </k>
-       <validators> ValMap </validators>
+       <validators> VALIDATORS </validators>
 
-  syntax KItem ::= "processSlashingsLoop" "(" IntList "," Int "," Int ")"
-  rule (. => decrease_balance(INDEX, (getValidator(INDEX).effectiveBalance /Int EFFECTIVE_BALANCE_INCREMENT *Int minInt(sumSlashings() *Int 3,
-                                      TotalBalance)) /Int TotalBalance *Int EFFECTIVE_BALANCE_INCREMENT))
-       ~> processSlashingsLoop(INDEX IL => IL, EP, TotalBalance)
-    requires getValidator(INDEX).slashed andBool EP +Int EPOCHS_PER_SLASHINGS_VECTOR /Int 2 ==K getValidator(INDEX).withdrawableEpoch
+  syntax KItem ::= "processSlashingsLoop" "(" i: Int "," nrValidators: Int "," Int "," Int ")"
+  rule (. => decrease_balance(I, (getValidator(I).effectiveBalance /Int EFFECTIVE_BALANCE_INCREMENT *Int minInt(sumSlashings() *Int 3,
+                                  TotalBalance)) /Int TotalBalance *Int EFFECTIVE_BALANCE_INCREMENT))
+       ~> processSlashingsLoop(I => I +Int 1, N, EP, TotalBalance)
+    requires I <Int N
+     andBool getValidator(I).slashed andBool EP +Int EPOCHS_PER_SLASHINGS_VECTOR /Int 2 ==K getValidator(I).withdrawableEpoch
 
-  rule processSlashingsLoop(INDEX IL => IL, EP, TotalBalance)
-    requires notBool (getValidator(INDEX).slashed andBool EP +Int EPOCHS_PER_SLASHINGS_VECTOR /Int 2 ==K getValidator(INDEX).withdrawableEpoch)
+  rule processSlashingsLoop(I => I +Int 1, N, EP, TotalBalance)
+    requires I <Int N
+     andBool notBool (getValidator(I).slashed andBool EP +Int EPOCHS_PER_SLASHINGS_VECTOR /Int 2 ==K getValidator(I).withdrawableEpoch)
 
-  rule <k> processSlashingsLoop(.IntList, _, _) => .K ... </k>
+  rule processSlashingsLoop(N, N, _, _) => .K
 
-  syntax Int ::= sumSlashings() [function]
-  rule [[ sumSlashings() => sumIntList({values(SlashMap)}:>IntList)]]
-    <slashings> SlashMap </slashings>
+  syntax Int ::= sumSlashings()                                       [function]
+  rule [[ sumSlashings() => sumMapIntValues(SLASHINGS) ]]
+    <slashings> SLASHINGS </slashings>
 
 
 /*

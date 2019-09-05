@@ -115,7 +115,15 @@ class Validator(Container):
     exit_epoch: Epoch
     withdrawable_epoch: Epoch  # When validator can withdraw or transfer funds
   */
-  syntax Validator ::= #Validator( BLSPubkey, Hash, Int, Bool, Int, Int, Int, Int ) [klabel(#Validator), symbol]
+  syntax Validator ::= #Validator( pubkey: BLSPubkey,
+                                   withdrawalCredentials: Hash,
+                                   effectiveBalance: Int,
+                                   slashed: Bool,
+                                   activationEligibilityEpoch: Int,
+                                   activationEpoch: Int,
+                                   exitEpoch: Int,
+                                   withdrawableEpoch: Int
+                                 ) [klabel(#Validator), symbol]
 
   syntax BLSPubkey ::= Validator "." "pubkey"                         [function]
   rule #Validator(PK, _,_,_,_,_,_,_).pubkey => PK

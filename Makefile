@@ -198,8 +198,9 @@ deposit_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operation
 transfer_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/transfer/*/*/post.yaml)
 attestation_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/attestation/*/*/post.yaml)
 crosslinks_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/crosslinks/*/*/post.yaml)
+final_updates_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/final_updates/*/*/post.yaml)
 slashings_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/slashings/*/*/post.yaml)
-all_process_tests:= $(deposit_tests) $(transfer_tests) $(attestation_tests) $(crosslinks_tests) $(slashings_tests)
+all_process_tests:= $(deposit_tests) $(transfer_tests) $(attestation_tests) $(crosslinks_tests) $(final_updates_tests) $(slashings_tests)
 
 test-processing: $(all_process_tests:=.test)
 

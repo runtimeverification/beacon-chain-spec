@@ -30,8 +30,6 @@ module TYPES
   syntax BasicValue ::= Int | Uint64 | Bool
                       | ValidatorIndex
 
-  syntax KItem ::= Pgm
-  syntax Pgm ::= ".Pgm"
   syntax Fork ::= ".Fork"
   syntax BlockHeader ::= ".BlockHeader" | BeaconBlockHeader
   syntax Eth1Data ::= ".Eth1Data"

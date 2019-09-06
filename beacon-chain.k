@@ -12,8 +12,6 @@ module BEACON-CHAIN
   // Hacks around pyk/json front-end limitations
   //====================================================
 
-  rule <k> . => .Pgm </k> //todo hack to make comparison with post-state happy, until bugs in pyk get fixed
-
   //Workarounds to make kast happy. Cannot put a function with no-args in init <k>, with json input.
   syntax KItem ::= "wrap_hash_tree_root_block" "(" ")" [klabel(wrap_hash_tree_root_block), symbol]
                  | "wrap_hash_tree_root_blockBody" "(" ")" [klabel(wrap_hash_tree_root_blockBody), symbol]
@@ -21,6 +19,29 @@ module BEACON-CHAIN
   rule wrap_hash_tree_root_block() => hash_tree_root_block()
   rule wrap_hash_tree_root_blockBody() => hash_tree_root_blockBody()
   rule wrap_hash_tree_root_state() => hash_tree_root_state()
+
+
+  // Initialization
+  //====================================================
+  syntax KItem ::= "init"                                 [klabel(init), symbol]
+                 | initZeroHashes(Int, Int)
+
+/*
+ZERO_BYTES32 = b'\x00' * 32
+
+zerohashes = [ZERO_BYTES32]
+for layer in range(1, 100):
+    zerohashes.append(hash(zerohashes[layer - 1] + zerohashes[layer - 1]))
+*/
+  rule <k> init => initZeroHashes(1, 64) ...</k> //max pre-computed zerohash is 64 - ehough for all cases
+       <zerohashes-cache> .Map => (0 |-> defaultHash()) </zerohashes-cache>
+
+  rule <k> initZeroHashes(I => I +Int 1, N) ...</k>
+       <zerohashes-cache> (.Map => (I |-> hashConcat(zerohashes(I -Int 1), zerohashes(I -Int 1)))) ...</zerohashes-cache>
+    requires I <Int N
+
+  rule initZeroHashes(N, N) => .K
+
 
   // Helper functions -- Math
   //====================================================
@@ -2083,7 +2104,7 @@ def process_final_updates(state: BeaconState) -> None:
         ... </validators>
        <balances> ... INDEX |-> BAL ... </balances>
     requires INDEX <Int N
-     andBool BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL
+     andBool (BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL)
 
   rule <k> updateEffectiveBalances(INDEX => INDEX +Int 1, N, HALF_INCREMENT) ... </k>
        <validators> ... INDEX |-> #Validator(_,_, EffBal, _,_,_,_,_) ... </validators>

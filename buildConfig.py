@@ -75,8 +75,7 @@ def krun(inputFile, *krunArgs):
 
 BEACON_CHAIN_symbols = { '.ProposerSlashingCellMap' : constLabel('.ProposerSlashingCellMap') }
 
-TYPES_constLabels = [ '.Pgm'
-                    , '.Eth1Data'
+TYPES_constLabels = [ '.Eth1Data'
                     , '.Fork'
                     , '.Checkpoint'
                     , '.BlockHeader'
@@ -167,13 +166,14 @@ symbolic_configuration = KApply ( '<generatedTop>' , [ KApply ( '<beacon-chain>'
                                                                                                          , KApply ( '<signature>', [ KVariable('SIGNATURE_CELL') ] )
                                                                                                          ]
                                                                                           )
+                                                                                 , KApply ( '<zerohashes-cache>', [ KConstant('.Map') ] )
                                                                                  ]
                                                               )
                                                      , KApply ( '<generatedCounter>' , [ KVariable('GENERATED_COUNTER_CELL') ] )
                                                      ]
                                 )
 
-init_cells = { 'K_CELL'                             : KSequence([KConstant('.Pgm_TYPES_')])
+init_cells = { 'K_CELL'                             : KSequence([ KApply('init', []) ])
              , 'GENESIS_TIME_CELL'                  : KToken('0', 'Int')
              , 'SLOT_CELL'                          : KToken('0', 'Int')
              , 'FORK_CELL'                          : KConstant('.Fork_TYPES_')

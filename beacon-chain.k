@@ -2058,37 +2058,40 @@ def process_final_updates(state: BeaconState) -> None:
 */
   syntax KItem ::= "process_final_updates" "(" ")" [klabel(process_final_updates), symbol]
   rule <k> process_final_updates()
-           => updateEffectiveBalances({keys_list(ValMap)}:>IntList, EFFECTIVE_BALANCE_INCREMENT /Int 2)             // param: HALF_INCREMENT
-           ~> setActiveIndexRoots(get_current_epoch() +Int 1 +Int ACTIVATION_EXIT_DELAY) // param: index_epoch
+           => updateEffectiveBalances(0, size(VALIDATORS), EFFECTIVE_BALANCE_INCREMENT /Int 2)  // param: HALF_INCREMENT
+           ~> setActiveIndexRoots(get_current_epoch() +Int 1 +Int ACTIVATION_EXIT_DELAY)        // param: index_epoch
            ~> setCommitteesRoot((get_current_epoch() +Int 1) %Int EPOCHS_PER_HISTORICAL_VECTOR) // param: committee_root_position
            ~> resetSlashings((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)     // param: (slashings index)
            ~> setRandaoMix((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)       // param: (rnd mixes index)
            ~> setHistoricalRootAccumulator()
-           ~> updateStartShard(get_current_epoch())                                     // param: current_epoch
-           ~> rotateEpochAttestations() ... </k>
+           ~> updateStartShard(get_current_epoch())                                             // param: current_epoch
+           ~> rotateEpochAttestations()
+       ... </k>
        <slot> SLOT </slot>
        <eth1-data-votes> E1DL => #if (SLOT +Int 1) %Int SLOTS_PER_ETH1_VOTING_PERIOD ==K 0
                                  #then .Eth1DataList
                                  #else E1DL
                                  #fi
        </eth1-data-votes>
-       <validators> ValMap </validators>
+       <validators> VALIDATORS </validators>
 
-  syntax KItem ::= "updateEffectiveBalances" "(" IntList "," Int ")"
-  rule <k> updateEffectiveBalances(INDEX IL => IL, HALF_INCREMENT) ... </k>
+  syntax KItem ::= updateEffectiveBalances ( i: Int, nrValidators: Int, increment: Int )
+  rule <k> updateEffectiveBalances(INDEX => INDEX +Int 1, N, HALF_INCREMENT) ... </k>
        <validators> ... INDEX |-> #Validator(_,_,
                                     EffBal => minInt(BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE),
                                     _,_,_,_,_)
         ... </validators>
        <balances> ... INDEX |-> BAL ... </balances>
-    requires BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL
+    requires INDEX <Int N
+     andBool BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL
 
-  rule <k> updateEffectiveBalances(INDEX IL => IL, HALF_INCREMENT) ... </k>
+  rule <k> updateEffectiveBalances(INDEX => INDEX +Int 1, N, HALF_INCREMENT) ... </k>
        <validators> ... INDEX |-> #Validator(_,_, EffBal, _,_,_,_,_) ... </validators>
        <balances> ... INDEX |-> BAL ... </balances>
-    requires notBool(BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL)
+    requires INDEX <Int N
+     andBool notBool(BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL)
 
-  rule <k> updateEffectiveBalances(.IntList, _) => .K ... </k>
+  rule updateEffectiveBalances(N, N, _) => .K
 
   syntax KItem ::= "updateStartShard" "(" Int ")"
   rule <k> updateStartShard(EP) => .K ... </k>

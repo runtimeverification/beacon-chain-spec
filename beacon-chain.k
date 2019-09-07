@@ -13,9 +13,11 @@ module BEACON-CHAIN
   //====================================================
 
   //Workarounds to make kast happy. Cannot put a function with no-args in init <k>, with json input.
-  syntax KItem ::= "wrap_hash_tree_root_block" "(" ")" [klabel(wrap_hash_tree_root_block), symbol]
+  syntax KItem ::= "wrap_hash_tree_root" "(" BytesOrContainer ")" [klabel(wrap_hash_tree_root), symbol]
+                 | "wrap_hash_tree_root_block" "(" ")" [klabel(wrap_hash_tree_root_block), symbol]
                  | "wrap_hash_tree_root_blockBody" "(" ")" [klabel(wrap_hash_tree_root_blockBody), symbol]
                  | "wrap_hash_tree_root_state" "(" ")" [klabel(wrap_hash_tree_root_state), symbol]
+  rule wrap_hash_tree_root(OBJ) => hash_tree_root(OBJ)
   rule wrap_hash_tree_root_block() => hash_tree_root_block()
   rule wrap_hash_tree_root_blockBody() => hash_tree_root_blockBody()
   rule wrap_hash_tree_root_state() => hash_tree_root_state()

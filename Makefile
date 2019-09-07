@@ -194,11 +194,14 @@ test: test-python-config test-processing test-ssz
 test-python-config: buildConfig.py $(llvm_kompiled)
 	python3 $<
 
+deposit_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/deposit/*/*/post.yaml)
 transfer_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/transfer/*/*/post.yaml)
 attestation_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/attestation/*/*/post.yaml)
-crosslink_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/crosslinks/*/*/post.yaml)
+crosslinks_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/crosslinks/*/*/post.yaml)
+slashings_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/slashings/*/*/post.yaml)
+all_process_tests:= $(deposit_tests) $(transfer_tests) $(attestation_tests) $(crosslinks_tests) $(slashings_tests)
 
-test-processing: $(transfer_tests:=.test) $(attestation_tests:=.test) $(crosslink_tests:=.test)
+test-processing: $(all_process_tests:=.test)
 
 ssz_tests = $(filter-out $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/Beacon*/*/*/value.yaml), \
 	$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*/*/case_0/value.yaml))

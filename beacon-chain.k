@@ -390,13 +390,10 @@ def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
     return state.block_roots[slot % SLOTS_PER_HISTORICAL_ROOT]
 */
   syntax Hash ::= "get_block_root_at_slot" "(" Int ")" [function]
-  rule [[ get_block_root_at_slot(SLOT) => getBlockRootAtSlotAux(SLOT %Int SLOTS_PER_HISTORICAL_ROOT)]]
-    <slot> SSLOT </slot>
-    requires SLOT <Int SSLOT andBool SSLOT <=Int (SLOT +Int SLOTS_PER_HISTORICAL_ROOT)
-
-  syntax Hash ::= getBlockRootAtSlotAux( Int ) [function]
-  rule [[ getBlockRootAtSlotAux(SLOT) => BLOCKROOT ]]
-    <block-roots> SLOT |-> BLOCKROOT </block-roots>
+  rule [[ get_block_root_at_slot(SLOT) => {BLOCKROOTS[ SLOT %Int SLOTS_PER_HISTORICAL_ROOT ]}:>Hash ]]
+    <slot> StateSLOT </slot>
+    <block-roots> BLOCKROOTS </block-roots>
+    requires SLOT <Int StateSLOT andBool StateSLOT <=Int (SLOT +Int SLOTS_PER_HISTORICAL_ROOT)
 
 /*
 def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
@@ -1209,12 +1206,12 @@ def get_matching_target_attestations(state: BeaconState, epoch: Epoch) -> Sequen
   rule get_matching_target_attestations(EPOCH) =>
          filterOutNonMatchingTargets(get_matching_source_attestations(EPOCH), EPOCH, .PendingAttestationList)
 
-  syntax PendingAttestationList ::= filterOutNonMatchingTargets(PendingAttestationList, Int, PendingAttestationList)
-  rule filterOutNonMatchingTargets(PA PAL => PAL, EPOCH, PAL' => PAL' PA)
+  syntax PendingAttestationList ::= filterOutNonMatchingTargets(PendingAttestationList, Int, PendingAttestationList) [function]
+  rule filterOutNonMatchingTargets(PA PAList => PAList, EPOCH, RES => RES +append PA)
     requires PA.data.target.root ==K get_block_root(EPOCH)
-  rule filterOutNonMatchingTargets(PA PAL => PAL, EPOCH, PAL')
+  rule filterOutNonMatchingTargets(PA PAList => PAList, EPOCH, RES)
     requires PA.data.target.root =/=K get_block_root(EPOCH)
-  rule filterOutNonMatchingTargets(.PendingAttestationList, EPOCH, PAL') => PAL'
+  rule filterOutNonMatchingTargets(.PendingAttestationList, EPOCH, RES) => RES
 
 /*
 def get_matching_head_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
@@ -1227,8 +1224,8 @@ def get_matching_head_attestations(state: BeaconState, epoch: Epoch) -> Sequence
   rule get_matching_head_attestations(EPOCH) =>
          filterOutNonMatchingHeads(get_matching_source_attestations(EPOCH), .PendingAttestationList)
 
-  syntax PendingAttestationList ::= filterOutNonMatchingHeads(PendingAttestationList, PendingAttestationList)
-  rule filterOutNonMatchingHeads(PA PAL => PAL, PAL' => PAL' PA)
+  syntax PendingAttestationList ::= filterOutNonMatchingHeads(PendingAttestationList, PendingAttestationList) [function]
+  rule filterOutNonMatchingHeads(PA PAL => PAL, PAL' => PAL' +append PA)
     requires PA.data.beaconBlockRoot ==K get_block_root_at_slot(get_attestation_data_slot(PA.data))
   rule filterOutNonMatchingHeads(PA PAL => PAL, PAL')
     requires PA.data.beaconBlockRoot =/=K get_block_root_at_slot(get_attestation_data_slot(PA.data))
@@ -1417,39 +1414,50 @@ def process_justification_and_finalization(state: BeaconState) -> None:
   rule <k> (process_justification_and_finalization() => .K) ... </k>
     requires get_current_epoch() <=Int GENESIS_EPOCH +Int 1
 
-  // proceed with processing
+/*  state.previous_justified_checkpoint = state.current_justified_checkpoint
+    state.justification_bits[1:] = state.justification_bits[:-1]
+    state.justification_bits[0] = 0b0
+*/
   rule <k> process_justification_and_finalization()
            => updateJustificationPrev(get_previous_epoch())
            ~> updateJustificationCurr(get_current_epoch())
-           ~> updateFinalization(PrevJustCHECKP, CurrJustCHECKP)... </k>
+           ~> updateFinalization(PrevJustCHECKP, CurrJustCHECKP)
+       ... </k>
        <previous-justified-checkpoint> PrevJustCHECKP => CurrJustCHECKP </previous-justified-checkpoint>
        <current-justified-checkpoint> CurrJustCHECKP </current-justified-checkpoint>
-       <justification-bits> Bits => shiftRight(Bits) </justification-bits>
+       <justification-bits> Bits => false removeLast(Bits) </justification-bits>
     requires get_current_epoch() >Int GENESIS_EPOCH +Int 1
 
+/*  matching_target_attestations = get_matching_target_attestations(state, previous_epoch)  # Previous epoch
+    if get_attesting_balance(state, matching_target_attestations) * 3 >= get_total_active_balance(state) * 2:
+        state.current_justified_checkpoint = Checkpoint(epoch=previous_epoch,
+                                                        root=get_block_root(state, previous_epoch))
+        state.justification_bits[1] = 0b1
+*/
   syntax KItem ::= "updateJustificationPrev" "(" Int ")"
-  rule <k> updateJustificationPrev(EPOCH) => .K ... </k>
+  rule <k> updateJustificationPrev(PrevEPOCH) => .K ... </k>
        <current-justified-checkpoint>
-          CurrJustCHECKP => #Checkpoint(EPOCH, get_block_root(EPOCH))
+          CurrJustCHECKP => #Checkpoint(PrevEPOCH, get_block_root(PrevEPOCH))
        </current-justified-checkpoint>
        <justification-bits> Bits => setBitAt(Bits, 1, true) </justification-bits>
-    requires get_attesting_balance(get_matching_target_attestations(EPOCH)) *Int 3 >=Int get_total_active_balance() *Int 2
-  rule <k> updateJustificationPrev(EPOCH) => .K ... </k>
+    requires get_attesting_balance(get_matching_target_attestations(PrevEPOCH)) *Int 3 >=Int get_total_active_balance() *Int 2
+
+  rule <k> updateJustificationPrev(PrevEPOCH) => .K ... </k>
        <current-justified-checkpoint> CurrJustCHECKP </current-justified-checkpoint>
        <justification-bits> Bits </justification-bits>
-    requires notBool get_attesting_balance(get_matching_target_attestations(EPOCH)) *Int 3 >=Int get_total_active_balance() *Int 2
+    [owise]
 
   syntax KItem ::= "updateJustificationCurr" "(" Int ")"
-  rule <k> updateJustificationCurr(EPOCH) => .K ... </k>
+  rule <k> updateJustificationCurr(CurrEPOCH) => .K ... </k>
        <current-justified-checkpoint>
-          CurrJustCHECKP => #Checkpoint(EPOCH, get_block_root(EPOCH))
+          CurrJustCHECKP => #Checkpoint(CurrEPOCH, get_block_root(CurrEPOCH))
        </current-justified-checkpoint>
        <justification-bits> Bits => setBitAt(Bits, 0, true) </justification-bits>
-    requires get_attesting_balance(get_matching_target_attestations(EPOCH)) *Int 3 >=Int get_total_active_balance() *Int 2
-  rule <k> updateJustificationCurr(EPOCH) => .K ... </k>
+    requires get_attesting_balance(get_matching_target_attestations(CurrEPOCH)) *Int 3 >=Int get_total_active_balance() *Int 2
+  rule <k> updateJustificationCurr(CurrEPOCH) => .K ... </k>
        <current-justified-checkpoint> CurrJustCHECKP </current-justified-checkpoint>
        <justification-bits> Bits </justification-bits>
-    requires notBool get_attesting_balance(get_matching_target_attestations(EPOCH)) *Int 3 >=Int get_total_active_balance() *Int 2
+    requires notBool get_attesting_balance(get_matching_target_attestations(CurrEPOCH)) *Int 3 >=Int get_total_active_balance() *Int 2
 
   syntax KItem ::= "updateFinalization" "(" Checkpoint "," Checkpoint ")"
   rule <k> updateFinalization(OldPrevJustCP, OldCurrJustCP)

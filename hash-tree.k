@@ -75,17 +75,14 @@ def pack(values: Series):
   rule pack(B:Bytes) => B
 
   //Version for lists
-  syntax Bytes ::= pack ( list: ValueList, staticLen: Int, elemType: ElementType ) [function]
+  syntax Bytes ::= pack ( list: ValueList, elemType: ElementType ) [function]
 
 //  return values.as_bytes()
-  rule pack(BL:BitList, StaticLEN, %bool) => as_bytes(BL)
+  rule pack(BL:BitList, %bool) => as_bytes(BL)
 
-  // Int lists will be padded to their static size later anyway. So it doesn't matter if LEN here is static or dynamic.
   // return b''.join([serialize_basic(value) for value in values])
-  rule pack(I:Int IL:IntList, StaticLEN, ElemType) => serialize_basic(I, ElemType) +Bytes pack(IL, StaticLEN -Int 1, ElemType)
-  rule pack(.IntList, StaticLEN, ElemType) => serialize_basic(0, ElemType) +Bytes pack(.IntList, StaticLEN -Int 1, ElemType)
-    requires StaticLEN >Int 0
-  rule pack(.IntList, 0, _) => ""
+  rule pack(I:Int IL:IntList, ElemType) => serialize_basic(I, ElemType) +Bytes pack(IL, ElemType)
+  rule pack(.IntList, _) => ""
 
 /*
 It is here that chunkification described in the dock of pack() happens.
@@ -109,17 +106,9 @@ def chunkify(bytez):
 
   rule chunkifyAux("") => .BytesList
 
-/*
-ZERO_BYTES32 = b'\x00' * 32
-
-zerohashes = [ZERO_BYTES32]
-for layer in range(1, 100):
-    zerohashes.append(hash(zerohashes[layer - 1] + zerohashes[layer - 1]))
-*/
   syntax Hash ::= zerohashes ( Int )                                  [function]
-  rule zerohashes(0) => defaultHash()
-  rule zerohashes(I) => hashConcat(zerohashes(I -Int 1), zerohashes(I -Int 1))
-    requires I >Int 0
+  rule [[ zerohashes(I) => HASH ]]
+    <zerohashes-cache> I |-> HASH ...</zerohashes-cache>
 
 /*def merkleize_chunks(chunks, pad_to: int=1):
     count = len(chunks)
@@ -174,6 +163,9 @@ for layer in range(1, 100):
   rule merkleizeChunksLoop1(COUNT, DEPTH, MaxDEPTH, (CH CHUNKS => CHUNKS), I => I +Int 1,
                             TMP => merkleMerge(CH, I, COUNT, DEPTH, TMP))
 
+/*  # complement with 0 if empty, or if not the right power of 2
+    if 1 << depth != count:
+        merge(zerohashes[0], count)       */
   rule merkleizeChunksLoop1(COUNT, DEPTH, MaxDEPTH, .BytesList, I, TMP)
        => merkleizeChunksLoop2(DEPTH, MaxDEPTH,
                                #if (1 <<Int DEPTH =/=Int COUNT)
@@ -370,10 +362,10 @@ for layer in range(1, 100):
   //leaves = chunkify(pack(obj))
   //-----------------------------------------------
   rule hash_tree_root_list(LIST:BasicValueList, StaticLEN, ElemType, true)
-    => hash_tree_root_part2_v2(chunkify(pack(LIST, StaticLEN, ElemType)))
+    => hash_tree_root_part2_v2(chunkify(pack(LIST, ElemType)))
 
   rule hash_tree_root_list(LIST:BasicValueList, StaticLEN, ElemType, false)
-    => hash_tree_root_part2_v1(chunkify(pack(LIST, StaticLEN, ElemType)), StaticLEN, ElemType, len(LIST))
+    => hash_tree_root_part2_v1(chunkify(pack(LIST, ElemType)), StaticLEN, ElemType, len(LIST))
 
   //hash_tree_root branch 1.2, List/Vector types
   //leaves = [hash_tree_root(value) for value in obj]

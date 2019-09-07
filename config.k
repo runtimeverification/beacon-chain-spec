@@ -60,7 +60,7 @@ class BeaconBlockBody(Container):
 */
   configuration
     <beacon-chain>
-      <k> $PGM:Pgm </k>
+      <k> $PGM:KItem </k>
       <state>                           //Type BeaconState in python spec.
         // Versioning
         <genesis-time> 0 </genesis-time>
@@ -116,6 +116,7 @@ class BeaconBlockBody(Container):
         </body>
         <signature> "" </signature>
       </block>
+      <zerohashes-cache> .Map </zerohashes-cache>
     </beacon-chain>
 
 endmodule

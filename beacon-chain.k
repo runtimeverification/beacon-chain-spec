@@ -12,15 +12,38 @@ module BEACON-CHAIN
   // Hacks around pyk/json front-end limitations
   //====================================================
 
-  rule <k> . => .Pgm </k> //todo hack to make comparison with post-state happy, until bugs in pyk get fixed
-
   //Workarounds to make kast happy. Cannot put a function with no-args in init <k>, with json input.
-  syntax KItem ::= "wrap_hash_tree_root_block" "(" ")" [klabel(wrap_hash_tree_root_block), symbol]
+  syntax KItem ::= "wrap_hash_tree_root" "(" BytesOrContainer ")" [klabel(wrap_hash_tree_root), symbol]
+                 | "wrap_hash_tree_root_block" "(" ")" [klabel(wrap_hash_tree_root_block), symbol]
                  | "wrap_hash_tree_root_blockBody" "(" ")" [klabel(wrap_hash_tree_root_blockBody), symbol]
                  | "wrap_hash_tree_root_state" "(" ")" [klabel(wrap_hash_tree_root_state), symbol]
+  rule wrap_hash_tree_root(OBJ) => hash_tree_root(OBJ)
   rule wrap_hash_tree_root_block() => hash_tree_root_block()
   rule wrap_hash_tree_root_blockBody() => hash_tree_root_blockBody()
   rule wrap_hash_tree_root_state() => hash_tree_root_state()
+
+
+  // Initialization
+  //====================================================
+  syntax KItem ::= "init"                                 [klabel(init), symbol]
+                 | initZeroHashes(Int, Int)
+
+/*
+ZERO_BYTES32 = b'\x00' * 32
+
+zerohashes = [ZERO_BYTES32]
+for layer in range(1, 100):
+    zerohashes.append(hash(zerohashes[layer - 1] + zerohashes[layer - 1]))
+*/
+  rule <k> init => initZeroHashes(1, 64) ...</k> //max pre-computed zerohash is 64 - ehough for all cases
+       <zerohashes-cache> .Map => (0 |-> defaultHash()) </zerohashes-cache>
+
+  rule <k> initZeroHashes(I => I +Int 1, N) ...</k>
+       <zerohashes-cache> (.Map => (I |-> hashConcat(zerohashes(I -Int 1), zerohashes(I -Int 1)))) ...</zerohashes-cache>
+    requires I <Int N
+
+  rule initZeroHashes(N, N) => .K
+
 
   // Helper functions -- Math
   //====================================================
@@ -2058,37 +2081,40 @@ def process_final_updates(state: BeaconState) -> None:
 */
   syntax KItem ::= "process_final_updates" "(" ")" [klabel(process_final_updates), symbol]
   rule <k> process_final_updates()
-           => updateEffectiveBalances({keys_list(ValMap)}:>IntList, EFFECTIVE_BALANCE_INCREMENT /Int 2)             // param: HALF_INCREMENT
-           ~> setActiveIndexRoots(get_current_epoch() +Int 1 +Int ACTIVATION_EXIT_DELAY) // param: index_epoch
+           => updateEffectiveBalances(0, size(VALIDATORS), EFFECTIVE_BALANCE_INCREMENT /Int 2)  // param: HALF_INCREMENT
+           ~> setActiveIndexRoots(get_current_epoch() +Int 1 +Int ACTIVATION_EXIT_DELAY)        // param: index_epoch
            ~> setCommitteesRoot((get_current_epoch() +Int 1) %Int EPOCHS_PER_HISTORICAL_VECTOR) // param: committee_root_position
            ~> resetSlashings((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)     // param: (slashings index)
            ~> setRandaoMix((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)       // param: (rnd mixes index)
            ~> setHistoricalRootAccumulator()
-           ~> updateStartShard(get_current_epoch())                                     // param: current_epoch
-           ~> rotateEpochAttestations() ... </k>
+           ~> updateStartShard(get_current_epoch())                                             // param: current_epoch
+           ~> rotateEpochAttestations()
+       ... </k>
        <slot> SLOT </slot>
        <eth1-data-votes> E1DL => #if (SLOT +Int 1) %Int SLOTS_PER_ETH1_VOTING_PERIOD ==K 0
                                  #then .Eth1DataList
                                  #else E1DL
                                  #fi
        </eth1-data-votes>
-       <validators> ValMap </validators>
+       <validators> VALIDATORS </validators>
 
-  syntax KItem ::= "updateEffectiveBalances" "(" IntList "," Int ")"
-  rule <k> updateEffectiveBalances(INDEX IL => IL, HALF_INCREMENT) ... </k>
+  syntax KItem ::= updateEffectiveBalances ( i: Int, nrValidators: Int, increment: Int )
+  rule <k> updateEffectiveBalances(INDEX => INDEX +Int 1, N, HALF_INCREMENT) ... </k>
        <validators> ... INDEX |-> #Validator(_,_,
                                     EffBal => minInt(BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE),
                                     _,_,_,_,_)
         ... </validators>
        <balances> ... INDEX |-> BAL ... </balances>
-    requires BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL
+    requires INDEX <Int N
+     andBool (BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL)
 
-  rule <k> updateEffectiveBalances(INDEX IL => IL, HALF_INCREMENT) ... </k>
+  rule <k> updateEffectiveBalances(INDEX => INDEX +Int 1, N, HALF_INCREMENT) ... </k>
        <validators> ... INDEX |-> #Validator(_,_, EffBal, _,_,_,_,_) ... </validators>
        <balances> ... INDEX |-> BAL ... </balances>
-    requires notBool(BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL)
+    requires INDEX <Int N
+     andBool notBool(BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL)
 
-  rule <k> updateEffectiveBalances(.IntList, _) => .K ... </k>
+  rule updateEffectiveBalances(N, N, _) => .K
 
   syntax KItem ::= "updateStartShard" "(" Int ")"
   rule <k> updateStartShard(EP) => .K ... </k>

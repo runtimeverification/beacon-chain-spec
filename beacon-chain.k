@@ -840,7 +840,8 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
 
   rule <k> initiateValidatorExitAux(INDEX, ExitQEpoch) => .K ...</k>
        <validators>
-          (INDEX |-> #Validator(_,_,_,_,_,_,
+       VALIDATORS:Map
+       INDEX |-> #Validator(_,_,_,_,_,_,
             ExitEPOCH => #if exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int get_validator_churn_limit()
                             #then ExitQEpoch +Int 1
                             #else ExitQEpoch
@@ -848,7 +849,7 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
             WithdrEpoch => #if exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int get_validator_churn_limit()
                             #then ExitQEpoch +Int 1
                             #else ExitQEpoch
-                         #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY) _:Map) #as VALIDATORS
+                         #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY)
        </validators>
 
   syntax Int ::= exitQueueEpochAux ( Int ) [function]
@@ -901,37 +902,36 @@ def slash_validator(state: BeaconState,
     increase_balance(state, whistleblower_index, whistleblower_reward - proposer_reward)
 */
   syntax KItem ::= "slash_validator" "(" ValidatorIndex "," /*slashed_index*/
-	                                      K                  /*whistleblower_index or .K if none*/ ")"
+                                         ValidatorIndex     /*whistleblower_index or .ValidatorIndex if none*/ ")"
 
-	  rule <k> slash_validator(SlashedINDEX, WhistleblINDEX)
-	           => initiate_validator_exit(SlashedINDEX)
-	           ~> slashValidatorAux(SlashedINDEX,
-	                                WhistleblINDEX,
-	                                get_beacon_proposer_index(),
-	                                VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT, //whistleblower_reward
-	                                VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT /Int PROPOSER_REWARD_QUOTIENT, //proposer_reward
-	                                get_current_epoch() +Int EPOCHS_PER_SLASHINGS_VECTOR) //SlashEPOCH
-	        ...</k>
-	       <validators> SlashedINDEX |-> VAL ...</validators>
+    rule <k> slash_validator(SlashedINDEX, WhistleblINDEX)
+             => initiate_validator_exit(SlashedINDEX)
+             ~> slashValidatorAux(SlashedINDEX,
+                                  #if WhistleblINDEX ==K .ValidatorIndex #then get_beacon_proposer_index() #else WhistleblINDEX #fi,
+                                  get_beacon_proposer_index(),
+                                  VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT, //whistleblower_reward
+                                  VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT /Int PROPOSER_REWARD_QUOTIENT, //proposer_reward
+                                  get_current_epoch()) //epoch
+          ...</k>
+         <validators> SlashedINDEX |-> VAL ...</validators>
 
-	  syntax KItem ::= "slashValidatorAux" "(" ValidatorIndex "," ValidatorIndex "," ValidatorIndex "," Int "," Int "," Int ")"
-	  rule <k> slashValidatorAux(SlashedINDEX, WhistleblINDEX, ProposerINDEX, WhistleREWARD, ProposerREWARD, SlashEPOCH)
-	       => decrease_balance(SlashedINDEX, EffBALANCE /Int MIN_SLASHING_PENALTY_QUOTIENT)
-	       ~> increase_balance(ProposerINDEX, ProposerREWARD)
-	       ~> increase_balance(#if WhistleblINDEX ==K .ValidatorIndex #then ProposerINDEX #else WhistleblINDEX #fi,
-	                          WhistleREWARD -Int ProposerREWARD)
-	       ...</k>
-	    <validators>
-	      SlashedINDEX |-> #Validator(
-	        _,_,
-	        EffBALANCE,
-	        _ => true, //slashed
-	        _,_,_,
-	        WithdEPOCH => maxInt(WithdEPOCH, SlashEPOCH) //withdrawable epoch
-	      )
-	      ...
-	    </validators>
-	    <slashings> SlashEPOCH |-> (SL => SL +Int EffBALANCE)  ...</slashings>
+ syntax KItem ::= "slashValidatorAux" "(" ValidatorIndex "," ValidatorIndex "," ValidatorIndex "," Int "," Int "," Int ")"
+    rule <k> slashValidatorAux(SlashedINDEX, WhistleblINDEX, ProposerINDEX, WhistleREWARD, ProposerREWARD, Epoch)
+         => decrease_balance(SlashedINDEX, EffBALANCE /Int MIN_SLASHING_PENALTY_QUOTIENT)
+         ~> increase_balance(ProposerINDEX, ProposerREWARD)
+         ~> increase_balance(WhistleblINDEX, WhistleREWARD -Int ProposerREWARD)
+         ...</k>
+      <validators>
+        SlashedINDEX |-> #Validator(
+          _,_,
+          EffBALANCE,
+          _ => true, //slashed
+          _,_,_,
+          WithdEPOCH => maxInt(WithdEPOCH, Epoch +Int EPOCHS_PER_SLASHINGS_VECTOR) //withdrawable epoch
+        )
+        ...
+      </validators>
+      <slashings> Epoch %Int EPOCHS_PER_SLASHINGS_VECTOR |-> (SL => SL +Int EffBALANCE)  ...</slashings>
 
   // Genesis state
   //====================================================
@@ -2343,7 +2343,7 @@ def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSla
     slash_validator(state, proposer_slashing.proposer_index)
 */
   syntax KItem ::= "process_proposer_slashing" "(" ProposerSlashing ")" [klabel(process_proposer_slashing), symbol]
-  rule <k> process_proposer_slashing(#ProposerSlashing(ProposerIndex, HEAD1, HEAD2)) => slash_validator(ProposerIndex, .K) ...</k>
+  rule <k> process_proposer_slashing(#ProposerSlashing(ProposerIndex, HEAD1, HEAD2)) => slash_validator(ProposerIndex, .ValidatorIndex) ...</k>
        <validators> ProposerIndex |-> VAL ...</validators>
     requires compute_epoch_of_slot(HEAD1._slot) ==Int compute_epoch_of_slot(HEAD2._slot)
      andBool HEAD1 =/=K HEAD2
@@ -2377,7 +2377,7 @@ def process_attester_slashing(state: BeaconState, attester_slashing: AttesterSla
 
   syntax KItem ::= "processAttesterSlashingLoop" "(" IntList /*all attesting_indices*/
                                                  "," Bool /*slashed_any*/ ")"
-  rule <k> (. => slash_validator(INDEX, .K))
+  rule <k> (. => slash_validator(INDEX, .ValidatorIndex))
               ~> processAttesterSlashingLoop(INDEX ILIST => ILIST, _ => true) ...</k>
     <validators> INDEX |-> VAL ...</validators>
     requires is_slashable_validator(VAL, get_current_epoch())

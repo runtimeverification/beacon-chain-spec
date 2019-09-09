@@ -855,7 +855,8 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
 
   rule <k> initiateValidatorExitAux(INDEX, ExitQEpoch) => .K ...</k>
        <validators>
-          (INDEX |-> #Validator(_,_,_,_,_,_,
+       VALIDATORS:Map
+       INDEX |-> #Validator(_,_,_,_,_,_,
             ExitEPOCH => #if exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int get_validator_churn_limit()
                             #then ExitQEpoch +Int 1
                             #else ExitQEpoch
@@ -863,7 +864,7 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
             WithdrEpoch => #if exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int get_validator_churn_limit()
                             #then ExitQEpoch +Int 1
                             #else ExitQEpoch
-                         #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY) _:Map) #as VALIDATORS
+                         #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY)
        </validators>
 
   syntax Int ::= exitQueueEpochAux ( Int ) [function]
@@ -916,37 +917,36 @@ def slash_validator(state: BeaconState,
     increase_balance(state, whistleblower_index, whistleblower_reward - proposer_reward)
 */
   syntax KItem ::= "slash_validator" "(" ValidatorIndex "," /*slashed_index*/
-	                                      K                  /*whistleblower_index or .K if none*/ ")"
+                                         ValidatorIndex     /*whistleblower_index or .ValidatorIndex if none*/ ")"
 
-	  rule <k> slash_validator(SlashedINDEX, WhistleblINDEX)
-	           => initiate_validator_exit(SlashedINDEX)
-	           ~> slashValidatorAux(SlashedINDEX,
-	                                WhistleblINDEX,
-	                                get_beacon_proposer_index(),
-	                                VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT, //whistleblower_reward
-	                                VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT /Int PROPOSER_REWARD_QUOTIENT, //proposer_reward
-	                                get_current_epoch() +Int EPOCHS_PER_SLASHINGS_VECTOR) //SlashEPOCH
-	        ...</k>
-	       <validators> SlashedINDEX |-> VAL ...</validators>
+    rule <k> slash_validator(SlashedINDEX, WhistleblINDEX)
+             => initiate_validator_exit(SlashedINDEX)
+             ~> slashValidatorAux(SlashedINDEX,
+                                  #if WhistleblINDEX ==K .ValidatorIndex #then get_beacon_proposer_index() #else WhistleblINDEX #fi,
+                                  get_beacon_proposer_index(),
+                                  VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT, //whistleblower_reward
+                                  VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT /Int PROPOSER_REWARD_QUOTIENT, //proposer_reward
+                                  get_current_epoch()) //epoch
+          ...</k>
+         <validators> SlashedINDEX |-> VAL ...</validators>
 
-	  syntax KItem ::= "slashValidatorAux" "(" ValidatorIndex "," ValidatorIndex "," ValidatorIndex "," Int "," Int "," Int ")"
-	  rule <k> slashValidatorAux(SlashedINDEX, WhistleblINDEX, ProposerINDEX, WhistleREWARD, ProposerREWARD, SlashEPOCH)
-	       => decrease_balance(SlashedINDEX, EffBALANCE /Int MIN_SLASHING_PENALTY_QUOTIENT)
-	       ~> increase_balance(ProposerINDEX, ProposerREWARD)
-	       ~> increase_balance(#if WhistleblINDEX ==K .ValidatorIndex #then ProposerINDEX #else WhistleblINDEX #fi,
-	                          WhistleREWARD -Int ProposerREWARD)
-	       ...</k>
-	    <validators>
-	      SlashedINDEX |-> #Validator(
-	        _,_,
-	        EffBALANCE,
-	        _ => true, //slashed
-	        _,_,_,
-	        WithdEPOCH => maxInt(WithdEPOCH, SlashEPOCH) //withdrawable epoch
-	      )
-	      ...
-	    </validators>
-	    <slashings> SlashEPOCH |-> (SL => SL +Int EffBALANCE)  ...</slashings>
+ syntax KItem ::= "slashValidatorAux" "(" ValidatorIndex "," ValidatorIndex "," ValidatorIndex "," Int "," Int "," Int ")"
+    rule <k> slashValidatorAux(SlashedINDEX, WhistleblINDEX, ProposerINDEX, WhistleREWARD, ProposerREWARD, Epoch)
+         => decrease_balance(SlashedINDEX, EffBALANCE /Int MIN_SLASHING_PENALTY_QUOTIENT)
+         ~> increase_balance(ProposerINDEX, ProposerREWARD)
+         ~> increase_balance(WhistleblINDEX, WhistleREWARD -Int ProposerREWARD)
+         ...</k>
+      <validators>
+        SlashedINDEX |-> #Validator(
+          _,_,
+          EffBALANCE,
+          _ => true, //slashed
+          _,_,_,
+          WithdEPOCH => maxInt(WithdEPOCH, Epoch +Int EPOCHS_PER_SLASHINGS_VECTOR) //withdrawable epoch
+        )
+        ...
+      </validators>
+      <slashings> Epoch %Int EPOCHS_PER_SLASHINGS_VECTOR |-> (SL => SL +Int EffBALANCE)  ...</slashings>
 
   // Genesis state
   //====================================================
@@ -1952,12 +1952,12 @@ def process_registry_updates(state: BeaconState) -> None:
 
   rule processRegistryUpdatesLoop1(.Map) => .K
 
-  syntax KItem ::= "processActivationQueue" "("")"
-                 | "processActivationQueue" "(" IntList /*activation queue*/ "," Int /*churn limit*/ ")"
+  syntax KItem ::= processActivationQueue()
+                 | processActivationQueue( activationQueue: IntList , churnLimit: Int )
 
-  //must be done here instead of main rule, basause it must state updated by Loop1
+  //must be done here instead of main rule, basause it needs state updated by Loop1
   rule <k> processActivationQueue() => processActivationQueue(
-          sortActivationQueue(getActivationQueueUnsorted(VALIDATORS, .IntList)),
+          sortActivationQueue(getActivationQueueUnsorted(0, VALIDATORS, .IntList)),
           get_validator_churn_limit() )
           ...
        </k>
@@ -1981,18 +1981,18 @@ def process_registry_updates(state: BeaconState) -> None:
   index for index, validator in enumerate(state.validator_registry) if
         validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH and
         validator.activation_epoch >= get_delayed_activation_exit_epoch(state.finalized_epoch) */
-  syntax IntList ::= getActivationQueueUnsorted( Map /*state.validator_registry*/, IntList /*result*/ ) [function]
-  rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> VAL => .Map),  IL => IL +append INDEX) ]]
+  syntax IntList ::= getActivationQueueUnsorted(i: Int, validators: Map, result: IntList ) [function]
+  rule [[ getActivationQueueUnsorted(INDEX => INDEX +Int 1, _:Map (INDEX |-> VAL => .Map),  IL => IL +append INDEX) ]]
        <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
     requires VAL.activationEligibilityEpoch =/=K FAR_FUTURE_EPOCH
          andBool VAL.activationEpoch >=Int compute_activation_exit_epoch(FinalizedEpoch)
 
-  rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> VAL => .Map),  IL /*unchanged*/ ) ]]
+  rule [[ getActivationQueueUnsorted(INDEX => INDEX +Int 1, _:Map (INDEX |-> VAL => .Map),  IL /*unchanged*/ ) ]]
        <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
     requires notBool ( VAL.activationEligibilityEpoch =/=K FAR_FUTURE_EPOCH
                    andBool VAL.activationEpoch >=Int compute_activation_exit_epoch(FinalizedEpoch) )
 
-  rule getActivationQueueUnsorted(.Map, IL ) => IL
+  rule getActivationQueueUnsorted(_, .Map, IL ) => IL
 
   /*activation_queue = sorted([ index for ...
     ], key=lambda index: state.validator_registry[index].activation_eligibility_epoch)*/
@@ -2005,7 +2005,7 @@ def process_registry_updates(state: BeaconState) -> None:
   syntax Int ::= indexForMinEligEpoch ( IntList )      [function, klabel(indexForMinEligEpoch)]
                | indexForMinEligEpoch ( Int, IntList ) [function, klabel(indexForMinEligEpoch2)]
   rule indexForMinEligEpoch(I:Int IL) => indexForMinEligEpoch(I, IL)
-  rule indexForMinEligEpoch( MIN => #if getValidator(MIN).activationEligibilityEpoch <Int getValidator(I).activationEligibilityEpoch
+  rule indexForMinEligEpoch( MIN => #if getValidator(MIN).activationEligibilityEpoch <=Int getValidator(I).activationEligibilityEpoch
                                       #then MIN #else I #fi,
                              (I:Int IL) => IL )
   rule indexForMinEligEpoch(MIN, .IntList) => MIN
@@ -2363,7 +2363,7 @@ def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSla
     slash_validator(state, proposer_slashing.proposer_index)
 */
   syntax KItem ::= "process_proposer_slashing" "(" ProposerSlashing ")" [klabel(process_proposer_slashing), symbol]
-  rule process_proposer_slashing(#ProposerSlashing(ProposerIndex, HEAD1, HEAD2)) => slash_validator(ProposerIndex, .K)
+  rule process_proposer_slashing(#ProposerSlashing(ProposerIndex, HEAD1, HEAD2)) => slash_validator(ProposerIndex, .ValidatorIndex)
     requires compute_epoch_of_slot(HEAD1._slot) ==Int compute_epoch_of_slot(HEAD2._slot)
      andBool HEAD1 =/=K HEAD2
      andBool is_slashable_validator(getValidator(ProposerIndex), get_current_epoch())
@@ -2396,7 +2396,7 @@ def process_attester_slashing(state: BeaconState, attester_slashing: AttesterSla
 
   syntax KItem ::= "processAttesterSlashingLoop" "(" IntList /*all attesting_indices*/
                                                  "," Bool /*slashed_any*/ ")"
-  rule (. => slash_validator(INDEX, .K))
+  rule (. => slash_validator(INDEX, .ValidatorIndex))
        ~> processAttesterSlashingLoop(INDEX ILIST => ILIST, _ => true)
     requires is_slashable_validator(getValidator(INDEX), get_current_epoch())
 

@@ -1954,12 +1954,12 @@ def process_registry_updates(state: BeaconState) -> None:
 
   rule processRegistryUpdatesLoop1(.Map) => .K
 
-  syntax KItem ::= "processActivationQueue" "("")"
-                 | "processActivationQueue" "(" IntList /*activation queue*/ "," Int /*churn limit*/ ")"
+  syntax KItem ::= processActivationQueue()
+                 | processActivationQueue( activationQueue: IntList , churnLimit: Int )
 
-  //must be done here instead of main rule, basause it must state updated by Loop1
+  //must be done here instead of main rule, basause it needs state updated by Loop1
   rule <k> processActivationQueue() => processActivationQueue(
-          sortActivationQueue(getActivationQueueUnsorted(VALIDATORS, .IntList)),
+          sortActivationQueue(getActivationQueueUnsorted(0, VALIDATORS, .IntList)),
           get_validator_churn_limit() )
           ...
        </k>
@@ -1983,18 +1983,18 @@ def process_registry_updates(state: BeaconState) -> None:
   index for index, validator in enumerate(state.validator_registry) if
         validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH and
         validator.activation_epoch >= get_delayed_activation_exit_epoch(state.finalized_epoch) */
-  syntax IntList ::= getActivationQueueUnsorted( Map /*state.validator_registry*/, IntList /*result*/ ) [function]
-  rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> VAL => .Map),  IL => IL INDEX) ]]
+  syntax IntList ::= getActivationQueueUnsorted(i: Int, validators: Map, result: IntList ) [function]
+  rule [[ getActivationQueueUnsorted(INDEX => INDEX +Int 1, _:Map (INDEX |-> VAL => .Map),  IL => IL +append INDEX) ]]
        <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
     requires VAL.activationEligibilityEpoch =/=K FAR_FUTURE_EPOCH
          andBool VAL.activationEpoch >=Int compute_activation_exit_epoch(FinalizedEpoch)
 
-  rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> VAL => .Map),  IL /*unchanged*/ ) ]]
+  rule [[ getActivationQueueUnsorted(INDEX => INDEX +Int 1, _:Map (INDEX |-> VAL => .Map),  IL /*unchanged*/ ) ]]
        <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
     requires notBool ( VAL.activationEligibilityEpoch =/=K FAR_FUTURE_EPOCH
                    andBool VAL.activationEpoch >=Int compute_activation_exit_epoch(FinalizedEpoch) )
 
-  rule getActivationQueueUnsorted(.Map, IL ) => IL
+  rule getActivationQueueUnsorted(_, .Map, IL ) => IL
 
   /*activation_queue = sorted([ index for ...
     ], key=lambda index: state.validator_registry[index].activation_eligibility_epoch)*/
@@ -2007,7 +2007,7 @@ def process_registry_updates(state: BeaconState) -> None:
   syntax Int ::= indexForMinEligEpoch ( IntList )      [function, klabel(indexForMinEligEpoch)]
                | indexForMinEligEpoch ( Int, IntList ) [function, klabel(indexForMinEligEpoch2)]
   rule indexForMinEligEpoch(I:Int IL) => indexForMinEligEpoch(I, IL)
-  rule indexForMinEligEpoch( MIN => #if getValidator(MIN).activationEligibilityEpoch <Int getValidator(I).activationEligibilityEpoch
+  rule indexForMinEligEpoch( MIN => #if getValidator(MIN).activationEligibilityEpoch <=Int getValidator(I).activationEligibilityEpoch
                                       #then MIN #else I #fi,
                              (I:Int IL) => IL )
   rule indexForMinEligEpoch(MIN, .IntList) => MIN

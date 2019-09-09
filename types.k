@@ -681,7 +681,6 @@ def bytes_to_int(data: bytes) -> uint64:
   rule initMapOfSize(0) => .Map
 
   syntax CompactCommitteeList ::= initCompCommListOfSize(Int) [function]
-  //todo incorrect init values for fields
   rule initCompCommListOfSize(I) => #CompactCommittee(.BytesList, .IntList) initCompCommListOfSize(I -Int 1)
     requires I >Int 0
   rule initCompCommListOfSize(0) => .CompactCommitteeList

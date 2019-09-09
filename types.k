@@ -610,9 +610,10 @@ def bytes_to_int(data: bytes) -> uint64:
 
   rule mapToList(.Map, _, EMPTY) => EMPTY
 
-  syntax BitList ::= shiftRight(BitList)                              [function]
-  rule shiftRight(BL I) => false BL
-  rule shiftRight(.BitList) => .BitList
+  syntax BitList ::= removeLast(BitList)                              [function]
+  rule removeLast(B1 B2 BL) => B1 removeLast(B2 BL)
+  rule removeLast(B1 .BitList) => .BitList
+  rule removeLast(.BitList) => .BitList
 
   syntax BitList ::= setBitAt(bitlist: BitList, index: Int, newBit: Bool) [function]
   rule setBitAt(I BL, INDEX, I') => I setBitAt(BL, INDEX -Int 1, I')

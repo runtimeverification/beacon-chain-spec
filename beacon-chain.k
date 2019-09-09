@@ -1785,7 +1785,7 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   rule getEligibleValidatorIndicesLoop(PrevEP, I, N, IL)
        => #fun(VAL
        => #if is_active_validator(VAL, PrevEP) orBool (VAL.slashed andBool PrevEP +Int 1 <Int VAL.withdrawableEpoch)
-            #then getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL I)
+            #then getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL +append I)
             #else getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL)
           #fi
               )(getValidator(I))
@@ -1982,7 +1982,7 @@ def process_registry_updates(state: BeaconState) -> None:
         validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH and
         validator.activation_epoch >= get_delayed_activation_exit_epoch(state.finalized_epoch) */
   syntax IntList ::= getActivationQueueUnsorted( Map /*state.validator_registry*/, IntList /*result*/ ) [function]
-  rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> VAL => .Map),  IL => IL INDEX) ]]
+  rule [[ getActivationQueueUnsorted(_:Map (INDEX |-> VAL => .Map),  IL => IL +append INDEX) ]]
        <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
     requires VAL.activationEligibilityEpoch =/=K FAR_FUTURE_EPOCH
          andBool VAL.activationEpoch >=Int compute_activation_exit_epoch(FinalizedEpoch)
@@ -2273,14 +2273,16 @@ def process_eth1_data(state: BeaconState, body: BeaconBlockBody) -> None:
 */
   syntax KItem ::= "process_eth1_data" "(" ")"
   rule <k> process_eth1_data() => .K ... </k>
-       <eth1-data-votes> VOTES => BlockEth1 </eth1-data-votes>
+       <eth1-data-votes> VOTES => VOTES +append BlockEth1 </eth1-data-votes>
+       <eth1-data> _ => BlockEth1 </eth1-data>
        <block-eth1-data> BlockEth1 </block-eth1-data>
-     requires countEth1(VOTES BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
+     requires countEth1(VOTES +append BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
 
   rule <k> process_eth1_data() => .K ... </k>
        <eth1-data-votes> VOTES => VOTES +append BlockEth1 </eth1-data-votes>
+       // state cell <eth1-data> unchanged
        <block-eth1-data> BlockEth1 </block-eth1-data>
-     requires notBool countEth1(VOTES BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
+     requires notBool countEth1(VOTES +append BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
 
   syntax Int ::= countEth1(Eth1DataList, Eth1Data) [function]
   rule countEth1(E1D E1DL, E1D') => #if E1D ==K E1D'

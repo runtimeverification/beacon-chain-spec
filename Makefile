@@ -208,7 +208,8 @@ all_process_tests:= $(deposit_tests) $(transfer_tests) $(attestation_tests) $(at
 
 test-processing: $(all_process_tests:=.test)
 
-ssz_tests = $(filter-out $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/Beacon*/*/*/value.yaml), \
+# SSZ tests for BeaconBlock, BeaconBlockBody don't work yet
+ssz_tests = $(filter-out $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/BeaconBlock*/*/*/value.yaml), \
 	$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*/*/case_0/value.yaml))
 
 test-ssz: $(ssz_tests:=.test)

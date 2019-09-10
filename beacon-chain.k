@@ -1104,7 +1104,7 @@ def process_slots(state: BeaconState, slot: Slot) -> None:
             process_epoch(state)
         state.slot += Slot(1)
 */
-  syntax KItem ::= "process_slots" "(" Int ")"
+  syntax KItem ::= "process_slots" "(" Int ")"                      [klabel(process_slots), symbol]
   rule <k> process_slots(SLOT) => processSlotsLoop(SLOT) ...</k>
        <slot> SSLOT </slot>
     requires SSLOT <=Int SLOT

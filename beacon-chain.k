@@ -1141,17 +1141,17 @@ def process_slot(state: BeaconState) -> None:
 */
   syntax KItem ::= "process_slot" "(" ")"
   rule <k> process_slot()
-           => processSlotAux(hash_tree_root_state(), SLOT %Int SLOTS_PER_HISTORICAL_ROOT) //todo hash_tree_root_state() crashes
+           => processSlotAux(hash_tree_root_state(), SLOT %Int SLOTS_PER_HISTORICAL_ROOT)
        ...</k>
        <slot> SLOT </slot>
 
   syntax KItem ::= "processSlotAux" "(" previousStateRoot: Hash "," stateRootsIndex: Int ")"
-  rule <k> processSlotAux(HTROOT, SLOT) => cacheBlockRoot(SLOT) ...</k>
-       <state-roots> SLOT |-> (_ => HTROOT) ...</state-roots>
-       <latest-block-header> #BeaconBlockHeader(_,_, BLOCKSTATEROOT
-                                                     => #if BLOCKSTATEROOT =/=K defaultHash()
-                                                          #then HTROOT
-                                                          #else BLOCKSTATEROOT
+  rule <k> processSlotAux(PreviousStateRoot, SLOT) => cacheBlockRoot(SLOT) ...</k>
+       <state-roots> SLOT |-> (_ => PreviousStateRoot) ...</state-roots>
+       <latest-block-header> #BeaconBlockHeader(_,_, BHStateRoot
+                                                     => #if BHStateRoot ==K defaultBytes32()
+                                                          #then PreviousStateRoot
+                                                          #else BHStateRoot
                                                         #fi , _,_) </latest-block-header>
 
   syntax KItem ::= "cacheBlockRoot" "(" Int ")"

@@ -1106,25 +1106,26 @@ def process_slots(state: BeaconState, slot: Slot) -> None:
 */
   syntax KItem ::= "process_slots" "(" Int ")"                      [klabel(process_slots), symbol]
   rule <k> process_slots(SLOT) => processSlotsLoop(SLOT) ...</k>
-       <slot> SSLOT </slot>
-    requires SSLOT <=Int SLOT
+       <slot> StateSLOT </slot>
+    requires StateSLOT <=Int SLOT
 
   syntax KItem ::= "processSlotsLoop" "(" Int ")"
   rule <k> processSlotsLoop(SLOT) =>
-             process_slot()   ~>
-             #if (SSLOT +Int 1) %Int SLOTS_PER_EPOCH ==K 0 #then process_epoch() #else .K #fi ~>
-             incrementSlot() ~>
-             processSlotsLoop(SLOT) ...</k>
-       <slot> SSLOT </slot>
-    requires SSLOT <Int SLOT
+             process_slot()
+             ~> #if (StateSLOT +Int 1) %Int SLOTS_PER_EPOCH ==K 0 #then process_epoch() #else .K #fi
+             ~> incrementSlot()
+             ~> processSlotsLoop(SLOT)
+       ...</k>
+       <slot> StateSLOT </slot>
+    requires StateSLOT <Int SLOT
 
   rule <k> processSlotsLoop(SLOT) => .K ... </k>
-       <slot> SSLOT </slot>
-    requires SSLOT >=Int SLOT
+       <slot> StateSLOT </slot>
+    requires StateSLOT >=Int SLOT
 
   syntax KItem ::= "incrementSlot" "(" ")"
   rule <k> incrementSlot() => .K ...</k>
-       <slot> SLOT => SLOT +Int 1 </slot>
+       <slot> StateSLOT => StateSLOT +Int 1 </slot>
 
 /*
 def process_slot(state: BeaconState) -> None:
@@ -1139,14 +1140,14 @@ def process_slot(state: BeaconState) -> None:
     state.block_roots[state.slot % SLOTS_PER_HISTORICAL_ROOT] = previous_block_root
 */
   syntax KItem ::= "process_slot" "(" ")"
-  rule <k> process_slot() =>
-             processSlotAux(hash_tree_root_state(), SLOT %Int SLOTS_PER_HISTORICAL_ROOT)
+  rule <k> process_slot()
+           => processSlotAux(hash_tree_root_state(), SLOT %Int SLOTS_PER_HISTORICAL_ROOT) //todo hash_tree_root_state() crashes
        ...</k>
        <slot> SLOT </slot>
 
   syntax KItem ::= "processSlotAux" "(" previousStateRoot: Hash "," stateRootsIndex: Int ")"
-  rule <k> processSlotAux(HTROOT, SLOT) => cacheBlockRoot(SLOT) ... </k>
-       <state-roots> SLOT |-> (_ => HTROOT) </state-roots>
+  rule <k> processSlotAux(HTROOT, SLOT) => cacheBlockRoot(SLOT) ...</k>
+       <state-roots> SLOT |-> (_ => HTROOT) ...</state-roots>
        <latest-block-header> #BeaconBlockHeader(_,_, BLOCKSTATEROOT
                                                      => #if BLOCKSTATEROOT =/=K defaultHash()
                                                           #then HTROOT
@@ -1156,7 +1157,7 @@ def process_slot(state: BeaconState) -> None:
   syntax KItem ::= "cacheBlockRoot" "(" Int ")"
   rule <k> cacheBlockRoot(SLOT) => .K ...</k>
        <latest-block-header> LatestBlockHEADER </latest-block-header>
-       <block-roots> SLOT |-> (_ => signing_root(LatestBlockHEADER)) </block-roots>
+       <block-roots> SLOT |-> (_ => signing_root(LatestBlockHEADER)) ...</block-roots>
 
 
   // State transition function -- Epoch processing

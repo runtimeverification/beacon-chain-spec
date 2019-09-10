@@ -22,6 +22,9 @@ module BEACON-CHAIN
   rule wrap_hash_tree_root_blockBody() => hash_tree_root_blockBody()
   rule wrap_hash_tree_root_state() => hash_tree_root_state()
 
+  syntax KItem ::=  "test_process_slots" "(" Int ")"   [klabel(test_process_slots), symbol]
+  rule <k> test_process_slots(NrSlots) => process_slots(SLOT +Int NrSlots) ...</k>
+       <slot> SLOT </slot>
 
   // Initialization
   //====================================================

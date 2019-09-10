@@ -425,7 +425,10 @@ def buildKCell(test_dir):
     elif test_runner in ('operations', 'epoch_processing', 'sanity'):
         if test_handler not in test_type_to_term.keys():
             raise Exception("Unsupported test handler: " + test_handler)
-        entry_point = 'process_%s' % test_handler
+        if test_handler == 'slots':
+            entry_point = 'test_process_%s' % test_handler
+        else:
+            entry_point = 'process_%s' % test_handler
         arg_converter = test_type_to_term[test_handler]
         file_name = "%s.yaml" % test_handler
     else:

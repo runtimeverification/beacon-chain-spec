@@ -988,7 +988,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
   syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Hash "," Int "," DepositList ")"
   rule <k> initialize_beacon_state_from_eth1(E1BH, E1TS, Deposits)
            => processEth1Deposits(Deposits, getDataList(Deposits), 0)
-           ~> processEth1Activations(size(ValMap), 0)
+           ~> processEth1Activations(numOfValidators(), 0)
            ~> populateEth1Roots(
                 // List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT]
                 hash_tree_root_list(get_active_validator_indices(GENESIS_EPOCH), VALIDATOR_REGISTRY_LIMIT, %uint64, false),
@@ -1001,7 +1001,6 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
               //BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody()))
          _ => #BeaconBlockHeader(0, defaultHash(), defaultHash(), hash_tree_root_blockBodyEmpty(), defaultBytes96())
        </latest-block-header>
-       <validators> ValMap </validators>
 
   syntax KItem ::= "processEth1Deposits" "(" DepositList "," DepositDataList "," Int ")"
   rule <k> (. => process_deposit(Dep))
@@ -1780,14 +1779,13 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
        <validators> ValMap </validators>
 
   syntax IntList ::= getEligibleValidatorIndices(Int) [function]
-  rule [[ getEligibleValidatorIndices(PrevEP) => getEligibleValidatorIndicesLoop(PrevEP, 0, size(VMap), .IntList) ]]
-    <validators> VMap </validators>
+  rule getEligibleValidatorIndices(PrevEP) => getEligibleValidatorIndicesLoop(PrevEP, 0, numOfValidators(), .IntList)
 
   syntax IntList ::= getEligibleValidatorIndicesLoop(Int, Int, Int, IntList) [function]
   rule getEligibleValidatorIndicesLoop(PrevEP, I, N, IL)
        => #fun(VAL
        => #if is_active_validator(VAL, PrevEP) orBool (VAL.slashed andBool PrevEP +Int 1 <Int VAL.withdrawableEpoch)
-            #then getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL I)
+            #then getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL +append I)
             #else getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL)
           #fi
               )(getValidator(I))
@@ -2027,12 +2025,11 @@ def process_slashings(state: BeaconState) -> None:
   rule <k> process_slashings() =>
            processSlashingsLoop(
              0,
-             size(VALIDATORS),
+             numOfValidators(),
              get_current_epoch(),
              get_total_active_balance()
            )
        ... </k>
-       <validators> VALIDATORS </validators>
 
   syntax KItem ::= "processSlashingsLoop" "(" i: Int "," nrValidators: Int "," Int "," Int ")"
   rule (. => decrease_balance(I, (getValidator(I).effectiveBalance /Int EFFECTIVE_BALANCE_INCREMENT *Int minInt(sumSlashings() *Int 3,
@@ -2089,7 +2086,7 @@ def process_final_updates(state: BeaconState) -> None:
 */
   syntax KItem ::= "process_final_updates" "(" ")" [klabel(process_final_updates), symbol]
   rule <k> process_final_updates()
-           => updateEffectiveBalances(0, size(VALIDATORS), EFFECTIVE_BALANCE_INCREMENT /Int 2)  // param: HALF_INCREMENT
+           => updateEffectiveBalances(0, numOfValidators(), EFFECTIVE_BALANCE_INCREMENT /Int 2)  // param: HALF_INCREMENT
            ~> setActiveIndexRoots(get_current_epoch() +Int 1 +Int ACTIVATION_EXIT_DELAY)        // param: index_epoch
            ~> setCommitteesRoot((get_current_epoch() +Int 1) %Int EPOCHS_PER_HISTORICAL_VECTOR) // param: committee_root_position
            ~> resetSlashings((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)     // param: (slashings index)
@@ -2104,7 +2101,6 @@ def process_final_updates(state: BeaconState) -> None:
                                  #else E1DL
                                  #fi
        </eth1-data-votes>
-       <validators> VALIDATORS </validators>
 
   syntax KItem ::= updateEffectiveBalances ( i: Int, nrValidators: Int, increment: Int )
   rule <k> updateEffectiveBalances(INDEX => INDEX +Int 1, N, HALF_INCREMENT) ... </k>
@@ -2277,14 +2273,16 @@ def process_eth1_data(state: BeaconState, body: BeaconBlockBody) -> None:
 */
   syntax KItem ::= "process_eth1_data" "(" ")"
   rule <k> process_eth1_data() => .K ... </k>
-       <eth1-data-votes> VOTES => BlockEth1 </eth1-data-votes>
+       <eth1-data-votes> VOTES => VOTES +append BlockEth1 </eth1-data-votes>
+       <eth1-data> _ => BlockEth1 </eth1-data>
        <block-eth1-data> BlockEth1 </block-eth1-data>
-     requires countEth1(VOTES BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
+     requires countEth1(VOTES +append BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
 
   rule <k> process_eth1_data() => .K ... </k>
        <eth1-data-votes> VOTES => VOTES +append BlockEth1 </eth1-data-votes>
+       // state cell <eth1-data> unchanged
        <block-eth1-data> BlockEth1 </block-eth1-data>
-     requires notBool countEth1(VOTES BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
+     requires notBool countEth1(VOTES +append BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
 
   syntax Int ::= countEth1(Eth1DataList, Eth1Data) [function]
   rule countEth1(E1D E1DL, E1D') => #if E1D ==K E1D'

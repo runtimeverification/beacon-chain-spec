@@ -186,7 +186,10 @@ test_type_to_term = {
     'justification_and_finalization'    : None,
     'registry_updates'                  : None,
     'slashings'                         : None,
-    'rewards_and_penalties'             : None #planned
+    'rewards_and_penalties'             : None, #planned
+
+    # sanity
+    'slots'                             : intToken
 }
 
 data_class_to_converter = {
@@ -419,10 +422,13 @@ def buildKCell(test_dir):
             entry_point = 'wrap_hash_tree_root'
         arg_converter = data_class_to_converter[test_handler]
         file_name = 'value.yaml'
-    elif test_runner in ('operations', 'epoch_processing'):
+    elif test_runner in ('operations', 'epoch_processing', 'sanity'):
         if test_handler not in test_type_to_term.keys():
             raise Exception("Unsupported test handler: " + test_handler)
-        entry_point = 'process_%s' % test_handler
+        if test_handler == 'slots':
+            entry_point = 'test_process_%s' % test_handler
+        else:
+            entry_point = 'process_%s' % test_handler
         arg_converter = test_type_to_term[test_handler]
         file_name = "%s.yaml" % test_handler
     else:

@@ -203,12 +203,15 @@ final_updates_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epo
 justification_and_finalization_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/justification_and_finalization/*/*/post.yaml)
 registry_updates_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/registry_updates/*/*/post.yaml)
 slashings_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/slashings/*/*/post.yaml)
+slots_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/sanity/slots/*/*/post.yaml)
 all_process_tests:= $(deposit_tests) $(transfer_tests) $(attestation_tests) $(attester_slashing_tests) \
-	$(crosslinks_tests) $(final_updates_tests) $(justification_and_finalization_tests) $(registry_updates_tests) $(slashings_tests)
+	$(crosslinks_tests) $(final_updates_tests) $(justification_and_finalization_tests) $(registry_updates_tests) $(slashings_tests) \
+	$(slots_tests)
 
 test-processing: $(all_process_tests:=.test)
 
-ssz_tests = $(filter-out $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/Beacon*/*/*/value.yaml), \
+# SSZ tests for BeaconBlock, BeaconBlockBody don't work yet
+ssz_tests = $(filter-out $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/BeaconBlock*/*/*/value.yaml), \
 	$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*/*/case_0/value.yaml))
 
 test-ssz: $(ssz_tests:=.test)

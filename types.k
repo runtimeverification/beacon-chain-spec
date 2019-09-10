@@ -603,6 +603,8 @@ def bytes_to_int(data: bytes) -> uint64:
        => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>ProposerSlashingList
   rule mapToList((INDEX |-> ELEM:Validator) MAP, INDEX, EMPTY)
        => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>ValidatorList
+  rule mapToList((INDEX |-> ELEM:Crosslink) MAP, INDEX, EMPTY)
+       => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>CrosslinkList
   rule mapToList((INDEX |-> ELEM:Bytes) MAP, INDEX, EMPTY)
        => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>BytesList
   rule mapToList((INDEX |-> ELEM:Int) MAP, INDEX, EMPTY)

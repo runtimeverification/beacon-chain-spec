@@ -355,6 +355,19 @@ def chunkify(bytez):
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3, %uint64)
           hash_tree_root(P4, %uint64) hash_tree_root(P5, %uint64) hash_tree_root(P6) hash_tree_root(P7) .BytesList, RemLast))
 
+  rule hash_tree_root(#BeaconBlockBody( P1, P2, P3, P4, P5, P6, P7, P8, P9 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3)
+          hash_tree_root_list(P4, MAX_PROPOSER_SLASHINGS, %container, false)
+          hash_tree_root_list(P5, MAX_ATTESTER_SLASHINGS, %container, false)
+          hash_tree_root_list(P6, MAX_ATTESTATIONS, %container, false)
+          hash_tree_root_list(P7, MAX_DEPOSITS, %container, false)
+          hash_tree_root_list(P8, MAX_VOLUNTARY_EXITS, %container, false)
+          hash_tree_root_list(P9, MAX_TRANSFERS, %container, false) .BytesList, RemLast))
+
+  rule hash_tree_root(#BeaconBlock( P1, P2, P3, P4, P5 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3)
+          hash_tree_root(P4) hash_tree_root(P5) .BytesList, RemLast))
+
   syntax Hash ::= "hash_tree_root_list" "(" list: ValueList "," staticLen: Int "," elemType: ElementType "," fixedSize: Bool ")"
                                                                       [function]
 
@@ -486,55 +499,6 @@ def chunkify(bytez):
                        | "%bytes"
                        | "%container"
 
-  // hash_tree_root() - BeaconBlock, stored in <block> in configuration
-  //====================================================
-  syntax Hash ::= "hash_tree_root_block" "(" ")"                      [function, klabel(hash_tree_root_block), symbol]
-  rule [[ hash_tree_root_block()
-       => hash_tree_root_part2_v2(hash_tree_root(SLOT, %uint64) hash_tree_root(PARENTROOT) hash_tree_root(STATEROOT)
-                                  hash_tree_root_blockBody() hash_tree_root(SIG) .BytesList) ]]
-    <blockSlot> SLOT </blockSlot>
-    <parent-root> PARENTROOT </parent-root>
-    <state-root> STATEROOT </state-root>
-    <signature> SIG </signature>
-
-  syntax Hash ::= "hash_tree_root_blockBody" "(" ")"                  [function, klabel(hash_tree_root_blockBody), symbol]
-  rule [[ hash_tree_root_blockBody()
-       => hash_tree_root_part2_v2(
-            hash_tree_root(RANDAO)
-            hash_tree_root(ETH1Data)
-            hash_tree_root(GRAFFITI)
-            hash_tree_root_list(mapToList(ProposerSlashingMAP, 0, .ProposerSlashingList),
-                                MAX_PROPOSER_SLASHINGS, %container, false)
-            hash_tree_root_list(AttesterSlashingLIST, MAX_ATTESTER_SLASHINGS, %container, false)
-            hash_tree_root_list(AttestationLIST, MAX_ATTESTATIONS, %container, false)
-            hash_tree_root_list(DepositLIST, MAX_DEPOSITS, %container, false)
-            hash_tree_root_list(VoluntaryExitLIST, MAX_VOLUNTARY_EXITS, %container, false)
-            hash_tree_root_list(TransferLIST, MAX_TRANSFERS, %container, false)
-            .BytesList) ]]
-    <randao-reveal> RANDAO </randao-reveal>
-    <block-eth1-data> ETH1Data </block-eth1-data>
-    <graffiti> GRAFFITI </graffiti>
-    <proposer-slashings> ProposerSlashingMAP </proposer-slashings>
-    <attester-slashings> AttesterSlashingLIST </attester-slashings>
-    <attestations> AttestationLIST </attestations>
-    <deposits> DepositLIST </deposits>
-    <voluntary-exits> VoluntaryExitLIST </voluntary-exits>
-    <transfers> TransferLIST </transfers>
-
-  //Default value for BeaconBlockBody.
-  syntax Hash ::= "hash_tree_root_blockBodyEmpty" "(" ")"             [function]
-  rule hash_tree_root_blockBodyEmpty()
-       => hash_tree_root_part2_v2(
-            hash_tree_root(defaultBytes96())
-            hash_tree_root(#Eth1Data(defaultHash(), 0, defaultHash()))
-            hash_tree_root(defaultHash())
-            hash_tree_root_list(.ProposerSlashingList, MAX_PROPOSER_SLASHINGS, %container, false)
-            hash_tree_root_list(.AttesterSlashingList, MAX_ATTESTER_SLASHINGS, %container, false)
-            hash_tree_root_list(.AttestationList, MAX_ATTESTATIONS, %container, false)
-            hash_tree_root_list(.DepositList, MAX_DEPOSITS, %container, false)
-            hash_tree_root_list(.VoluntaryExitList, MAX_VOLUNTARY_EXITS, %container, false)
-            hash_tree_root_list(.TransferList, MAX_TRANSFERS, %container, false)
-            .BytesList)
 
   // hash_tree_root() - BeaconState, stored in <state> in configuration
   //====================================================

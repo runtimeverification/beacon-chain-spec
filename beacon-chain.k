@@ -14,12 +14,8 @@ module BEACON-CHAIN
 
   //Workarounds to make kast happy. Cannot put a function with no-args in init <k>, with json input.
   syntax KItem ::= "wrap_hash_tree_root" "(" BytesOrContainer ")" [klabel(wrap_hash_tree_root), symbol]
-                 | "wrap_hash_tree_root_block" "(" ")" [klabel(wrap_hash_tree_root_block), symbol]
-                 | "wrap_hash_tree_root_blockBody" "(" ")" [klabel(wrap_hash_tree_root_blockBody), symbol]
                  | "wrap_hash_tree_root_state" "(" ")" [klabel(wrap_hash_tree_root_state), symbol]
   rule wrap_hash_tree_root(OBJ) => hash_tree_root(OBJ)
-  rule wrap_hash_tree_root_block() => hash_tree_root_block()
-  rule wrap_hash_tree_root_blockBody() => hash_tree_root_blockBody()
   rule wrap_hash_tree_root_state() => hash_tree_root_state()
 
   syntax KItem ::=  "test_process_slots" "(" Int ")"   [klabel(test_process_slots), symbol]
@@ -344,7 +340,7 @@ def compute_domain(domain_type: DomainType, fork_version: Version=Version()) -> 
     return Domain(domain_type + fork_version)
 */
   syntax Domain ::= "compute_domain" "(" DomainType "," Version ")"    [function]
-  rule compute_domain(Domain_Type, Fork_Version) => Domain_Type +Bytes Fork_Version
+  rule compute_domain(Domain_Type, Fork_Version) => {Domain_Type +Bytes Fork_Version}:>Domain
 
   // Helper functions -- Beacon state accessors
   //====================================================
@@ -1002,7 +998,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
        <eth1-data> _ => #Eth1Data("", len(Deposits), E1BH) </eth1-data>  // deposit root unspecified, hence the ""
        <latest-block-header>
               //BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody()))
-         _ => #BeaconBlockHeader(0, defaultHash(), defaultHash(), hash_tree_root_blockBodyEmpty(), defaultBytes96())
+         _ => #BeaconBlockHeader(0, defaultHash(), defaultHash(), hash_tree_root(defaultBeaconBlockBody()), defaultBLSSignature())
        </latest-block-header>
 
   syntax KItem ::= "processEth1Deposits" "(" DepositList "," DepositDataList "," Int ")"
@@ -1088,14 +1084,11 @@ def state_transition(state: BeaconState, block: BeaconBlock, validate_state_root
     # Return post-state
     return state
 */
-  syntax Kitem ::= "state_transition" "(" Bool ")"
-  rule <k> state_transition(VSR) => process_slots(BSLOT) ~> process_block() ~> validate_state_root(VSR) ...</k>
-       <blockSlot> BSLOT </blockSlot>
-
-  syntax Kitem ::= "validate_state_root" "(" Bool ")"
-    rule <k> validate_state_root(VSR) => .K ...</k>
-         <state-root> BSR </state-root>
-      requires (notBool VSR) orBool (BSR ==K hash_tree_root_state())
+  syntax KItem ::= "state_transition" "(" block: BeaconBlock "," validateStateRoot: Bool ")"
+  rule state_transition(BLOCK, VSR) => process_slots(BLOCK._slot) ~> process_block(BLOCK) ~> validateStateRoot(BLOCK, VSR)
+  syntax KItem ::= validateStateRoot ( BeaconBlock, Bool )
+    rule validateStateRoot(BLOCK, VSR) => .K
+      requires (notBool VSR) orBool (BLOCK.stateRoot ==K hash_tree_root_state())
 
 /*
 def process_slots(state: BeaconState, slot: Slot) -> None:
@@ -2197,13 +2190,12 @@ def process_block(state: BeaconState, block: BeaconBlock) -> None:
     process_eth1_data(state, block.body)
     process_operations(state, block.body)
 */
-  syntax KItem ::= "process_block" "(" ")"
-  rule <k> process_block() =>
-                process_block_header()
-             ~> process_randao()
-             ~> process_eth1_data()
-             ~> process_operations()
-       ... </k>
+  syntax KItem ::= "process_block" "(" BeaconBlock ")"
+  rule process_block(BLOCK)
+       => process_block_header(BLOCK)
+       ~> process_randao(BLOCK.body)
+       ~> process_eth1_data(BLOCK.body)
+       ~> process_operations(BLOCK.body)
 
 /*
 def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
@@ -2225,23 +2217,20 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
     # Verify proposer signature
     assert bls_verify(proposer.pubkey, signing_root(block), block.signature, get_domain(state, DOMAIN_BEACON_PROPOSER))
 */
-  syntax KItem ::= "process_block_header" "(" ")"           [klabel(process_block_header), symbol]
-  rule <k> process_block_header() => .K ... </k>
+  syntax KItem ::= "process_block_header" "(" BeaconBlock ")"           [klabel(process_block_header), symbol]
+  rule <k> process_block_header(BLOCK) => .K ... </k>
        <latest-block-header>
          OldBlockHEADER  => #BeaconBlockHeader(
-                               BlockSLOT,                   // block.slot
-                               ParentROOT,                  // block.parent_root
+                               BLOCK._slot,                 // block.slot
+                               BLOCK.parentRoot,            // block.parent_root
                                defaultHash(),               // zeroed
-                               hash_tree_root_blockBody(),  // hash_tree_root(block.body)
-                               defaultBytes96()  )          // zeroed
+                               hash_tree_root(BLOCK.body),  // hash_tree_root(block.body)
+                               defaultBLSSignature()  )     // zeroed
        </latest-block-header>
        <slot> SLOT </slot>
-       <validators> ValMap </validators>
-       <blockSlot> BlockSLOT </blockSlot>
-       <parent-root> ParentROOT </parent-root>
-    requires BlockSLOT ==K SLOT
-     andBool ParentROOT ==K signing_root(OldBlockHEADER)
-     andBool notBool ({ValMap[get_beacon_proposer_index()]}:>Validator).slashed
+    requires BLOCK._slot ==K SLOT
+     andBool BLOCK.parentRoot ==K signing_root(OldBlockHEADER)
+     andBool notBool getValidator(get_beacon_proposer_index()).slashed
 
 /*
 def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
@@ -2253,16 +2242,15 @@ def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
     mix = xor(get_randao_mix(state, epoch), hash(body.randao_reveal))
     state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR] = mix
 */
-  syntax KItem ::= "process_randao" "(" ")"
-  rule <k> process_randao() => .K ... </k>
+  syntax KItem ::= "process_randao" "(" BeaconBlockBody ")"
+  rule <k> process_randao(BlockBODY) => .K ... </k>
        <randao-mixes>
          RMS => setRandaoMixAt(
                   RMS,
                   get_current_epoch() %Int EPOCHS_PER_HISTORICAL_VECTOR,
-                  {xor(get_randao_mix(get_current_epoch()), hash(RandaoReveal))}:>Hash
+                  {xor(get_randao_mix(get_current_epoch()), hash(BlockBODY.randaoReveal))}:>Hash
                 )
        </randao-mixes>
-       <randao-reveal> RandaoReveal </randao-reveal>
 
   syntax BytesList ::= setRandaoMixAt(BytesList, Int, Hash) [function]
   rule setRandaoMixAt(RM RMS, I, RM') => RM setRandaoMixAt(RMS, I -Int 1, RM')
@@ -2275,18 +2263,16 @@ def process_eth1_data(state: BeaconState, body: BeaconBlockBody) -> None:
     if state.eth1_data_votes.count(body.eth1_data) * 2 > SLOTS_PER_ETH1_VOTING_PERIOD:
         state.eth1_data = body.eth1_data
 */
-  syntax KItem ::= "process_eth1_data" "(" ")"
-  rule <k> process_eth1_data() => .K ... </k>
-       <eth1-data-votes> VOTES => VOTES +append BlockEth1 </eth1-data-votes>
-       <eth1-data> _ => BlockEth1 </eth1-data>
-       <block-eth1-data> BlockEth1 </block-eth1-data>
-     requires countEth1(VOTES +append BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
+  syntax KItem ::= "process_eth1_data" "(" BeaconBlockBody ")"
+  rule <k> process_eth1_data(BlockBODY) => .K ... </k>
+       <eth1-data-votes> VOTES => VOTES +append (BlockBODY.eth1Data) </eth1-data-votes>
+       <eth1-data> _ => BlockBODY.eth1Data </eth1-data>
+     requires countEth1(VOTES +append (BlockBODY.eth1Data), BlockBODY.eth1Data) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
 
-  rule <k> process_eth1_data() => .K ... </k>
-       <eth1-data-votes> VOTES => VOTES +append BlockEth1 </eth1-data-votes>
+  rule <k> process_eth1_data(BlockBODY) => .K ... </k>
+       <eth1-data-votes> VOTES => VOTES +append (BlockBODY.eth1Data) </eth1-data-votes>
        // state cell <eth1-data> unchanged
-       <block-eth1-data> BlockEth1 </block-eth1-data>
-     requires notBool countEth1(VOTES +append BlockEth1, BlockEth1) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
+     requires notBool countEth1(VOTES +append (BlockBODY.eth1Data), BlockBODY.eth1Data) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
 
   syntax Int ::= countEth1(Eth1DataList, Eth1Data) [function]
   rule countEth1(E1D E1DL, E1D') => #if E1D ==K E1D'
@@ -2314,39 +2300,29 @@ def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
         for operation in operations:
             function(state, operation)
 */
-  syntax KItem ::= "process_operations" "(" ")"
-  rule <k> process_operations()
-           => process_operations_aux(0, AttesterSlashings, Attestations, Deposits, VoluntaryExits, Transfers) ...</k>
-    <attester-slashings> AttesterSlashings </attester-slashings>
-    <attestations> Attestations </attestations>
-    <deposits> Deposits </deposits>
-    <voluntary-exits> VoluntaryExits </voluntary-exits>
-    <transfers> Transfers </transfers>
+  syntax KItem ::= "process_operations" "(" BeaconBlockBody ")"
+  rule process_operations(BlockBODY)
+       => process_operations_aux(BlockBODY.proposerSlashings, BlockBODY.attesterSlashings,  BlockBODY.attestations,
+                                 BlockBODY.deposits,          BlockBODY.voluntaryExits,     BlockBODY.transfers)
 
-  syntax KItem ::= "process_operations_aux" "(" proposerSlashingIndex: Int "," AttesterSlashingList "," AttestationList
+  syntax KItem ::= "process_operations_aux" "(" ProposerSlashingList "," AttesterSlashingList "," AttestationList
                                             "," DepositList "," VoluntaryExitList "," TransferList ")"
 
-  rule <k> (. => process_proposer_slashing(ProposerSlashing))
-           ~> process_operations_aux( INDEX => INDEX +Int 1, _,_,_,_,_ ) ...</k>
-    <proposer-slashings>... INDEX |-> ProposerSlashing ...</proposer-slashings>
-
-  rule <k> process_operations_aux( INDEX => -1, _,_,_,_,_ ) ...</k>
-    <proposer-slashings> PSMap </proposer-slashings>
-    requires notBool INDEX in keys(PSMap)
-
+  rule (. => process_proposer_slashing(PropSlashing))
+       ~> process_operations_aux(PropSlashing:ProposerSlashing L => L, _,_,_,_,_ )
   rule (. => process_attester_slashing(AttSlashing))
-       ~> process_operations_aux(-1, AttSlashing:AttesterSlashing L => L, _,_,_,_ )
+       ~> process_operations_aux(.ProposerSlashingList, AttSlashing:AttesterSlashing L => L, _,_,_,_ )
   rule (. => process_attestation(Att))
-       ~> process_operations_aux(-1, .AttesterSlashingList, Att:Attestation L => L, _,_,_ )
+       ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, Att:Attestation L => L, _,_,_ )
   rule (. => process_deposit(DEP))
-       ~> process_operations_aux(-1, .AttesterSlashingList, .AttestationList, DEP:Deposit L => L, _,_ )
+       ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, DEP:Deposit L => L, _,_ )
   rule (. => process_voluntary_exit(VolEX))
-       ~> process_operations_aux(-1, .AttesterSlashingList, .AttestationList, .DepositList,
+       ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, .DepositList,
                                  VolEX:VoluntaryExit L => L, _ )
   rule (. => process_transfer(TR))
-       ~> process_operations_aux(-1, .AttesterSlashingList, .AttestationList, .DepositList,
+       ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, .DepositList,
                                  .VoluntaryExitList, TR:Transfer L => L )
-  rule process_operations_aux(-1, .AttesterSlashingList, .AttestationList, _ .DepositList,
+  rule process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, _ .DepositList,
                               .VoluntaryExitList, .TransferList ) => .K
 
 /*

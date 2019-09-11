@@ -38,25 +38,6 @@ class BeaconState(Container):
     previous_justified_checkpoint: Checkpoint  # Previous epoch snapshot
     current_justified_checkpoint: Checkpoint
     finalized_checkpoint: Checkpoint
-
-class BeaconBlock(Container):
-    slot: Slot
-    parent_root: Hash
-    state_root: Hash
-    body: BeaconBlockBody
-    signature: BLSSignature
-
-class BeaconBlockBody(Container):
-    randao_reveal: BLSSignature
-    eth1_data: Eth1Data  # Eth1 data vote
-    graffiti: Bytes32  # Arbitrary data
-    # Operations
-    proposer_slashings: List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
-    attester_slashings: List[AttesterSlashing, MAX_ATTESTER_SLASHINGS]
-    attestations: List[Attestation, MAX_ATTESTATIONS]
-    deposits: List[Deposit, MAX_DEPOSITS]
-    voluntary_exits: List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
-    transfers: List[Transfer, MAX_TRANSFERS]
 */
   configuration
     <beacon-chain>
@@ -99,23 +80,6 @@ class BeaconBlockBody(Container):
         <current-justified-checkpoint> .Checkpoint </current-justified-checkpoint>
         <finalized-checkpoint> .Checkpoint </finalized-checkpoint>
       </state>
-      <block>                           //Type BeaconBlock in python spec.
-        <blockSlot> -1 </blockSlot>
-        <parent-root> "" </parent-root>
-        <state-root> "" </state-root>
-        <body>                          //Type BeaconBlockBody in python spec.
-          <randao-reveal> "" </randao-reveal>
-          <block-eth1-data> .Eth1Data </block-eth1-data> // added "block-" prefix to name to resolve conflicting cell names
-          <graffiti> "" </graffiti>
-          <proposer-slashings> .Map </proposer-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
-          <attester-slashings> .AttesterSlashingList </attester-slashings> //List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
-          <attestations> .AttestationList </attestations> //List[Attestation, MAX_ATTESTATIONS]
-          <deposits> .DepositList </deposits> //List[Deposit, MAX_DEPOSITS]
-          <voluntary-exits> .VoluntaryExitList </voluntary-exits> //List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
-          <transfers> .TransferList </transfers> //List[Transfer, MAX_TRANSFERS]
-        </body>
-        <signature> "" </signature>
-      </block>
       <zerohashes-cache> .Map </zerohashes-cache>
     </beacon-chain>
 

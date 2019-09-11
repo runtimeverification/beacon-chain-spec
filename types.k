@@ -6,9 +6,10 @@ module TYPES
 
   // Basic Python (SSZ) types
   //====================================================
-  syntax Bytes   ::= String | Bytes32 | Bytes48 | Bytes96
-  syntax Bytes4  ::= Bytes
-  syntax Bytes8  ::= Bytes
+  syntax Bytes   ::= String | Bytes4 | Bytes8 | Bytes32 | Bytes48 | Bytes96
+                   | BLSSignature | BLSPubkey | Domain | DomainType | Version
+  syntax Bytes4  ::= String | DomainType | Version
+  syntax Bytes8  ::= String | Domain
 
   syntax Bytes32 ::= String | Hash
   syntax Bytes32 ::= defaultBytes32()                                 [function]
@@ -18,11 +19,19 @@ module TYPES
   syntax Hash ::= defaultHash()                                       [function]
   rule defaultHash() => {defaultBytes32()}:>String
 
-  syntax Bytes48 ::= String
+  syntax Bytes48 ::= String | BLSPubkey
 
-  syntax Bytes96 ::= String
+  syntax Bytes96 ::= String | BLSSignature
   syntax Bytes96 ::= defaultBytes96()                                 [function]
   rule defaultBytes96() => {"\x00" *Bytes 96}:>String
+
+  syntax Version        ::= String      //a fork version number
+  syntax DomainType     ::= String      //a signature domain type
+  syntax Domain         ::= String      //a signature domain
+  syntax BLSPubkey      ::= String      //a BLS12-381 public key
+  syntax BLSSignature   ::= String      //a BLS12-381 signature
+  syntax BLSSignature ::= defaultBLSSignature()
+  rule defaultBLSSignature() => {defaultBytes96()}:>String
 
   syntax Uint64  ::= Int
 
@@ -38,11 +47,6 @@ module TYPES
   // Custom types
   //====================================================
   syntax ValidatorIndex ::= Int | ".ValidatorIndex"     //a validator registry index
-  syntax Version        ::= Bytes4      //a fork version number
-  syntax DomainType     ::= Bytes4      //a signature domain type
-  syntax Domain         ::= Bytes8      //a signature domain
-  syntax BLSPubkey      ::= Bytes48     //a BLS12-381 public key
-  syntax BLSSignature   ::= Bytes96     //a BLS12-381 signature
 
   // List types
   //====================================================
@@ -370,6 +374,76 @@ class Transfer(Container):
   syntax IntList ::= CrosslinkIntListPair "." "intList" [function]
   rule  #crosslinkIntListPair(_,IL).intList => IL
 
+/*class BeaconBlockBody(Container):
+    randao_reveal: BLSSignature
+    eth1_data: Eth1Data  # Eth1 data vote
+    graffiti: Bytes32  # Arbitrary data
+    # Operations
+    proposer_slashings: List[ProposerSlashing, MAX_PROPOSER_SLASHINGS]
+    attester_slashings: List[AttesterSlashing, MAX_ATTESTER_SLASHINGS]
+    attestations: List[Attestation, MAX_ATTESTATIONS]
+    deposits: List[Deposit, MAX_DEPOSITS]
+    voluntary_exits: List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
+    transfers: List[transfers, MAX_TRANSFERS]*/
+  syntax BeaconBlockBody ::= #BeaconBlockBody(
+                                randaoReveal: BLSSignature,
+                                eth1Data: Eth1Data,
+                                graffiti: Bytes32,
+                                proposerSlashings: ProposerSlashingList,
+                                attesterSlashings: AttesterSlashingList,
+                                attestations: AttestationList,
+                                deposits: DepositList,
+                                voluntaryExits: VoluntaryExitList,
+                                transfers: TransferList
+                             )                                [klabel(#BeaconBlockBody), symbol]
+  syntax BLSSignature         ::= BeaconBlockBody "." "randaoReveal"      [function]
+  rule  #BeaconBlockBody(RR, _,_,_,_,_,_,_,_).randaoReveal => RR
+  syntax Eth1Data             ::= BeaconBlockBody "." "eth1Data"          [function]
+  rule  #BeaconBlockBody(_,E1D, _,_,_,_,_,_,_).eth1Data => E1D
+  syntax ProposerSlashingList ::= BeaconBlockBody "." "proposerSlashings" [function]
+  rule  #BeaconBlockBody(_,_,_, PS, _,_,_,_,_).proposerSlashings => PS
+  syntax AttesterSlashingList ::= BeaconBlockBody "." "attesterSlashings" [function]
+  rule  #BeaconBlockBody(_,_,_,_, AS, _,_,_,_).attesterSlashings => AS
+  syntax AttestationList      ::= BeaconBlockBody "." "attestations"      [function]
+  rule  #BeaconBlockBody(_,_,_,_,_, ATT, _,_,_).attestations => ATT
+  syntax DepositList          ::= BeaconBlockBody "." "deposits"          [function]
+  rule  #BeaconBlockBody(_,_,_,_,_,_, DEP, _,_).deposits => DEP
+  syntax VoluntaryExitList    ::= BeaconBlockBody "." "voluntaryExits"    [function]
+  rule  #BeaconBlockBody(_,_,_,_,_,_,_, VEX, _).voluntaryExits => VEX
+  syntax TransferList         ::= BeaconBlockBody "." "transfers"         [function]
+  rule  #BeaconBlockBody(_,_,_,_,_,_,_,_, TS).transfers => TS
+
+  syntax BeaconBlockBody ::= defaultBeaconBlockBody()                 [function]
+  rule defaultBeaconBlockBody() => #BeaconBlockBody(
+                                defaultBLSSignature(), #Eth1Data(defaultHash(), 0, defaultHash()), defaultBytes32(),
+                                .ProposerSlashingList, .AttesterSlashingList, .AttestationList,
+                                .DepositList, .VoluntaryExitList, .TransferList
+                             )
+
+/*class BeaconBlock(Container):
+    slot: Slot
+    parent_root: Hash
+    state_root: Hash
+    body: BeaconBlockBody
+    signature: BLSSignature*/
+  syntax BeaconBlock ::= #BeaconBlock(
+                            blockSlot: Int,
+                            parentRoot: Hash,
+                            stateRoot: Hash,
+                            body: BeaconBlockBody,
+                            signature: BLSSignature
+                         )                                    [klabel(#BeaconBlock), symbol]
+  syntax Int              ::= BeaconBlock "." "_slot"                     [function]
+  rule  #BeaconBlock(SLOT, _,_,_,_)._slot => SLOT
+  syntax Hash             ::= BeaconBlock "." "parentRoot"                [function]
+  rule  #BeaconBlock(_, PR, _,_,_).parentRoot => PR
+  syntax Hash             ::= BeaconBlock "." "stateRoot"                 [function]
+  rule  #BeaconBlock(_,_, SR, _,_).stateRoot => SR
+  syntax BeaconBlockBody  ::= BeaconBlock "." "body"                      [function]
+  rule  #BeaconBlock(_,_,_, BODY, _).body => BODY
+  syntax BLSSignature     ::= BeaconBlock "." "signature"                 [function]
+  rule  #BeaconBlock(_,_,_,_, SIG).signature => SIG
+
   // The return type of get_attestation_deltas and get_crosslink_deltas
   syntax MapMapPair ::= #mapMapPair(Map, Map)
 
@@ -392,7 +466,7 @@ class Transfer(Container):
   syntax Container ::= Fork | Checkpoint | Validator | Crosslink | AttestationData | AttestationDataAndCustodyBit
                      | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
                      | CompactCommittee | BeaconBlockHeader | ProposerSlashing | AttesterSlashing | Attestation | Deposit
-                     | VoluntaryExit | Transfer
+                     | VoluntaryExit | Transfer | BeaconBlockBody | BeaconBlock
 
   //ValueList are not Value, because it needs separate implementation for hash_tree_root
   //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.

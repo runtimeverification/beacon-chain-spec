@@ -169,6 +169,26 @@ transferTerm = labelWithKeyPairs('#Transfer' , [ ('sender'    , intToken)
                                                ]
                                 )
 
+beaconBlockBodyTerm = labelWithKeyPairs('#BeaconBlockBody' , [ ('randao_reveal'         , hashToken)
+                                                             , ('eth1_data'             , eth1DataTerm)
+                                                             , ('graffiti'              , hashToken)
+                                                             , ('proposer_slashings'    , listOf('ProposerSlashing', converter = proposerSlashingTerm))
+                                                             , ('attester_slashings'    , listOf('AttesterSlashing', converter = attesterSlashingTerm))
+                                                             , ('attestations'          , listOf('Attestation', converter = attestationTerm))
+                                                             , ('deposits'              , listOf('Deposit', converter = depositTerm))
+                                                             , ('voluntary_exits'       , listOf('VoluntaryExit', converter = voluntaryExitTerm))
+                                                             , ('transfers'             , listOf('Transfer', converter = transferTerm))
+                                                             ]
+                                       )
+
+beaconBlockTerm = labelWithKeyPairs('#BeaconBlock' , [ ('slot'          , intToken)
+                                                     , ('parent_root'   , hashToken)
+                                                     , ('state_root'    , hashToken)
+                                                     , ('body'          , beaconBlockBodyTerm)
+                                                     , ('signature'     , hashToken)
+                                                     ]
+                                   )
+
 test_type_to_term = {
     # operations
     'proposer_slashing': proposerSlashingTerm,
@@ -178,7 +198,7 @@ test_type_to_term = {
     'voluntary_exit'   : voluntaryExitTerm,
     'transfer'         : transferTerm,
 
-    'block_header'                      : None,
+    'block_header'     : beaconBlockTerm,
 
     # epoch_processing
     'crosslinks'                        : None,
@@ -197,8 +217,8 @@ data_class_to_converter = {
     'AttestationData': attestationDataTerm,
     'AttestationDataAndCustodyBit': attestationDataAndCustodyBitTerm,
     'AttesterSlashing': attesterSlashingTerm,
-    'BeaconBlock': None,
-    'BeaconBlockBody': None,
+    'BeaconBlock': beaconBlockTerm,
+    'BeaconBlockBody': beaconBlockBodyTerm,
     'BeaconBlockHeader': beaconBlockHeaderTerm,
     'BeaconState': None,
     'Checkpoint': checkpointTerm,
@@ -244,34 +264,6 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'  : (['current_justified_checkpoint']       , checkpointTerm)
                     , 'FINALIZED_CHECKPOINT_CELL'          : (['finalized_checkpoint']               , checkpointTerm)
                     }
-
-block_cells = { 'BLOCKSLOT_CELL'            : (['slot']                         , intToken)
-              , 'PARENT_ROOT_CELL'          : (['parent_root']                  , hashToken)
-              , 'STATE_ROOT_CELL'           : (['state_root']                   , hashToken)
-
-              , 'RANDAO_REVEAL_CELL'        : (['body', 'randao_reveal']        , hashToken)
-              , 'BLOCK_ETH1_DATA_CELL'      : (['body', 'eth1_data']            , eth1DataTerm)
-              , 'GRAFFITI_CELL'             : (['body', 'graffiti']             , hashToken)
-              , 'PROPOSER_SLASHINGS_CELL'   : (['body', 'proposer_slashings']   , indexedMapOf(converter = proposerSlashingTerm))
-              , 'ATTESTER_SLASHINGS_CELL'   : (['body', 'attester_slashings']   , listOf('AttesterSlashing', converter = attesterSlashingTerm))
-              , 'ATTESTATIONS_CELL'         : (['body', 'attestations']         , listOf('Attestation', converter = attestationTerm))
-              , 'DEPOSITS_CELL'             : (['body', 'deposits']             , listOf('Deposit', converter = depositTerm))
-              , 'VOLUNTARY_EXITS_CELL'      : (['body', 'voluntary_exits']      , listOf('VoluntaryExit', converter = voluntaryExitTerm))
-              , 'TRANSFERS_CELL'            : (['body', 'transfers']            , listOf('Transfer', converter = transferTerm))
-
-              , 'SIGNATURE_CELL'            : (['signature']                    , hashToken)
-              }
-
-block_body_cells = {    'RANDAO_REVEAL_CELL'        : (['randao_reveal']        , hashToken)
-                      , 'BLOCK_ETH1_DATA_CELL'      : (['eth1_data']            , eth1DataTerm)
-                      , 'GRAFFITI_CELL'             : (['graffiti']             , hashToken)
-                      , 'PROPOSER_SLASHINGS_CELL'   : (['proposer_slashings']   , indexedMapOf(converter = proposerSlashingTerm))
-                      , 'ATTESTER_SLASHINGS_CELL'   : (['attester_slashings']   , listOf('AttesterSlashing', converter = attesterSlashingTerm))
-                      , 'ATTESTATIONS_CELL'         : (['attestations']         , listOf('Attestation', converter = attestationTerm))
-                      , 'DEPOSITS_CELL'             : (['deposits']             , listOf('Deposit', converter = depositTerm))
-                      , 'VOLUNTARY_EXITS_CELL'      : (['voluntary_exits']      , listOf('VoluntaryExit', converter = voluntaryExitTerm))
-                      , 'TRANSFERS_CELL'            : (['transfers']            , listOf('Transfer', converter = transferTerm))
-                   }
 
 skip_keys = [
             #  'GENESIS_TIME_CELL'
@@ -396,28 +388,12 @@ def buildPreConfigSubst(test_dir):
     else:
         return {}
 
-def buildBlockConfigSubst(test_dir):
-    test_runner = test_dir.parts[-4]
-    test_handler = test_dir.parts[-3]
-    file_name = 'value.yaml' if test_runner == 'ssz_static' and (test_handler in ('BeaconBlock', 'BeaconBlockBody')) \
-        else 'block.yaml'
-    block_yaml = loadYaml(test_dir, file_name)
-    if block_yaml is not None:
-        cells = block_body_cells if test_handler == 'BeaconBlockBody' else block_cells
-        return buildConfigSubstitution(block_yaml, cells, skip_keys = skip_keys, debug_keys = debug_keys)
-    else:
-        return {}
-
 def buildKCell(test_dir):
     test_runner = test_dir.parts[-4]
     test_handler = test_dir.parts[-3]
     if test_runner == 'ssz_static':
         if test_handler == 'BeaconState':
             entry_point = 'wrap_hash_tree_root_state'
-        elif test_handler == 'BeaconBlock':
-            entry_point = 'wrap_hash_tree_root_block'
-        elif test_handler == 'BeaconBlockBody':
-            entry_point = 'wrap_hash_tree_root_blockBody'
         else:
             entry_point = 'wrap_hash_tree_root'
         arg_converter = data_class_to_converter[test_handler]
@@ -430,7 +406,10 @@ def buildKCell(test_dir):
         else:
             entry_point = 'process_%s' % test_handler
         arg_converter = test_type_to_term[test_handler]
-        file_name = "%s.yaml" % test_handler
+        if test_handler == 'block_header':
+            file_name = "block.yaml"
+        else:
+            file_name = "%s.yaml" % test_handler
     else:
         raise Exception("Unsupported test runner: " + test_runner)
 
@@ -472,7 +451,6 @@ def main():
     all_keys = list(init_cells.keys())
 
     init_config_subst.update(buildPreConfigSubst(test_dir))             # build state
-    init_config_subst.update(buildBlockConfigSubst(test_dir))           # build block
     init_config_subst['K_CELL'] = buildKCell(test_dir)                  # build <k>
 
     init_config = substitute(symbolic_configuration, init_config_subst)

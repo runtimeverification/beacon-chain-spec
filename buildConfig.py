@@ -149,23 +149,6 @@ symbolic_configuration = KApply ( '<generatedTop>' , [ KApply ( '<beacon-chain>'
                                                                                                           , KApply ( '<finalized-checkpoint>'          , [ KVariable('FINALIZED_CHECKPOINT_CELL')          ] )
                                                                                                         ]
                                                                                           )
-                                                                                 , KApply ( '<block>' , [ KApply ( '<blockSlot>'   , [ KVariable('BLOCKSLOT_CELL')   ] )
-                                                                                                        , KApply ( '<parent-root>' , [ KVariable('PARENT_ROOT_CELL') ] )
-                                                                                                        , KApply ( '<state-root>'  , [ KVariable('STATE_ROOT_CELL')  ] )
-                                                                                                        , KApply ( '<body>' , [ KApply ( '<randao-reveal>'      , [ KVariable('RANDAO_REVEAL_CELL')      ] )
-                                                                                                                              , KApply ( '<block-eth1-data>'    , [ KVariable('BLOCK_ETH1_DATA_CELL')    ] )
-                                                                                                                              , KApply ( '<graffiti>'           , [ KVariable('GRAFFITI_CELL')           ] )
-                                                                                                                              , KApply ( '<proposer-slashings>' , [ KVariable('PROPOSER_SLASHINGS_CELL') ] )
-                                                                                                                              , KApply ( '<attester-slashings>' , [ KVariable('ATTESTER_SLASHINGS_CELL') ] )
-                                                                                                                              , KApply ( '<attestations>'       , [ KVariable('ATTESTATIONS_CELL')       ] )
-                                                                                                                              , KApply ( '<deposits>'           , [ KVariable('DEPOSITS_CELL')           ] )
-                                                                                                                              , KApply ( '<voluntary-exits>'    , [ KVariable('VOLUNTARY_EXITS_CELL')    ] )
-                                                                                                                              , KApply ( '<transfers>'          , [ KVariable('TRANSFERS_CELL')          ] )
-                                                                                                                              ]
-                                                                                                                 )
-                                                                                                         , KApply ( '<signature>', [ KVariable('SIGNATURE_CELL') ] )
-                                                                                                         ]
-                                                                                          )
                                                                                  , KApply ( '<zerohashes-cache>', [ KConstant('.Map') ] )
                                                                                  ]
                                                               )
@@ -199,19 +182,6 @@ init_cells = { 'K_CELL'                             : KSequence([ KApply('init',
              , 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL' : KConstant('.Checkpoint_TYPES_')
              , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'  : KConstant('.Checkpoint_TYPES_')
              , 'FINALIZED_CHECKPOINT_CELL'          : KConstant('.Checkpoint_TYPES_')
-             , 'BLOCKSLOT_CELL'                     : KToken('-1', 'Int')
-             , 'PARENT_ROOT_CELL'                   : KToken('""', 'String')
-             , 'STATE_ROOT_CELL'                    : KToken('""', 'String')
-             , 'RANDAO_REVEAL_CELL'                 : KToken('""', 'String')
-             , 'BLOCK_ETH1_DATA_CELL'               : KConstant('.Eth1Data_TYPES_')
-             , 'GRAFFITI_CELL'                      : KToken('""', 'String')
-             , 'PROPOSER_SLASHINGS_CELL'            : KConstant('.Map')
-             , 'ATTESTER_SLASHINGS_CELL'            : listOf('AttesterSlashing')([])
-             , 'ATTESTATIONS_CELL'                  : listOf('Attestation')([])
-             , 'DEPOSITS_CELL'                      : listOf('Deposit')([])
-             , 'VOLUNTARY_EXITS_CELL'               : listOf('VoluntaryExit')([])
-             , 'TRANSFERS_CELL'                     : listOf('Transfer')([])
-             , 'SIGNATURE_CELL'                     : KToken('""', 'String')
              , 'GENERATED_COUNTER_CELL'             : KToken('0', 'Int')
              }
 

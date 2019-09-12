@@ -30,7 +30,7 @@ module TYPES
   syntax Domain         ::= String      //a signature domain
   syntax BLSPubkey      ::= String      //a BLS12-381 public key
   syntax BLSSignature   ::= String      //a BLS12-381 signature
-  syntax BLSSignature ::= defaultBLSSignature()
+  syntax BLSSignature ::= defaultBLSSignature()                       [function]
   rule defaultBLSSignature() => {defaultBytes96()}:>String
 
   syntax Uint64  ::= Int
@@ -384,7 +384,7 @@ class Transfer(Container):
     attestations: List[Attestation, MAX_ATTESTATIONS]
     deposits: List[Deposit, MAX_DEPOSITS]
     voluntary_exits: List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
-    transfers: List[transfers, MAX_TRANSFERS]*/
+    transfers: List[Transfer, MAX_TRANSFERS]*/
   syntax BeaconBlockBody ::= #BeaconBlockBody(
                                 randaoReveal: BLSSignature,
                                 eth1Data: Eth1Data,

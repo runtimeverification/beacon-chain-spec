@@ -355,6 +355,15 @@ def buildConfigSubstitution(test_pre_state, config_cells, skip_keys = [], debug_
 
     return new_key_table
 
+def loadBlocks(test_dir):
+    blocks = []
+    i = 0
+    block = loadYaml(test_dir, 'blocks_%d.yaml' % i)
+    while block is not None:
+        blocks.append(block)
+        i += 1
+        block = loadYaml(test_dir, 'blocks_%d.yaml' % i)
+    return blocks
 
 def loadYaml(test_dir, name):
     try:
@@ -398,6 +407,11 @@ def buildKCell(test_dir):
             entry_point = 'wrap_hash_tree_root'
         arg_converter = data_class_to_converter[test_handler]
         file_name = 'value.yaml'
+    elif test_runner == 'sanity' and test_handler == 'blocks':
+        blocks = loadBlocks(test_dir)
+        resultSeq = [KApply('init', [])] \
+                    + [KApply('state_transition', [beaconBlockTerm(block), boolToken('false')]) for block in blocks]
+        return KSequence(resultSeq)
     elif test_runner in ('operations', 'epoch_processing', 'sanity'):
         if test_handler not in test_type_to_term.keys():
             raise Exception("Unsupported test handler: " + test_handler)
@@ -461,6 +475,9 @@ def main():
         pre_json_file.flush()
 
         fastPrinted = prettyPrintKast(init_config['args'][0], ALL_symbols).strip()
+        _notif('kast content')
+        print(fastPrinted, file = sys.stderr, flush = True)
+
         kastPrinted = fastPrinted
         # ISSUE: kast does not work with KSequence of 2 elements in <k>.
         # (returnCode, kastPrinted, _) = kast(pre_json_file.name, '--input', 'json', '--output', 'pretty', '--debug')

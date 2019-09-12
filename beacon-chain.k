@@ -77,8 +77,8 @@ def xor(bytes_1: Bytes32, bytes_2: Bytes32) -> Bytes32:
     return Bytes32(a ^ b for a, b in zip(bytes_1, bytes_2))
 */
   syntax Bytes ::= xor( Bytes, Bytes ) [function]
-  rule xor(A, B) => chrChar(ordChar(substrString(A, 0, 1)) ^Int ordChar(substrString(B, 0, 1)))
-                    +Bytes xor(substrString(A, 1, lengthString(A) -Int 1), substrString(B, 1, lengthString(B) -Int 1))
+  rule xor(A, B) => chrChar(ordChar(substrString(A, 0, 1)) xorInt ordChar(substrString(B, 0, 1)))
+                    +Bytes xor(substrString(A, 1, lengthString(A)), substrString(B, 1, lengthString(B)))
     requires lengthString(A) >Int 0 andBool lengthString(B) >Int 0
   rule xor("", "") => ""
 
@@ -1084,7 +1084,7 @@ def state_transition(state: BeaconState, block: BeaconBlock, validate_state_root
     # Return post-state
     return state
 */
-  syntax KItem ::= "state_transition" "(" block: BeaconBlock "," validateStateRoot: Bool ")"
+  syntax KItem ::= "state_transition" "(" block: BeaconBlock "," validateStateRoot: Bool ")"  [klabel(state_transition), symbol]
   rule state_transition(BLOCK, VSR) => process_slots(BLOCK._slot) ~> process_block(BLOCK) ~> validateStateRoot(BLOCK, VSR)
   syntax KItem ::= validateStateRoot ( BeaconBlock, Bool )
     rule validateStateRoot(BLOCK, VSR) => .K
@@ -2151,11 +2151,10 @@ def process_final_updates(state: BeaconState) -> None:
 
   syntax KItem ::= "setRandaoMix" "(" Int ")"
   rule <k> setRandaoMix(RndMixIndex) => .K ... </k>
-    <randao-mixes> RMS => setRandaoMixAt(
-                                     RMS,
+    <randao-mixes> RMS => setBytesAt(RMS,
                                      RndMixIndex,
                                      get_randao_mix(get_current_epoch())
-                                   )
+                                    )
     </randao-mixes>
 
 /*    if next_epoch % (SLOTS_PER_HISTORICAL_ROOT // SLOTS_PER_EPOCH) == 0:
@@ -2245,17 +2244,12 @@ def process_randao(state: BeaconState, body: BeaconBlockBody) -> None:
   syntax KItem ::= "process_randao" "(" BeaconBlockBody ")"
   rule <k> process_randao(BlockBODY) => .K ... </k>
        <randao-mixes>
-         RMS => setRandaoMixAt(
+         RMS => setBytesAt(
                   RMS,
                   get_current_epoch() %Int EPOCHS_PER_HISTORICAL_VECTOR,
-                  {xor(get_randao_mix(get_current_epoch()), hash(BlockBODY.randaoReveal))}:>Hash
+                  xor(get_randao_mix(get_current_epoch()), hash(BlockBODY.randaoReveal))
                 )
        </randao-mixes>
-
-  syntax BytesList ::= setRandaoMixAt(BytesList, Int, Hash) [function]
-  rule setRandaoMixAt(RM RMS, I, RM') => RM setRandaoMixAt(RMS, I -Int 1, RM')
-    requires I >Int 0
-  rule setRandaoMixAt(RM RMS, 0, RM') => RM' RMS
 
 /*
 def process_eth1_data(state: BeaconState, body: BeaconBlockBody) -> None:
@@ -2322,7 +2316,7 @@ def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
   rule (. => process_transfer(TR))
        ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, .DepositList,
                                  .VoluntaryExitList, TR:Transfer L => L )
-  rule process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, _ .DepositList,
+  rule process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, .DepositList,
                               .VoluntaryExitList, .TransferList ) => .K
 
 /*

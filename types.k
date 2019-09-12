@@ -696,6 +696,11 @@ def bytes_to_int(data: bytes) -> uint64:
     requires INDEX >Int 0
   rule setBitAt(I BL, 0, I') => I' BL
 
+  syntax BytesList ::= setBytesAt(BytesList, Int, Bytes)              [function]
+  rule setBytesAt(RM RMS, INDEX, RM') => RM setBytesAt(RMS, INDEX -Int 1, RM')
+    requires INDEX >Int 0
+  rule setBytesAt(RM RMS, 0, RM') => RM' RMS
+
   syntax BitList ::= slice(BitList, Int, Int) [function]
   rule slice(BL:BitList, BEGIN, END) => dropTail(drop(BL, BEGIN), END -Int BEGIN)
     requires BEGIN >=Int 0 andBool END >=Int 0

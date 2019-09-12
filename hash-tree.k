@@ -110,10 +110,21 @@ def chunkify(bytez):
   rule [[ zerohashes(I) => HASH ]]
     <zerohashes-cache> I |-> HASH ...</zerohashes-cache>
 
-/*def merkleize_chunks(chunks, pad_to: int=1):
+/*def merkleize_chunks(chunks, limit=None):
+    # If no limit is defined, we are just merkleizing chunks (e.g. SSZ container).
+    if limit is None:
+        limit = len(chunks)
+
     count = len(chunks)
+    # See if the input is within expected size.
+    # If not, a list-limit is set incorrectly, or a value is unexpectedly large.
+    assert count <= limit
+
+    if limit == 0:
+        return zerohashes[0]
+
     depth = max(count - 1, 0).bit_length()
-    max_depth = max(depth, (pad_to - 1).bit_length())
+    max_depth = (limit - 1).bit_length()
     tmp = [None for _ in range(max_depth + 1)]
 
     def merge(h, i):
@@ -144,21 +155,26 @@ def chunkify(bytez):
     return tmp[max_depth]
 */
   syntax Hash ::= "merkleize_chunks" "(" BytesList "," Int ")"        [function]
-  rule merkleize_chunks(CHUNKS, PadTO)
-       => merkleizeChunksLoop1(len(CHUNKS), //count
-                               bit_length(maxInt(len(CHUNKS) -Int 1, 0)), //depth
-                               maxInt(bit_length(maxInt(len(CHUNKS) -Int 1, 0)), bit_length(PadTO -Int 1)), //max_depth
-                               CHUNKS,
-                               0, .Map)
+  rule merkleize_chunks(.BytesList, 0) => zerohashes(0)
+
+  rule merkleize_chunks(CHUNKS, LIMIT)
+       => #fun(COUNT
+       => #fun(DEPTH
+       => #fun(MaxDepth
+       => merkleizeChunksLoop1(COUNT, DEPTH, MaxDepth, CHUNKS, 0, .Map)
+          )(bit_length(LIMIT -Int 1))
+          )(bit_length(maxInt(COUNT -Int 1, 0)))
+          )(len(CHUNKS))
+    requires LIMIT >Int 0 //andBool COUNT <=Int LIMIT - already happens
 
   /*    for i in range(count):
           merge(chunks[i], i)     */
-  syntax Hash ::= merkleizeChunksLoop1(Int,       // count
-                                       Int,       // depth
-                                       Int,       // max_depth
-                                       BytesList, // chunks
-                                       Int,       // i
-                                       Map        // tmp
+  syntax Hash ::= merkleizeChunksLoop1(count:     Int,
+                                       depth:     Int,
+                                       maxDepth:  Int,
+                                       chunks:    BytesList,
+                                       i:         Int,
+                                       tmp:       Map
                                        )                              [function]
   rule merkleizeChunksLoop1(COUNT, DEPTH, MaxDEPTH, (CH CHUNKS => CHUNKS), I => I +Int 1,
                             TMP => merkleMerge(CH, I, COUNT, DEPTH, TMP))
@@ -451,7 +467,7 @@ def chunkify(bytez):
         return merkleize_chunks(leaves)
 */
   syntax Hash ::= "hash_tree_root_part2_v2" "(" BytesList ")"         [function]
-  rule hash_tree_root_part2_v2(LEAVES) => merkleize_chunks(LEAVES, 1)
+  rule hash_tree_root_part2_v2(LEAVES) => merkleize_chunks(LEAVES, len(LEAVES))
 
 /* def mix_in_length(root, length):
     return hash(root + length.to_bytes(32, 'little'))

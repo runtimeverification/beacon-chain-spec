@@ -1084,7 +1084,7 @@ def state_transition(state: BeaconState, block: BeaconBlock, validate_state_root
     # Return post-state
     return state
 */
-  syntax KItem ::= "state_transition" "(" block: BeaconBlock "," validateStateRoot: Bool ")"
+  syntax KItem ::= "state_transition" "(" block: BeaconBlock "," validateStateRoot: Bool ")"  [klabel(state_transition), symbol]
   rule state_transition(BLOCK, VSR) => process_slots(BLOCK._slot) ~> process_block(BLOCK) ~> validateStateRoot(BLOCK, VSR)
   syntax KItem ::= validateStateRoot ( BeaconBlock, Bool )
     rule validateStateRoot(BLOCK, VSR) => .K

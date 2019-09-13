@@ -984,7 +984,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
         state.compact_committees_roots[index] = committee_root
     return state
 */
-  syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Hash "," Int "," DepositList ")"
+  syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Hash "," Int "," DepositList ")" [klabel(initialize_beacon_state_from_eth1), symbol]
   rule <k> initialize_beacon_state_from_eth1(E1BH, E1TS, Deposits)
            => processEth1Deposits(Deposits, getDataList(Deposits), 0)
            ~> processEth1Activations(numOfValidators(), 0)

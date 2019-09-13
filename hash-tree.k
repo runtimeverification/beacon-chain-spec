@@ -5,6 +5,7 @@ module HASH-TREE
   imports DOMAINS
   imports TYPES
   imports CONFIG
+  imports K-IO
 
   // Macros
   //====================================================

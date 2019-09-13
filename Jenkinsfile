@@ -23,7 +23,7 @@ pipeline {
     stage('Build') {
       steps {
         sh '''
-          make build -j2
+          make KOMPILE_OPTS="--coverage" build -j2
         '''
       }
     }
@@ -32,6 +32,16 @@ pipeline {
         sh '''
           make test -j8
         '''
+      }
+    }
+    stage('Coverage') {
+      steps {
+        sh '''
+          deps/k/k-distribution/target/release/k/bin/kcovr .build/defn/llvm/beacon-chain-kompiled \
+            -- .build/defn/llvm/*.k      \
+            > coverage.xml
+        '''
+        cobertura coberturaReportFile: 'coverage.xml'
       }
     }
   }

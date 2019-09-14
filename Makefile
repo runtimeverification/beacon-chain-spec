@@ -194,9 +194,9 @@ test: test-python-config test-processing test-ssz
 test-python-config: buildConfig.py $(llvm_kompiled)
 	python3 $<
 
-operations_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/*/*/*/post.yaml)
-epoch_processing_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/*/*/*/post.yaml)
-sanity_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/sanity/*/*/*/post.yaml)
+operations_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/*/*/*/pre.yaml)
+epoch_processing_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/*/*/*/pre.yaml)
+sanity_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/sanity/*/*/*/pre.yaml)
 genesis_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/genesis/initialization/*/*/state.yaml) \
 			   $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/genesis/validity/*/*/genesis.yaml)
 

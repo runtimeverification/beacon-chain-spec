@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import re
 import argparse
 import copy
 import difflib
@@ -523,13 +524,14 @@ def main():
             krun_args.append('--debug')
         (returnCode, krunPrinted, _) = krun(*krun_args)
         krunPrinted = krunPrinted.strip()
-        if returnCode != 0:
-            _fatal('krun returned non-zero exit code: ' + test_title, code = returnCode)
 
     # Printing the post state
     post_yaml = loadYaml(test_dir, getPostFile(test_dir))
     post_k_cell = buildPostKCell(test_dir)
     if post_yaml is not None or post_k_cell is not None:
+        if returnCode != 0:
+            _fatal('krun returned non-zero exit code for positive test: ' + test_title, code = returnCode)
+
         post_config_subst = copy.deepcopy(init_config_subst)
         if post_yaml is not None:
             post_config_subst.update(buildConfigSubstitution(post_yaml, init_config_cells,
@@ -550,9 +552,15 @@ def main():
                 _fatal('kast returned non-zero exit code: ' + test_title, code = returnCode)
 
             kast_diff(krunPrinted, postKastPrinted, 'krun_out', 'expected_post_state', args.allow_diff)
-    else:
-        print("\nNo post file", flush=True)
-
+    else: # negative tests
+        if returnCode != 0:
+            print('\nNegative test passed. Exit code: %d' % returnCode, flush=True)
+        else:
+            empty_k_match = re.search(re.compile('<k>\\s*\\.\\s*</k>'), krunPrinted)
+            if empty_k_match is None:
+                print('\nNegative test passed. Non-empty <k>', flush=True)
+            else:
+                _fatal('\nkrun returned zero exit code and empty <k> for negative test')
 
 if __name__ == '__main__':
     main()

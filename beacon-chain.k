@@ -15,8 +15,10 @@ module BEACON-CHAIN
   //Workarounds to make kast happy. Cannot put a function with no-args in init <k>, with json input.
   syntax KItem ::= "wrap_hash_tree_root" "(" BytesOrContainer ")" [klabel(wrap_hash_tree_root), symbol]
                  | "wrap_hash_tree_root_state" "(" ")" [klabel(wrap_hash_tree_root_state), symbol]
+                 | "wrap_is_valid_genesis_state" "(" ")" [klabel(wrap_is_valid_genesis_state), symbol]
   rule wrap_hash_tree_root(OBJ) => hash_tree_root(OBJ)
   rule wrap_hash_tree_root_state() => hash_tree_root_state()
+  rule wrap_is_valid_genesis_state() => is_valid_genesis_state()
 
   syntax KItem ::=  "test_process_slots" "(" Int ")"   [klabel(test_process_slots), symbol]
   rule <k> test_process_slots(NrSlots) => process_slots(SLOT +Int NrSlots) ...</k>
@@ -1089,7 +1091,7 @@ def is_valid_genesis_state(state: BeaconState) -> bool:
         return False
     return True
 */
-  syntax Bool ::= "is_valid_genesis_state" "(" ")" [function]
+  syntax Bool ::= "is_valid_genesis_state" "(" ")"                    [function, klabel(is_valid_genesis_state), symbol]
   rule [[ is_valid_genesis_state()
        => #if Gtime <Int MIN_GENESIS_TIME
               orBool len(get_active_validator_indices(GENESIS_EPOCH)) <Int MIN_GENESIS_ACTIVE_VALIDATOR_COUNT

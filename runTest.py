@@ -209,7 +209,10 @@ test_type_to_term = {
     'rewards_and_penalties'             : None, #planned
 
     # sanity
-    'slots'                             : intToken
+    'slots'                             : intToken,
+
+    # genesis
+    'validity'                          : None
 }
 
 data_class_to_converter = {
@@ -390,6 +393,7 @@ def buildPreConfigSubst(test_dir):
     test_runner = test_dir.parts[-4]
     test_handler = test_dir.parts[-3]
     file_name = 'value.yaml' if test_runner == 'ssz_static' and test_handler == 'BeaconState' \
+        else 'genesis.yaml' if test_runner == 'genesis' and test_handler == 'validity' \
         else 'pre.yaml'
     pre_yaml = loadYaml(test_dir, file_name)
     if pre_yaml is not None:
@@ -422,11 +426,13 @@ def buildKCell(test_dir):
                    [hashToken(eth1_block_hash), intToken(eth1_timestamp),
                     listOf('Deposit', converter = depositTerm)(deposits)])
             ])
-    elif test_runner in ('operations', 'epoch_processing', 'sanity'):
+    elif test_runner in ('operations', 'epoch_processing', 'sanity', 'genesis'):
         if test_handler not in test_type_to_term.keys():
             raise Exception("Unsupported test handler: " + test_handler)
         if test_handler == 'slots':
             entry_point = 'test_process_%s' % test_handler
+        elif test_handler == 'validity':
+            entry_point = 'wrap_is_valid_genesis_state'
         else:
             entry_point = 'process_%s' % test_handler
         arg_converter = test_type_to_term[test_handler]
@@ -445,11 +451,19 @@ def buildKCell(test_dir):
 
 def buildPostKCell(test_dir):
     test_runner = test_dir.parts[-4]
-    return None if test_runner != 'ssz_static' \
-        else KSequence([
+    test_handler = test_dir.parts[-3]
+    if test_runner == 'ssz_static':
+        return KSequence([
                 KApply('init', []),
                 hashToken(loadYaml(test_dir, 'roots.yaml')['root'])
-            ])
+               ])
+    elif test_handler == 'validity':
+        return KSequence([
+                KApply('init', []),
+                boolToken(loadYaml(test_dir, 'is_valid.yaml'))
+               ])
+    else:
+        return None
 
 def getPostFile(test_dir):
     test_runner = test_dir.parts[-4]

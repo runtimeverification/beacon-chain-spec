@@ -9,6 +9,9 @@ module TYPES
   syntax Bytes   ::= String | Bytes4 | Bytes8 | Bytes32 | Bytes48 | Bytes96
                    | BLSSignature | BLSPubkey | Domain | DomainType | Version
   syntax Bytes4  ::= String | DomainType | Version
+  syntax Bytes4 ::= defaultBytes4()                                   [function]
+  rule defaultBytes4() => {"\x00" *Bytes 4}:>String
+
   syntax Bytes8  ::= String | Domain
 
   syntax Bytes32 ::= String | Hash
@@ -104,6 +107,9 @@ class Checkpoint(Container):
   rule #Checkpoint(EPOCH,_).epoch => EPOCH
   syntax Hash ::= Checkpoint "." "root"                               [function]
   rule #Checkpoint(_,ROOT).root => ROOT
+
+  syntax Checkpoint ::= defaultCheckpoint()                           [function]
+  rule defaultCheckpoint() => #Checkpoint(0, defaultHash())
 
   /*
 class Validator(Container):
@@ -718,7 +724,7 @@ def bytes_to_int(data: bytes) -> uint64:
     requires END <=Int 0
 
   syntax DepositDataList ::= slice(DepositDataList, Int, Int) [function]
-  rule slice(BL:DepositDataList, BEGIN, END) => dropTail(drop(BL, BEGIN), END -Int BEGIN)
+  rule slice(BL:DepositDataList, BEGIN, END) => keepFirst(drop(BL, BEGIN), END -Int BEGIN)
     requires BEGIN >=Int 0 andBool END >=Int 0
 
   syntax DepositDataList ::= drop(DepositDataList, Int) [function]
@@ -727,11 +733,12 @@ def bytes_to_int(data: bytes) -> uint64:
   rule drop(BL:DepositDataList, BEGIN) => BL
     requires BEGIN <=Int 0
 
-  syntax DepositDataList ::= dropTail(DepositDataList, Int) [function]
-  rule dropTail(I BL:DepositDataList, END) => I dropTail(BL, END -Int 1)
-    requires END >Int 0
-  rule dropTail(BL:DepositDataList, END) => .DepositDataList
-    requires END <=Int 0
+  syntax DepositDataList ::= keepFirst(DepositDataList, Int) [function]
+  rule keepFirst(I BL:DepositDataList, N) => I keepFirst(BL, N -Int 1)
+    requires N >Int 0
+  rule keepFirst(BL:DepositDataList, N) => .DepositDataList
+    requires N <=Int 0
+  rule keepFirst(.DepositDataList, _) => .DepositDataList
 
   syntax Bool ::= allOnes(BitList) [function]
   rule allOnes(true BL) => allOnes(BL)
@@ -761,7 +768,20 @@ def bytes_to_int(data: bytes) -> uint64:
     requires I >Int 0
   rule initMapOfSize(0) => .Map
 
-  syntax CompactCommitteeList ::= initCompCommListOfSize(Int) [function]
+  //Fill in a vector of n instances of elem.
+  syntax BytesList ::= fillInVector(elem: Bytes, n: Int)              [function]
+  rule fillInVector(ELEM, N) => ELEM fillInVector(ELEM, N -Int 1)
+    requires N >Int 0
+  rule fillInVector(_, 0) => .BytesList
+
+  syntax Map ::= fillInMap(elem: Value, n: Int)                       [function]
+               | fillInMap(elem: Value, n: Int, i: Int)               [function]
+  rule fillInMap(ELEM, N) => fillInMap(ELEM, N, 0)
+  rule fillInMap(ELEM, N, I) => (I |-> ELEM) fillInMap(ELEM, N, I +Int 1)
+    requires I <Int N
+  rule fillInMap(ELEM, N, N) => .Map
+
+  syntax CompactCommitteeList ::= initCompCommListOfSize(Int)         [function]
   rule initCompCommListOfSize(I) => #CompactCommittee(.BytesList, .IntList) initCompCommListOfSize(I -Int 1)
     requires I >Int 0
   rule initCompCommListOfSize(0) => .CompactCommitteeList

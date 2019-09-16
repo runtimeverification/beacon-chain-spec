@@ -209,7 +209,10 @@ test_type_to_term = {
     'rewards_and_penalties'             : None, #planned
 
     # sanity
-    'slots'                             : intToken
+    'slots'                             : intToken,
+
+    # genesis
+    'validity'                          : None
 }
 
 data_class_to_converter = {
@@ -355,14 +358,14 @@ def buildConfigSubstitution(test_pre_state, config_cells, skip_keys = [], debug_
 
     return new_key_table
 
-def loadBlocks(test_dir):
+def loadYamlFileList(test_dir, base_name):
     blocks = []
     i = 0
-    block = loadYaml(test_dir, 'blocks_%d.yaml' % i)
+    block = loadYaml(test_dir, '%s_%d.yaml' % (base_name, i))
     while block is not None:
         blocks.append(block)
         i += 1
-        block = loadYaml(test_dir, 'blocks_%d.yaml' % i)
+        block = loadYaml(test_dir, '%s_%d.yaml' % (base_name, i))
     return blocks
 
 def loadYaml(test_dir, name):
@@ -390,6 +393,7 @@ def buildPreConfigSubst(test_dir):
     test_runner = test_dir.parts[-4]
     test_handler = test_dir.parts[-3]
     file_name = 'value.yaml' if test_runner == 'ssz_static' and test_handler == 'BeaconState' \
+        else 'genesis.yaml' if test_runner == 'genesis' and test_handler == 'validity' \
         else 'pre.yaml'
     pre_yaml = loadYaml(test_dir, file_name)
     if pre_yaml is not None:
@@ -408,15 +412,27 @@ def buildKCell(test_dir):
         arg_converter = data_class_to_converter[test_handler]
         file_name = 'value.yaml'
     elif test_runner == 'sanity' and test_handler == 'blocks':
-        blocks = loadBlocks(test_dir)
+        blocks = loadYamlFileList(test_dir, 'blocks')
         resultSeq = [KApply('init', [])] \
                     + [KApply('state_transition', [beaconBlockTerm(block), boolToken('false')]) for block in blocks]
         return KSequence(resultSeq)
-    elif test_runner in ('operations', 'epoch_processing', 'sanity'):
+    elif test_runner == 'genesis' and test_handler == 'initialization':
+        eth1_block_hash = loadYaml(test_dir, 'eth1_block_hash.yaml')
+        eth1_timestamp = loadYaml(test_dir, 'eth1_timestamp.yaml')
+        deposits = loadYamlFileList(test_dir, 'deposits')
+        return KSequence([
+            KApply('init', []),
+            KApply('initialize_beacon_state_from_eth1',
+                   [hashToken(eth1_block_hash), intToken(eth1_timestamp),
+                    listOf('Deposit', converter = depositTerm)(deposits)])
+            ])
+    elif test_runner in ('operations', 'epoch_processing', 'sanity', 'genesis'):
         if test_handler not in test_type_to_term.keys():
             raise Exception("Unsupported test handler: " + test_handler)
         if test_handler == 'slots':
             entry_point = 'test_process_%s' % test_handler
+        elif test_handler == 'validity':
+            entry_point = 'wrap_is_valid_genesis_state'
         else:
             entry_point = 'process_%s' % test_handler
         arg_converter = test_type_to_term[test_handler]
@@ -435,12 +451,27 @@ def buildKCell(test_dir):
 
 def buildPostKCell(test_dir):
     test_runner = test_dir.parts[-4]
-    return None if test_runner != 'ssz_static' \
-        else KSequence([
+    test_handler = test_dir.parts[-3]
+    if test_runner == 'ssz_static':
+        return KSequence([
                 KApply('init', []),
                 hashToken(loadYaml(test_dir, 'roots.yaml')['root'])
-            ])
+               ])
+    elif test_handler == 'validity':
+        return KSequence([
+                KApply('init', []),
+                boolToken(loadYaml(test_dir, 'is_valid.yaml'))
+               ])
+    else:
+        return None
 
+def getPostFile(test_dir):
+    test_runner = test_dir.parts[-4]
+    test_handler = test_dir.parts[-3]
+    if test_runner == 'genesis' and test_handler == 'initialization':
+        return 'state.yaml'
+    else:
+        return 'post.yaml'
 
 def main():
     arguments = argparse.ArgumentParser(prog = sys.argv[0])
@@ -496,7 +527,7 @@ def main():
             _fatal('krun returned non-zero exit code: ' + test_title, code = returnCode)
 
     # Printing the post state
-    post_yaml = loadYaml(test_dir, "post.yaml")
+    post_yaml = loadYaml(test_dir, getPostFile(test_dir))
     post_k_cell = buildPostKCell(test_dir)
     if post_yaml is not None or post_k_cell is not None:
         post_config_subst = copy.deepcopy(init_config_subst)

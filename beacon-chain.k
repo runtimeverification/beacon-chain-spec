@@ -15,8 +15,10 @@ module BEACON-CHAIN
   //Workarounds to make kast happy. Cannot put a function with no-args in init <k>, with json input.
   syntax KItem ::= "wrap_hash_tree_root" "(" BytesOrContainer ")" [klabel(wrap_hash_tree_root), symbol]
                  | "wrap_hash_tree_root_state" "(" ")" [klabel(wrap_hash_tree_root_state), symbol]
+                 | "wrap_is_valid_genesis_state" "(" ")" [klabel(wrap_is_valid_genesis_state), symbol]
   rule wrap_hash_tree_root(OBJ) => hash_tree_root(OBJ)
   rule wrap_hash_tree_root_state() => hash_tree_root_state()
+  rule wrap_is_valid_genesis_state() => is_valid_genesis_state()
 
   syntax KItem ::=  "test_process_slots" "(" Int ")"   [klabel(test_process_slots), symbol]
   rule <k> test_process_slots(NrSlots) => process_slots(SLOT +Int NrSlots) ...</k>
@@ -198,9 +200,9 @@ def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, in
   syntax Bool ::= "is_valid_merkle_branch_aux" "(" BytesList "," Int "," Int "," Hash "," Int "," Hash ")" [function]
   rule is_valid_merkle_branch_aux(Branch, Depth, Index, _,
                                   I => I +Int 1,
-                                  Value => #if Index /Int (2 ^Int I) %Int 2 ==K 1
-                                           #then {hash(Branch[I] +Bytes Value)}:>Hash
-                                           #else {hash(Value +Bytes Branch[I])}:>Hash
+                                  Value => #if Index /Int (2 ^Int I) %Int 2 ==Int 1
+                                            #then {hash(Branch[I] +Bytes Value)}:>Hash
+                                            #else {hash(Value +Bytes Branch[I])}:>Hash
                                            #fi
                                  )
     requires I <Int Depth
@@ -984,34 +986,52 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
         state.compact_committees_roots[index] = committee_root
     return state
 */
-  syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Hash "," Int "," DepositList ")"
+  syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Hash "," Int "," DepositList ")" [klabel(initialize_beacon_state_from_eth1), symbol]
   rule <k> initialize_beacon_state_from_eth1(E1BH, E1TS, Deposits)
-           => processEth1Deposits(Deposits, getDataList(Deposits), 0)
-           ~> processEth1Activations(numOfValidators(), 0)
-           ~> populateEth1Roots(
-                // List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT]
-                hash_tree_root_list(get_active_validator_indices(GENESIS_EPOCH), VALIDATOR_REGISTRY_LIMIT, %uint64, false),
-                get_compact_committees_root(GENESIS_EPOCH),
-                0, EPOCHS_PER_HISTORICAL_VECTOR)
+           => stateInit
+           ~> processEth1Deposits(Deposits, getDataList(Deposits), 0)
+           ~> processEth1Activations
+           ~> populateEth1Roots
        ... </k>
        <genesis-time> _ => E1TS -Int E1TS %Int SECONDS_PER_DAY +Int 2 *Int SECONDS_PER_DAY </genesis-time>
-       <eth1-data> _ => #Eth1Data("", len(Deposits), E1BH) </eth1-data>  // deposit root unspecified, hence the ""
+       <eth1-data> _ => #Eth1Data(defaultHash(), len(Deposits), E1BH) </eth1-data>
        <latest-block-header>
               //BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody()))
          _ => #BeaconBlockHeader(0, defaultHash(), defaultHash(), hash_tree_root(defaultBeaconBlockBody()), defaultBLSSignature())
        </latest-block-header>
 
+  //Full state initialization, when generating genesis state
+  syntax KItem ::= "stateInit"
+
+  rule <k> stateInit => .K ...</k>
+       <fork> _ => #Fork({defaultBytes4()}:>Version, {defaultBytes4()}:>Version, 0) </fork>
+       <block-roots>  _ => fillInMap(defaultHash(), SLOTS_PER_HISTORICAL_ROOT) </block-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
+       <state-roots>  _ => fillInMap(defaultHash(), SLOTS_PER_HISTORICAL_ROOT) </state-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
+       <randao-mixes> _ => fillInVector(defaultHash(), EPOCHS_PER_HISTORICAL_VECTOR) </randao-mixes> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
+       <slashings>    _ => fillInMap(0, EPOCHS_PER_SLASHINGS_VECTOR) </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
+       <previous-crosslinks> _ => fillInMap(defaultCrosslink(), SHARD_COUNT) </previous-crosslinks> //Vector[Crosslink, SHARD_COUNT]
+       <current-crosslinks>  _ => fillInMap(defaultCrosslink(), SHARD_COUNT) </current-crosslinks> //Vector[Crosslink, SHARD_COUNT]
+       <justification-bits> _ => false  false  false  false  .BitList </justification-bits> //Bitvector[JUSTIFICATION_BITS_LENGTH]
+       <previous-justified-checkpoint> _ => defaultCheckpoint() </previous-justified-checkpoint>
+       <current-justified-checkpoint> _ => defaultCheckpoint() </current-justified-checkpoint>
+       <finalized-checkpoint> _ => defaultCheckpoint() </finalized-checkpoint>
+
+/*  leaves = list(map(lambda deposit: deposit.data, deposits))
+    for index, deposit in enumerate(deposits):
+        deposit_data_list = List[DepositData, 2**DEPOSIT_CONTRACT_TREE_DEPTH](*leaves[:index + 1])
+        state.eth1_data.deposit_root = hash_tree_root(deposit_data_list)
+        process_deposit(state, deposit) */
   syntax KItem ::= "processEth1Deposits" "(" DepositList "," DepositDataList "," Int ")"
   rule <k> (. => process_deposit(Dep))
-           ~> processEth1Deposits(Dep Deposits => Deposits, Leaf Leaves => Leaves, INDEX => INDEX +Int 1)
+           ~> processEth1Deposits(Dep Deposits => Deposits, Leaves, INDEX => INDEX +Int 1)
        ... </k>
        <eth1-data>
-         E1Data => setDepositRoot(E1Data,
+         ETH1Data => setDepositRoot(ETH1Data,
             //List[DepositData, 2**DEPOSIT_CONTRACT_TREE_DEPTH]
             hash_tree_root_list(slice(Leaves, 0, INDEX +Int 1), 2 ^Int DEPOSIT_CONTRACT_TREE_DEPTH, %container, false))
        </eth1-data>
 
-  rule <k> processEth1Deposits(.DepositList, .DepositDataList, _) => .K ... </k>
+  rule processEth1Deposits(.DepositList, _,_) => .K
 
   syntax Eth1Data ::= setDepositRoot(Eth1Data, Hash) [function]
   rule setDepositRoot(#Eth1Data(DROOT, COUNT, BHASH), NewDROOT) => #Eth1Data(NewDROOT, COUNT, BHASH)
@@ -1020,36 +1040,48 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
   rule getDataList(Dep Deps) => Dep.data getDataList(Deps)
   rule getDataList(.DepositList) => .DepositDataList
 
-  syntax KItem ::= "processEth1Activations" "(" Int "," Int ")"
-  rule <k> processEth1Activations(COUNT, INDEX => INDEX +Int 1)
-       ... </k>
-       <balances> INDEX |-> BAL </balances>
+/*  for index, validator in enumerate(state.validators):
+        balance = state.balances[index]
+        validator.effective_balance = min(balance - balance % EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE)
+        if validator.effective_balance == MAX_EFFECTIVE_BALANCE:
+            validator.activation_eligibility_epoch = GENESIS_EPOCH
+            validator.activation_epoch = GENESIS_EPOCH  */
+  syntax KItem ::= "processEth1Activations"
+                 | processEth1Activations( Int, Int )
+  rule processEth1Activations => processEth1Activations(0, numOfValidators())
+  rule <k> processEth1Activations(INDEX => INDEX +Int 1, COUNT) ...</k>
+       <balances> INDEX |-> BAL ...</balances>
        <validators> INDEX |-> #Validator(_,_,
                                  (_ => minInt(BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE)),
                                  _,
                                  (AEE => #if MAX_EFFECTIVE_BALANCE <=Int BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT
-                                         #then GENESIS_EPOCH
-                                         #else AEE
+                                            #then GENESIS_EPOCH
+                                            #else AEE
                                          #fi),
                                  (AE  => #if MAX_EFFECTIVE_BALANCE <=Int BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT
-                                         #then GENESIS_EPOCH
-                                         #else AE
+                                            #then GENESIS_EPOCH
+                                            #else AE
                                          #fi),
                                  _,_)
-       </validators>
+       ...</validators>
     requires INDEX <Int COUNT
 
-  rule <k> processEth1Activations(COUNT, INDEX) => .K ... </k>
-    requires INDEX >=Int COUNT
+  rule processEth1Activations(COUNT, COUNT) => .K
 
-  syntax KItem ::= "populateEth1Roots" "(" Hash "," Hash "," Int "," Int ")"
-  rule <k> populateEth1Roots(AIRoot, CCRoot, Index => Index +Int 1, Count) ... </k>
-       <active-index-roots> AIRoots => setRootAt(Index, AIRoots, AIRoot) </active-index-roots>
-       <compact-committees-roots> CCRoots=> setRootAt(Index, CCRoots, CCRoot) </compact-committees-roots>
-    requires Index <Int Count
-
-  rule <k> populateEth1Roots(_, _, Index, Count) => .K ... </k>
-    requires Index >=Int Count
+/*  # Populate active_index_roots and compact_committees_roots
+    indices_list = List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT](get_active_validator_indices(state, GENESIS_EPOCH))
+    active_index_root = hash_tree_root(indices_list)
+    committee_root = get_compact_committees_root(state, GENESIS_EPOCH)
+    for index in range(EPOCHS_PER_HISTORICAL_VECTOR):
+        state.active_index_roots[index] = active_index_root
+        state.compact_committees_roots[index] = committee_root */
+  syntax KItem ::= "populateEth1Roots"
+  rule <k> populateEth1Roots => .K ...</k>
+       <active-index-roots>
+          _ => fillInVector(hash_tree_root_list(get_active_validator_indices(GENESIS_EPOCH), VALIDATOR_REGISTRY_LIMIT, %uint64, false),
+                            EPOCHS_PER_HISTORICAL_VECTOR)
+       </active-index-roots>
+       <compact-committees-roots> _ => fillInVector(get_compact_committees_root(GENESIS_EPOCH), EPOCHS_PER_HISTORICAL_VECTOR) </compact-committees-roots>
 
 /*
 def is_valid_genesis_state(state: BeaconState) -> bool:
@@ -1059,7 +1091,7 @@ def is_valid_genesis_state(state: BeaconState) -> bool:
         return False
     return True
 */
-  syntax Bool ::= "is_valid_genesis_state" "(" ")" [function]
+  syntax Bool ::= "is_valid_genesis_state" "(" ")"                    [function, klabel(is_valid_genesis_state), symbol]
   rule [[ is_valid_genesis_state()
        => #if Gtime <Int MIN_GENESIS_TIME
               orBool len(get_active_validator_indices(GENESIS_EPOCH)) <Int MIN_GENESIS_ACTIVE_VALIDATOR_COUNT
@@ -2124,26 +2156,17 @@ def process_final_updates(state: BeaconState) -> None:
   syntax KItem ::= "setActiveIndexRoots" "(" Int ")"
   rule <k> setActiveIndexRoots(IndexEpoch) => .K ... </k>
        <active-index-roots> AIR
-         => setRootAtIndex(AIR,
-                           IndexEpoch %Int EPOCHS_PER_HISTORICAL_VECTOR,
-                           //List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT]
-                           hash_tree_root_list(get_active_validator_indices(IndexEpoch), VALIDATOR_REGISTRY_LIMIT, %uint64, false))
+         => setBytesAt(AIR,
+                       IndexEpoch %Int EPOCHS_PER_HISTORICAL_VECTOR,
+                       //List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT]
+                       hash_tree_root_list(get_active_validator_indices(IndexEpoch), VALIDATOR_REGISTRY_LIMIT, %uint64, false))
        </active-index-roots>
-
-  syntax BytesList ::= setRootAtIndex(BytesList, Int, Bytes) [function]
-  rule setRootAtIndex(I BL, INDEX, I') => I setRootAtIndex(BL, INDEX -Int 1, I')
-    requires INDEX >Int 0
-  rule setRootAtIndex(I BL, 0, I') => I' BL
 
   syntax KItem ::= "setCommitteesRoot" "(" Int ")"
   rule <k> setCommitteesRoot(CommRootPos) => .K ... </k>
        <compact-committees-roots>
-         CRS => setRootAt(CommRootPos, CRS, get_compact_committees_root(get_current_epoch() +Int 1))
+         CRS => setBytesAt(CRS, CommRootPos, get_compact_committees_root(get_current_epoch() +Int 1))
        </compact-committees-roots>
-
-  syntax BytesList ::= setRootAt(Int, BytesList, Hash) [function]
-  rule setRootAt(Pos, CR CRS, CR') => CR setRootAt(Pos -Int 1, CRS, CR') requires Pos >Int 0
-  rule setRootAt(0, CR CRS, CR') => CR' CRS
 
   syntax KItem ::= "resetSlashings" "(" Int ")"
   rule <k> resetSlashings(SlashIndex) => .K ... </k>

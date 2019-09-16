@@ -51,6 +51,8 @@ clean:
 
 clean-submodules:
 	rm -rf $(DEPS_DIR)/k/submodule.timestamp $(DEPS_DIR)/k/mvn.timestamp $(DEPS_DIR)/pandoc-tangle/submodule.timestamp tests/eth2.0-specs/submodule.timestamp
+	cd $(DEPS_DIR)/k         && mvn clean --quiet
+	cd $(DEPS_DIR)/secp256k1 && make distclean || true
 
 # Non-K Dependencies
 # ------------------
@@ -169,6 +171,7 @@ $(llvm_kompiled): $(llvm_files) $(libff_out)
 	                 $(addprefix -ccopt ,$(LINK_PROCPS))                              \
 	                 -ccopt -g                                                        \
 	                 -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                \
+	                 -ccopt -lsecp256k1                                               \
 	                 $(LLVM_KOMPILE_OPTS)
 
 # Haskell Backend

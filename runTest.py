@@ -415,7 +415,7 @@ def buildKCell(test_dir):
     elif test_runner == 'sanity' and test_handler == 'blocks':
         blocks = loadYamlFileList(test_dir, 'blocks')
         resultSeq = [KApply('init', [])] \
-                    + [KApply('state_transition', [beaconBlockTerm(block), boolToken('false')]) for block in blocks]
+                    + [KApply('state_transition', [beaconBlockTerm(block), boolToken('true')]) for block in blocks]
         return KSequence(resultSeq)
     elif test_runner == 'genesis' and test_handler == 'initialization':
         eth1_block_hash = loadYaml(test_dir, 'eth1_block_hash.yaml')

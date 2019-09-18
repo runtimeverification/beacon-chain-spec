@@ -200,12 +200,15 @@ def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, in
   syntax Bool ::= "is_valid_merkle_branch_aux" "(" BytesList "," Int "," Int "," Hash "," Int "," Hash ")" [function]
   rule is_valid_merkle_branch_aux(Branch, Depth, Index, _,
                                   I => I +Int 1,
-                                  Value => #if Index /Int (2 ^Int I) %Int 2 ==Int 1
-                                            #then {hash(Branch[I] +Bytes Value)}:>Hash
-                                            #else {hash(Value +Bytes Branch[I])}:>Hash
-                                           #fi
+                                  Value => {hash(Branch[I] +Bytes Value)}:>Hash
                                  )
-    requires I <Int Depth
+    requires I <Int Depth andBool Index /Int (2 ^Int I) %Int 2 ==Int 1
+
+  rule is_valid_merkle_branch_aux(Branch, Depth, Index, _,
+                                  I => I +Int 1,
+                                  Value => {hash(Value +Bytes Branch[I])}:>Hash
+                                 )
+    requires I <Int Depth andBool notBool Index /Int (2 ^Int I) %Int 2 ==Int 1
 
   rule is_valid_merkle_branch_aux(_, Depth, _, Root, I, Value) => Root ==String Value
     requires I >=Int Depth
@@ -238,17 +241,24 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
 
   syntax Int ::= "compute_shuffled_index_loop" "(" Int "," Int "," Hash "," Int "," Int ")" [function]
   rule compute_shuffled_index_loop(
-         INDEX => #if computeBit(maxInt(INDEX, computeFlip(computePivot(SEED, CurrRound, COUNT), INDEX, COUNT)),
-                                 SEED, CurrRound)
-                  #then computeFlip(computePivot(SEED, CurrRound, COUNT), INDEX, COUNT)
-                  #else INDEX
-                  #fi,
+         INDEX => computeFlip(computePivot(SEED, CurrRound, COUNT), INDEX, COUNT),
          COUNT,
          SEED,
          CurrRound => CurrRound +Int 1,
          RoundCount
     )
     requires CurrRound <Int RoundCount
+     andBool computeBit(maxInt(INDEX, computeFlip(computePivot(SEED, CurrRound, COUNT), INDEX, COUNT)), SEED, CurrRound)
+
+  rule compute_shuffled_index_loop(
+         INDEX,
+         COUNT,
+         SEED,
+         CurrRound => CurrRound +Int 1,
+         RoundCount
+    )
+    requires CurrRound <Int RoundCount
+     andBool notBool computeBit(maxInt(INDEX, computeFlip(computePivot(SEED, CurrRound, COUNT), INDEX, COUNT)), SEED, CurrRound)
 
   rule compute_shuffled_index_loop(INDEX, _, _, CurrRound, RoundCount) => INDEX
     requires CurrRound >=Int RoundCount
@@ -367,10 +377,11 @@ def get_previous_epoch(state: BeaconState) -> Epoch:
     return GENESIS_EPOCH if current_epoch == GENESIS_EPOCH else Epoch(current_epoch - 1)
 */
   syntax Int ::= "get_previous_epoch" "(" ")" [function]
-  rule get_previous_epoch() =>  #if get_current_epoch() ==K GENESIS_EPOCH
-                                #then GENESIS_EPOCH
-                                #else get_current_epoch() -Int 1
-                                #fi
+  rule get_previous_epoch() =>  GENESIS_EPOCH
+    requires get_current_epoch() ==Int GENESIS_EPOCH
+
+  rule get_previous_epoch() =>  get_current_epoch() -Int 1
+    requires notBool get_current_epoch() ==Int GENESIS_EPOCH
 
 /*
 def get_block_root(state: BeaconState, epoch: Epoch) -> Hash:
@@ -687,8 +698,22 @@ def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
                                                            getValidator(I).pubkey,
                                                            computeCompactValidatorIndex(
                                                              I,
-                                                             #if getValidator(I).slashed #then 1 #else 0 #fi,
+                                                             1,
                                                              getValidator(I).effectiveBalance /Int EFFECTIVE_BALANCE_INCREMENT))))
+    requires getValidator(I).slashed
+
+  rule computeCompactCommitteesIndLoop(
+            Shard,
+            I IL => IL,
+            CommitteeList => setCommAtShard(CommitteeList,
+                                            Shard,
+                                            updateCompComm(CommitteeList[Shard],
+                                                           getValidator(I).pubkey,
+                                                           computeCompactValidatorIndex(
+                                                             I,
+                                                             0,
+                                                             getValidator(I).effectiveBalance /Int EFFECTIVE_BALANCE_INCREMENT))))
+    requires notBool getValidator(I).slashed
 
   rule computeCompactCommitteesIndLoop(_, .IntList, CommitteeList) => CommitteeList
 
@@ -739,12 +764,23 @@ def get_domain(state: BeaconState, domain_type: DomainType, message_epoch: Epoch
 */
   syntax Domain ::= "get_domain" "(" DomainType "," OptionInt ")" [function]
   rule get_domain(DTYPE, OEPOCH)
-    => get_domain_aux(DTYPE, #if isNone(OEPOCH) #then get_current_epoch() #else intOf(OEPOCH) #fi)
+    => get_domain_aux(DTYPE, get_current_epoch())
+    requires isNone(OEPOCH)
+
+  rule get_domain(DTYPE, OEPOCH)
+    => get_domain_aux(DTYPE, intOf(OEPOCH))
+    requires notBool isNone(OEPOCH)
 
   syntax Domain ::= "get_domain_aux" "(" DomainType "," Int ")" [function]
   rule [[ get_domain_aux(DTYPE, EPOCH)
-    => compute_domain(DTYPE, #if EPOCH <Int FEPOCH #then FPREV #else FCURR #fi) ]]
+    => compute_domain(DTYPE, FPREV) ]]
   <fork> #Fork(FPREV,FCURR,FEPOCH) </fork>
+    requires EPOCH <Int FEPOCH
+
+  rule [[ get_domain_aux(DTYPE, EPOCH)
+    => compute_domain(DTYPE, FCURR) ]]
+  <fork> #Fork(FPREV,FCURR,FEPOCH) </fork>
+    requires notBool EPOCH <Int FEPOCH
 
 /*
 def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> IndexedAttestation:
@@ -822,7 +858,12 @@ def decrease_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> 
 */
   syntax KItem ::= "decrease_balance" "(" ValidatorIndex "," Int ")"
   rule <k> decrease_balance(ValIndex, Delta) => . ...</k>
-       <balances>... ValIndex |-> (BAL => #if Delta >Int BAL #then 0 #else BAL -Int Delta #fi) ...</balances>
+       <balances>... ValIndex |-> (BAL => 0) ...</balances>
+    requires Delta >Int BAL
+
+  rule <k> decrease_balance(ValIndex, Delta) => . ...</k>
+       <balances>... ValIndex |-> (BAL => BAL -Int Delta) ...</balances>
+    requires notBool Delta >Int BAL
 
 /*
 def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
@@ -858,15 +899,19 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
        <validators>
        VALIDATORS:Map
        INDEX |-> #Validator(_,_,_,_,_,_,
-            ExitEPOCH => #if exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int get_validator_churn_limit()
-                            #then ExitQEpoch +Int 1
-                            #else ExitQEpoch
-                         #fi ,
-            WithdrEpoch => #if exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int get_validator_churn_limit()
-                            #then ExitQEpoch +Int 1
-                            #else ExitQEpoch
-                         #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY)
+            ExitEPOCH => ExitQEpoch +Int 1,
+            WithdrEpoch => ExitQEpoch +Int 1 +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY)
        </validators>
+    requires exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int get_validator_churn_limit()
+
+  rule <k> initiateValidatorExitAux(INDEX, ExitQEpoch) => .K ...</k>
+       <validators>
+       VALIDATORS:Map
+       INDEX |-> #Validator(_,_,_,_,_,_,
+            ExitEPOCH => ExitQEpoch,
+            WithdrEpoch => ExitQEpoch +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY)
+       </validators>
+    requires notBool exitQueueChurnAux(ExitQEpoch, VALIDATORS, 0) >=Int get_validator_churn_limit()
 
   syntax Int ::= exitQueueEpochAux ( Int ) [function]
   rule [[ exitQueueEpochAux(INDEX)
@@ -923,13 +968,26 @@ def slash_validator(state: BeaconState,
     rule <k> slash_validator(SlashedINDEX, WhistleblINDEX)
              => initiate_validator_exit(SlashedINDEX)
              ~> slashValidatorAux(SlashedINDEX,
-                                  #if WhistleblINDEX ==K .ValidatorIndex #then get_beacon_proposer_index() #else WhistleblINDEX #fi,
+                                  get_beacon_proposer_index(),
                                   get_beacon_proposer_index(),
                                   VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT, //whistleblower_reward
                                   VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT /Int PROPOSER_REWARD_QUOTIENT, //proposer_reward
                                   get_current_epoch()) //epoch
           ...</k>
          <validators> SlashedINDEX |-> VAL ...</validators>
+    requires WhistleblINDEX ==K .ValidatorIndex
+
+    rule <k> slash_validator(SlashedINDEX, WhistleblINDEX)
+             => initiate_validator_exit(SlashedINDEX)
+             ~> slashValidatorAux(SlashedINDEX,
+                                  WhistleblINDEX,
+                                  get_beacon_proposer_index(),
+                                  VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT, //whistleblower_reward
+                                  VAL.effectiveBalance /Int WHISTLEBLOWER_REWARD_QUOTIENT /Int PROPOSER_REWARD_QUOTIENT, //proposer_reward
+                                  get_current_epoch()) //epoch
+          ...</k>
+         <validators> SlashedINDEX |-> VAL ...</validators>
+    requires notBool WhistleblINDEX ==K .ValidatorIndex
 
  syntax KItem ::= "slashValidatorAux" "(" ValidatorIndex "," ValidatorIndex "," ValidatorIndex "," Int "," Int "," Int ")"
     rule <k> slashValidatorAux(SlashedINDEX, WhistleblINDEX, ProposerINDEX, WhistleREWARD, ProposerREWARD, Epoch)
@@ -1054,17 +1112,24 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
        <validators> INDEX |-> #Validator(_,_,
                                  (_ => minInt(BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE)),
                                  _,
-                                 (AEE => #if MAX_EFFECTIVE_BALANCE <=Int BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT
-                                            #then GENESIS_EPOCH
-                                            #else AEE
-                                         #fi),
-                                 (AE  => #if MAX_EFFECTIVE_BALANCE <=Int BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT
-                                            #then GENESIS_EPOCH
-                                            #else AE
-                                         #fi),
+                                 (AEE => GENESIS_EPOCH),
+                                 (AE  => GENESIS_EPOCH),
                                  _,_)
        ...</validators>
     requires INDEX <Int COUNT
+     andBool MAX_EFFECTIVE_BALANCE <=Int BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT
+
+  rule <k> processEth1Activations(INDEX => INDEX +Int 1, COUNT) ...</k>
+       <balances> INDEX |-> BAL ...</balances>
+       <validators> INDEX |-> #Validator(_,_,
+                                 (_ => minInt(BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE)),
+                                 _,
+                                 AEE,
+                                 AE,
+                                 _,_)
+       ...</validators>
+    requires INDEX <Int COUNT
+     andBool notBool MAX_EFFECTIVE_BALANCE <=Int BAL -Int BAL %Int EFFECTIVE_BALANCE_INCREMENT
 
   rule processEth1Activations(COUNT, COUNT) => .K
 
@@ -1092,13 +1157,15 @@ def is_valid_genesis_state(state: BeaconState) -> bool:
     return True
 */
   syntax Bool ::= "is_valid_genesis_state" "(" ")"                    [function, klabel(is_valid_genesis_state), symbol]
-  rule [[ is_valid_genesis_state()
-       => #if Gtime <Int MIN_GENESIS_TIME
-              orBool len(get_active_validator_indices(GENESIS_EPOCH)) <Int MIN_GENESIS_ACTIVE_VALIDATOR_COUNT
-          #then false
-          #else true
-          #fi ]]
+  rule [[ is_valid_genesis_state() => false ]]
        <genesis-time> Gtime </genesis-time>
+    requires Gtime <Int MIN_GENESIS_TIME
+             orBool len(get_active_validator_indices(GENESIS_EPOCH)) <Int MIN_GENESIS_ACTIVE_VALIDATOR_COUNT
+
+  rule [[ is_valid_genesis_state() => true ]]
+       <genesis-time> Gtime </genesis-time>
+    requires notBool (Gtime <Int MIN_GENESIS_TIME
+             orBool len(get_active_validator_indices(GENESIS_EPOCH)) <Int MIN_GENESIS_ACTIVE_VALIDATOR_COUNT)
 
 
   // Beacon chain state transition function
@@ -1140,12 +1207,20 @@ def process_slots(state: BeaconState, slot: Slot) -> None:
   syntax KItem ::= "processSlotsLoop" "(" Int ")"
   rule <k> processSlotsLoop(SLOT) =>
              process_slot()
-             ~> #if (StateSLOT +Int 1) %Int SLOTS_PER_EPOCH ==K 0 #then process_epoch() #else .K #fi
+             ~> process_epoch()
              ~> incrementSlot()
              ~> processSlotsLoop(SLOT)
        ...</k>
        <slot> StateSLOT </slot>
-    requires StateSLOT <Int SLOT
+    requires StateSLOT <Int SLOT andBool (StateSLOT +Int 1) %Int SLOTS_PER_EPOCH ==Int 0
+
+  rule <k> processSlotsLoop(SLOT) =>
+             process_slot()
+             ~> incrementSlot()
+             ~> processSlotsLoop(SLOT)
+       ...</k>
+       <slot> StateSLOT </slot>
+    requires StateSLOT <Int SLOT andBool notBool (StateSLOT +Int 1) %Int SLOTS_PER_EPOCH ==Int 0
 
   rule <k> processSlotsLoop(SLOT) => .K ... </k>
        <slot> StateSLOT </slot>
@@ -1177,10 +1252,13 @@ def process_slot(state: BeaconState) -> None:
   rule <k> processSlotAux(PreviousStateRoot, SLOT) => cacheBlockRoot(SLOT) ...</k>
        <state-roots> SLOT |-> (_ => PreviousStateRoot) ...</state-roots>
        <latest-block-header> #BeaconBlockHeader(_,_, BHStateRoot
-                                                     => #if BHStateRoot ==K defaultBytes32()
-                                                          #then PreviousStateRoot
-                                                          #else BHStateRoot
-                                                        #fi , _,_) </latest-block-header>
+                                                     => PreviousStateRoot, _,_) </latest-block-header>
+    requires BHStateRoot ==K defaultBytes32()
+
+  rule <k> processSlotAux(PreviousStateRoot, SLOT) => cacheBlockRoot(SLOT) ...</k>
+       <state-roots> SLOT |-> (_ => PreviousStateRoot) ...</state-roots>
+       <latest-block-header> #BeaconBlockHeader(_,_, BHStateRoot, _,_) </latest-block-header>
+    requires notBool BHStateRoot ==K defaultBytes32()
 
   syntax KItem ::= "cacheBlockRoot" "(" Int ")"
   rule <k> cacheBlockRoot(SLOT) => .K ...</k>
@@ -1218,10 +1296,15 @@ def get_matching_source_attestations(state: BeaconState, epoch: Epoch) -> Sequen
     return state.current_epoch_attestations if epoch == get_current_epoch(state) else state.previous_epoch_attestations
 */
   syntax PendingAttestationList ::= "get_matching_source_attestations" "(" Int ")" [function]
-  rule [[ get_matching_source_attestations(EPOCH) =>
-    #if EPOCH ==K get_current_epoch() #then CEA #else PEA #fi ]]
+  rule [[ get_matching_source_attestations(EPOCH) => CEA ]]
     <current-epoch-attestations> CEA </current-epoch-attestations>
     <previous-epoch-attestations> PEA </previous-epoch-attestations>
+    requires EPOCH ==Int get_current_epoch()
+
+  rule [[ get_matching_source_attestations(EPOCH) => PEA ]]
+    <current-epoch-attestations> CEA </current-epoch-attestations>
+    <previous-epoch-attestations> PEA </previous-epoch-attestations>
+    requires notBool EPOCH ==Int get_current_epoch()
 
 /*
 def get_matching_target_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
@@ -1276,10 +1359,10 @@ def get_unslashed_attesting_indices(state: BeaconState,
   rule getAttestingIndicesLoop(.PendingAttestationList, IL) => IL
 
   syntax IntList ::= filterOutSlashedIndices(IntList) [function]
-  rule filterOutSlashedIndices(I IL) => #if getValidator(I).slashed
-                                          #then filterOutSlashedIndices(IL)
-                                          #else I filterOutSlashedIndices(IL)
-                                        #fi
+  rule filterOutSlashedIndices(I IL) => filterOutSlashedIndices(IL)
+    requires getValidator(I).slashed
+  rule filterOutSlashedIndices(I IL) => I filterOutSlashedIndices(IL)
+    requires notBool getValidator(I).slashed
   rule filterOutSlashedIndices(.IntList) => .IntList
 
 /*
@@ -1330,15 +1413,15 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
   syntax CrosslinkList ::= getCrosslinksOfAttestationsMatchingShardCrosslink(PendingAttestationList,
                                                                              shard: Int, result: CrosslinkList) [function]
   rule getCrosslinksOfAttestationsMatchingShardCrosslink(PATT PATTList, SHARD, RES)
-       => #fun(CROSSLINK
-       => getCrosslinksOfAttestationsMatchingShardCrosslink( PATTList, SHARD,
-            #if hash_tree_root(getCurrentCrosslink(SHARD))
-                in ( SetItem(CROSSLINK.parentRoot) SetItem(hash_tree_root(CROSSLINK)) )
-              #then RES +append CROSSLINK
-              #else RES
-            #fi
-          )
-          )(PATT.data.crosslink)
+       => getCrosslinksOfAttestationsMatchingShardCrosslink( PATTList, SHARD, RES +append PATT.data.crosslink )
+    requires hash_tree_root(getCurrentCrosslink(SHARD))
+                             in ( SetItem(PATT.data.crosslink.parentRoot) SetItem(hash_tree_root(PATT.data.crosslink)) )
+
+  rule getCrosslinksOfAttestationsMatchingShardCrosslink(PATT PATTList, SHARD, RES)
+       => getCrosslinksOfAttestationsMatchingShardCrosslink( PATTList, SHARD, RES )
+    requires notBool hash_tree_root(getCurrentCrosslink(SHARD))
+                             in ( SetItem(PATT.data.crosslink.parentRoot) SetItem(hash_tree_root(PATT.data.crosslink)) )
+
 
   rule getCrosslinksOfAttestationsMatchingShardCrosslink(.PendingAttestationList, _, RES) => RES
 
@@ -1351,25 +1434,22 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
   rule maxCrosslinkOnBalanceAndRoot( CROSSLINK CrosslinkList, PendAttList, RES, MaxBalance, MaxRoot )
         => #fun(BALANCE
         => #fun(ROOT
-        => maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendAttList,
-                                        #if        BALANCE >Int MaxBalance
-                                           orBool (BALANCE ==Int MaxBalance andBool ROOT >String MaxRoot)
-                                          #then CROSSLINK .CrosslinkList
-                                          #else RES
-                                        #fi,
-                                        #if        BALANCE >Int MaxBalance
-                                           orBool (BALANCE ==Int MaxBalance andBool ROOT >String MaxRoot)
-                                          #then BALANCE
-                                          #else MaxBalance
-                                        #fi,
-                                        #if        BALANCE >Int MaxBalance
-                                           orBool (BALANCE ==Int MaxBalance andBool ROOT >String MaxRoot)
-                                          #then ROOT
-                                          #else MaxRoot
-                                        #fi
-           )
+        => maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendAttList, CROSSLINK .CrosslinkList, BALANCE, ROOT)
            )(CROSSLINK.dataRoot)
            )( get_attesting_balance(pendingAttestationsMatchingCrosslink(PendAttList, CROSSLINK, .PendingAttestationList)) )
+    requires get_attesting_balance(pendingAttestationsMatchingCrosslink(PendAttList, CROSSLINK, .PendingAttestationList)) >Int MaxBalance
+      orBool (get_attesting_balance(pendingAttestationsMatchingCrosslink(PendAttList, CROSSLINK, .PendingAttestationList)) ==Int MaxBalance
+              andBool {CROSSLINK.dataRoot}:>String >String MaxRoot)
+
+  rule maxCrosslinkOnBalanceAndRoot( CROSSLINK CrosslinkList, PendAttList, RES, MaxBalance, MaxRoot )
+        => #fun(BALANCE
+        => #fun(ROOT
+        => maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendAttList, RES, MaxBalance, MaxRoot)
+           )(CROSSLINK.dataRoot)
+           )( get_attesting_balance(pendingAttestationsMatchingCrosslink(PendAttList, CROSSLINK, .PendingAttestationList)) )
+    requires notBool (get_attesting_balance(pendingAttestationsMatchingCrosslink(PendAttList, CROSSLINK, .PendingAttestationList)) >Int MaxBalance
+                      orBool (get_attesting_balance(pendingAttestationsMatchingCrosslink(PendAttList, CROSSLINK, .PendingAttestationList)) ==Int MaxBalance
+                              andBool {CROSSLINK.dataRoot}:>String >String MaxRoot))
 
   rule maxCrosslinkOnBalanceAndRoot(.CrosslinkList, _, CROSSLINK:Crosslink, _,_ ) => CROSSLINK
   rule maxCrosslinkOnBalanceAndRoot(.CrosslinkList, _, .CrosslinkList, _,_ ) => defaultCrosslink()
@@ -1379,10 +1459,12 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
                                                                      PendingAttestationList) [function]
   rule pendingAttestationsMatchingShard( PA PAList => PAList,
                                          SHARD,
-                                         RES => #if PA.data.crosslink.shard ==Int SHARD
-                                                  #then RES +append PA
-                                                  #else RES
-                                                #fi)
+                                         RES => RES +append PA)
+    requires PA.data.crosslink.shard ==Int SHARD
+  rule pendingAttestationsMatchingShard( PA PAList => PAList,
+                                         SHARD,
+                                         RES)
+    requires notBool PA.data.crosslink.shard ==Int SHARD
   rule pendingAttestationsMatchingShard(.PendingAttestationList, _, RES) => RES
 
 //winning_attestations = [a for a in attestations if a.data.crosslink == CROSSLINK]
@@ -1390,10 +1472,14 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
                                                                          PendingAttestationList) [function]
   rule pendingAttestationsMatchingCrosslink( PA PAL => PAL,
                                              CROSSLINK,
-                                             RES => #if PA.data.crosslink ==K CROSSLINK
-                                                      #then RES +append PA
-                                                      #else RES
-                                                    #fi)
+                                             RES => RES +append PA)
+    requires PA.data.crosslink ==K CROSSLINK
+
+  rule pendingAttestationsMatchingCrosslink( PA PAL => PAL,
+                                             CROSSLINK,
+                                             RES)
+    requires notBool PA.data.crosslink ==K CROSSLINK
+
   rule pendingAttestationsMatchingCrosslink(.PendingAttestationList, _, RES) => RES
 
 /*
@@ -1499,41 +1585,57 @@ def process_justification_and_finalization(state: BeaconState) -> None:
   syntax KItem ::= "updateFinalizedCheckpoint1" "(" Checkpoint "," BitList ")"
   rule <k> updateFinalizedCheckpoint1(OldPrevJustCP, Bits) => .K ... </k>
        <finalized-checkpoint>
-         FCP => #if allOnes(slice(Bits, 1, 4)) andBool OldPrevJustCP.epoch +Int 3 ==K get_current_epoch()
-                #then OldPrevJustCP
-                #else FCP
-                #fi
+         FCP => OldPrevJustCP
        </finalized-checkpoint>
+    requires allOnes(slice(Bits, 1, 4)) andBool OldPrevJustCP.epoch +Int 3 ==K get_current_epoch()
+
+  rule <k> updateFinalizedCheckpoint1(OldPrevJustCP, Bits) => .K ... </k>
+       <finalized-checkpoint>
+         FCP
+       </finalized-checkpoint>
+    requires notBool (allOnes(slice(Bits, 1, 4)) andBool OldPrevJustCP.epoch +Int 3 ==K get_current_epoch())
 
   // if all(bits[1:3]) and old_previous_justified_checkpoint.epoch + 2 == current_epoch:
   syntax KItem ::= "updateFinalizedCheckpoint2" "(" Checkpoint "," BitList ")"
   rule <k> updateFinalizedCheckpoint2(OldPrevJustCP, Bits) => .K ... </k>
        <finalized-checkpoint>
-         FCP => #if allOnes(slice(Bits, 1, 3)) andBool OldPrevJustCP.epoch +Int 2 ==K get_current_epoch()
-                #then OldPrevJustCP
-                #else FCP
-                #fi
+         FCP => OldPrevJustCP
        </finalized-checkpoint>
+    requires allOnes(slice(Bits, 1, 3)) andBool OldPrevJustCP.epoch +Int 2 ==K get_current_epoch()
+
+  rule <k> updateFinalizedCheckpoint2(OldPrevJustCP, Bits) => .K ... </k>
+       <finalized-checkpoint>
+         FCP
+       </finalized-checkpoint>
+    requires notBool (allOnes(slice(Bits, 1, 3)) andBool OldPrevJustCP.epoch +Int 2 ==K get_current_epoch())
 
   // if all(bits[0:3]) and old_current_justified_checkpoint.epoch + 2 == current_epoch:
   syntax KItem ::= "updateFinalizedCheckpoint3" "(" Checkpoint "," BitList ")"
   rule <k> updateFinalizedCheckpoint3(OldCurrJustCP, Bits) => .K ... </k>
        <finalized-checkpoint>
-         FCP => #if allOnes(slice(Bits, 0, 3)) andBool OldCurrJustCP.epoch +Int 2 ==K get_current_epoch()
-                #then OldCurrJustCP
-                #else FCP
-                #fi
+         FCP => OldCurrJustCP
        </finalized-checkpoint>
+    requires allOnes(slice(Bits, 0, 3)) andBool OldCurrJustCP.epoch +Int 2 ==K get_current_epoch()
+
+  rule <k> updateFinalizedCheckpoint3(OldCurrJustCP, Bits) => .K ... </k>
+       <finalized-checkpoint>
+         FCP
+       </finalized-checkpoint>
+    requires notBool(allOnes(slice(Bits, 0, 3)) andBool OldCurrJustCP.epoch +Int 2 ==K get_current_epoch())
 
   // if all(bits[0:2]) and old_current_justified_checkpoint.epoch + 1 == current_epoch:
   syntax KItem ::= "updateFinalizedCheckpoint4" "(" Checkpoint "," BitList ")"
   rule <k> updateFinalizedCheckpoint4(OldCurrJustCP, Bits) => .K ... </k>
        <finalized-checkpoint>
-         FCP => #if allOnes(slice(Bits, 0, 2)) andBool OldCurrJustCP.epoch +Int 1 ==K get_current_epoch()
-                #then OldCurrJustCP
-                #else FCP
-                #fi
+         FCP => OldCurrJustCP
        </finalized-checkpoint>
+    requires allOnes(slice(Bits, 0, 2)) andBool OldCurrJustCP.epoch +Int 1 ==K get_current_epoch()
+
+  rule <k> updateFinalizedCheckpoint4(OldCurrJustCP, Bits) => .K ... </k>
+       <finalized-checkpoint>
+         FCP
+       </finalized-checkpoint>
+    requires notBool (allOnes(slice(Bits, 0, 2)) andBool OldCurrJustCP.epoch +Int 1 ==K get_current_epoch())
 
 /*
 def process_crosslinks(state: BeaconState) -> None:
@@ -1562,16 +1664,28 @@ def process_crosslinks(state: BeaconState) -> None:
          CROSSLINKS
          => #fun(SHARD
          => #fun(CrosslinkCommittee
-         => #fun(WinCrossAndIndices
-         => #if ( 3 *Int get_total_balance(WinCrossAndIndices.intList) >=Int 2 *Int get_total_balance(CrosslinkCommittee) )
-              #then CROSSLINKS[SHARD <- WinCrossAndIndices.crosslink]
-              #else CROSSLINKS
-            #fi
+         => #fun(WinCrossAndIndices:CrosslinkIntListPair
+         => CROSSLINKS[SHARD <- WinCrossAndIndices.crosslink]
             )(get_winning_crosslink_and_attesting_indices(EP, SHARD))
             )(get_crosslink_committee(EP, SHARD))
             )((get_start_shard(EP) +Int OFFSET) %Int SHARD_COUNT)
        </current-crosslinks>
     requires OFFSET <Int COUNT
+     andBool ( 3 *Int get_total_balance((get_winning_crosslink_and_attesting_indices(EP, (get_start_shard(EP) +Int OFFSET) %Int SHARD_COUNT)).intList) >=Int 2 *Int get_total_balance(get_crosslink_committee(EP, (get_start_shard(EP) +Int OFFSET) %Int SHARD_COUNT)) )
+
+  rule <k> processCrosslinksForEpochLoop(OFFSET => OFFSET +Int 1, COUNT, EP) ... </k>
+       <current-crosslinks>
+         CROSSLINKS
+         => #fun(SHARD
+         => #fun(CrosslinkCommittee
+         => #fun(WinCrossAndIndices:CrosslinkIntListPair
+         => CROSSLINKS
+            )(get_winning_crosslink_and_attesting_indices(EP, SHARD))
+            )(get_crosslink_committee(EP, SHARD))
+            )((get_start_shard(EP) +Int OFFSET) %Int SHARD_COUNT)
+       </current-crosslinks>
+    requires OFFSET <Int COUNT
+     andBool notBool ( 3 *Int get_total_balance((get_winning_crosslink_and_attesting_indices(EP, (get_start_shard(EP) +Int OFFSET) %Int SHARD_COUNT)).intList) >=Int 2 *Int get_total_balance(get_crosslink_committee(EP, (get_start_shard(EP) +Int OFFSET) %Int SHARD_COUNT)) )
 
   rule <k> processCrosslinksForEpochLoop(OFFSET, COUNT, EP) => .K ... </k>
     requires OFFSET >=Int COUNT
@@ -1686,14 +1800,16 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   rule loopOverEligibleValidatorIndices(I IL => IL,
                        UnslashedIndices,
                        AttestingBalance,
-                       #mapMapPair(Rewards => #if contains(I, UnslashedIndices)
-                                              #then Rewards[I <- ({Rewards[I]}:>Int +Int get_base_reward(I) *Int AttestingBalance)]
-                                              #else Rewards
-                                              #fi,
-                                  Penalties => #if notBool contains(I, UnslashedIndices)
-                                               #then Penalties[I <- ({Penalties[I]}:>Int +Int get_base_reward(I))]
-                                               #else Penalties
-                                               #fi) )
+                       #mapMapPair(Rewards => Rewards[I <- ({Rewards[I]}:>Int +Int get_base_reward(I) *Int AttestingBalance)],
+                                  Penalties) )
+    requires contains(I, UnslashedIndices)
+
+  rule loopOverEligibleValidatorIndices(I IL => IL,
+                       UnslashedIndices,
+                       AttestingBalance,
+                       #mapMapPair(Rewards,
+                                  Penalties => Penalties[I <- ({Penalties[I]}:>Int +Int get_base_reward(I))]) )
+    requires notBool contains(I, UnslashedIndices)
 
   rule loopOverEligibleValidatorIndices(.IntList, _, _, RewardsPenalties) => RewardsPenalties
 
@@ -1746,11 +1862,12 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
           ], key=lambda a: a.inclusion_delay)
   */
   syntax PendingAttestationList ::= filterAttForIndex(PendingAttestationList, Int) [function]
-  rule filterAttForIndex(PA PAL, INDEX)
-       => #if contains(INDEX, get_attesting_indices(PA.data, PA.aggregationBits))
-          #then PA filterAttForIndex(PAL, INDEX)
-          #else filterAttForIndex(PAL, INDEX)
-          #fi
+  rule filterAttForIndex(PA PAL, INDEX) => PA filterAttForIndex(PAL, INDEX)
+    requires contains(INDEX, get_attesting_indices(PA.data, PA.aggregationBits))
+
+  rule filterAttForIndex(PA PAL, INDEX) => filterAttForIndex(PAL, INDEX)
+    requires notBool contains(INDEX, get_attesting_indices(PA.data, PA.aggregationBits))
+
   rule filterAttForIndex(.PendingAttestationList, _) => .PendingAttestationList
 
   syntax PendingAttestation ::= findMinDelayAttestation(PendingAttestationList) [function]
@@ -1759,20 +1876,23 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   syntax PendingAttestation ::= findMinDelayAttestationAux(PendingAttestationList, PendingAttestation /*min delay attestation*/) [function]
   rule findMinDelayAttestationAux(
          PA PAL => PAL,
-         MinDelayPA => #if PA.inclusionDelay <Int MinDelayPA.inclusionDelay
-                       #then PA
-                       #else MinDelayPA
-                       #fi
-       )
+         MinDelayPA => PA)
+    requires PA.inclusionDelay <Int MinDelayPA.inclusionDelay
+
+  rule findMinDelayAttestationAux(
+         PA PAL => PAL,
+         MinDelayPA)
+    requires notBool PA.inclusionDelay <Int MinDelayPA.inclusionDelay
+
   rule findMinDelayAttestationAux(.PendingAttestationList, MinDelayPA) => MinDelayPA
 
   // Second step in computing penalties
   syntax Map ::= inactivityPenalty(Map) [function]
-  rule inactivityPenalty(Penalties) =>
-         #if computeFinalityDelay() >Int MIN_EPOCHS_TO_INACTIVITY_PENALTY
-         #then inactivityPenaltyAux(Penalties)
-         #else Penalties
-         #fi
+  rule inactivityPenalty(Penalties) => inactivityPenaltyAux(Penalties)
+    requires computeFinalityDelay() >Int MIN_EPOCHS_TO_INACTIVITY_PENALTY
+
+  rule inactivityPenalty(Penalties) => Penalties
+    requires notBool computeFinalityDelay() >Int MIN_EPOCHS_TO_INACTIVITY_PENALTY
 
   syntax Map ::= inactivityPenaltyAux(Map) [function]
   rule inactivityPenaltyAux(Penalties)
@@ -1785,11 +1905,17 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   rule loopOverEligibleValsForPen(
          I IL => IL,
          UnslashedIndices,
-         Penalties => #if notBool contains(I, UnslashedIndices)
-                        #then (updateBasePenalties(Penalties, I))[I <- {(updateBasePenalties(Penalties, I))[I]}:>Int
+         Penalties => (updateBasePenalties(Penalties, I))[I <- {(updateBasePenalties(Penalties, I))[I]}:>Int
                                 +Int (getValidator(I).effectiveBalance *Int computeFinalityDelay() /Int INACTIVITY_PENALTY_QUOTIENT)]
-                        #else updateBasePenalties(Penalties, I)
-                      #fi )
+         )
+    requires notBool contains(I, UnslashedIndices)
+
+  rule loopOverEligibleValsForPen(
+         I IL => IL,
+         UnslashedIndices,
+         Penalties => updateBasePenalties(Penalties, I)
+         )
+    requires contains(I, UnslashedIndices)
 
   rule loopOverEligibleValsForPen(.IntList, _, Penalties) => Penalties
 
@@ -1813,12 +1939,17 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   syntax IntList ::= getEligibleValidatorIndicesLoop(Int, Int, Int, IntList) [function]
   rule getEligibleValidatorIndicesLoop(PrevEP, I, N, IL)
        => #fun(VAL
-       => #if is_active_validator(VAL, PrevEP) orBool (VAL.slashed andBool PrevEP +Int 1 <Int VAL.withdrawableEpoch)
-            #then getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL +append I)
-            #else getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL)
-          #fi
-              )(getValidator(I))
+       => getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL +append I)
+          )(getValidator(I))
     requires I <Int N
+     andBool (is_active_validator(getValidator(I), PrevEP) orBool (getValidator(I).slashed andBool PrevEP +Int 1 <Int getValidator(I).withdrawableEpoch))
+
+  rule getEligibleValidatorIndicesLoop(PrevEP, I, N, IL)
+       => #fun(VAL
+       => getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL)
+          )(getValidator(I))
+    requires I <Int N
+     andBool notBool (is_active_validator(getValidator(I), PrevEP) orBool (getValidator(I).slashed andBool PrevEP +Int 1 <Int getValidator(I).withdrawableEpoch))
 
   rule getEligibleValidatorIndicesLoop(_, I, N, IL) => IL
     requires I >=Int N
@@ -1876,15 +2007,24 @@ def get_crosslink_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence[G
          AttestingBalance,
          CommitteeBalance,
          #mapMapPair(Rewards, Penalties)
-           => #if contains(INDEX, AttestingIndices)
-              #then #mapMapPair(
+           => #mapMapPair(
                       Rewards[INDEX <- ({Rewards[INDEX]}:>Int +Int get_base_reward(INDEX) *Int AttestingBalance /Int CommitteeBalance)],
                       Penalties)
-              #else #mapMapPair(
+         )
+    requires contains(INDEX, AttestingIndices)
+
+  rule getCrosslinkDeltasIndexLoop(
+         INDEX IL => IL,
+         AttestingIndices,
+         AttestingBalance,
+         CommitteeBalance,
+         #mapMapPair(Rewards, Penalties)
+           => #mapMapPair(
                       Rewards,
                       Penalties[INDEX <- ({Penalties[INDEX]}:>Int +Int get_base_reward(INDEX))])
-              #fi
        )
+    requires notBool contains(INDEX, AttestingIndices)
+
   rule getCrosslinkDeltasIndexLoop(.IntList, _, _, _, RewPen) => RewPen
 
   syntax Int ::= getOffsetShard(Int) [function]
@@ -1903,15 +2043,18 @@ def process_rewards_and_penalties(state: BeaconState) -> None:
 */
   syntax KItem ::= "process_rewards_and_penalties" "(" ")" [klabel(process_rewards_and_penalties), symbol]
   rule <k> process_rewards_and_penalties()
-       => #if get_current_epoch() ==K GENESIS_EPOCH
-          #then .K
-          #else processRewardsAndPenaltiesLoop(
+       => .K
+       ... </k>
+    requires get_current_epoch() ==Int GENESIS_EPOCH
+
+  rule <k> process_rewards_and_penalties()
+       => processRewardsAndPenaltiesLoop(
                   0,
                   numOfValidators(),
                   get_attestation_deltas(),
                   get_crosslink_deltas())
-          #fi
        ... </k>
+    requires notBool get_current_epoch() ==Int GENESIS_EPOCH
 
   syntax KItem ::= "processRewardsAndPenaltiesLoop" "(" Int "," Int "," MapMapPair "," MapMapPair ")"
   rule <k> (. => increase_balance(INDEX, {Rewards1[INDEX]}:>Int +Int {Rewards2[INDEX]}:>Int)
@@ -1962,22 +2105,39 @@ def process_registry_updates(state: BeaconState) -> None:
 
   //we will process validators in any order, not strictly increasing index like in python
   syntax KItem ::= "processRegistryUpdatesLoop1" "(" Map ")" //validators
-  rule <k> (. => #if is_active_validator(VAL, get_current_epoch())
-                      andBool VAL.effectiveBalance <=Int EJECTION_BALANCE
-                    #then initiate_validator_exit(INDEX)
-                    #else .K
-                 #fi
-           )
+  rule <k> (. => initiate_validator_exit(INDEX))
            ~> processRegistryUpdatesLoop1(_:Map (INDEX |-> VAL => .Map) )
        ...</k>
        <validators>... INDEX |-> (#Validator(_,_,_,_,
-          ActEligibilityEpoch
-          => #if ActEligibilityEpoch ==Int FAR_FUTURE_EPOCH
-                 andBool VAL.effectiveBalance >=Int MAX_EFFECTIVE_BALANCE
-                #then get_current_epoch()
-                #else ActEligibilityEpoch
-             #fi,
+          ActEligibilityEpoch => get_current_epoch(),
           _,_,_) #as VAL) ...</validators>
+    requires (is_active_validator(VAL, get_current_epoch()) andBool VAL.effectiveBalance <=Int EJECTION_BALANCE)
+     andBool (ActEligibilityEpoch ==Int FAR_FUTURE_EPOCH andBool VAL.effectiveBalance >=Int MAX_EFFECTIVE_BALANCE)
+
+  rule <k> (. => initiate_validator_exit(INDEX))
+           ~> processRegistryUpdatesLoop1(_:Map (INDEX |-> VAL => .Map) )
+       ...</k>
+       <validators>... INDEX |-> (#Validator(_,_,_,_,
+          ActEligibilityEpoch,
+          _,_,_) #as VAL) ...</validators>
+    requires (is_active_validator(VAL, get_current_epoch()) andBool VAL.effectiveBalance <=Int EJECTION_BALANCE)
+     andBool notBool (ActEligibilityEpoch ==Int FAR_FUTURE_EPOCH andBool VAL.effectiveBalance >=Int MAX_EFFECTIVE_BALANCE)
+
+  rule <k> processRegistryUpdatesLoop1(_:Map (INDEX |-> VAL => .Map) )
+       ...</k>
+       <validators>... INDEX |-> (#Validator(_,_,_,_,
+          ActEligibilityEpoch => get_current_epoch(),
+          _,_,_) #as VAL) ...</validators>
+    requires notBool (is_active_validator(VAL, get_current_epoch()) andBool VAL.effectiveBalance <=Int EJECTION_BALANCE)
+     andBool (ActEligibilityEpoch ==Int FAR_FUTURE_EPOCH andBool VAL.effectiveBalance >=Int MAX_EFFECTIVE_BALANCE)
+
+  rule <k> processRegistryUpdatesLoop1(_:Map (INDEX |-> VAL => .Map) )
+       ...</k>
+       <validators>... INDEX |-> (#Validator(_,_,_,_,
+          ActEligibilityEpoch,
+          _,_,_) #as VAL) ...</validators>
+    requires notBool (is_active_validator(VAL, get_current_epoch()) andBool VAL.effectiveBalance <=Int EJECTION_BALANCE)
+     andBool notBool (ActEligibilityEpoch ==Int FAR_FUTURE_EPOCH andBool VAL.effectiveBalance >=Int MAX_EFFECTIVE_BALANCE)
 
   rule processRegistryUpdatesLoop1(.Map) => .K
 
@@ -2034,9 +2194,13 @@ def process_registry_updates(state: BeaconState) -> None:
   syntax Int ::= indexForMinEligEpoch ( IntList )      [function, klabel(indexForMinEligEpoch)]
                | indexForMinEligEpoch ( Int, IntList ) [function, klabel(indexForMinEligEpoch2)]
   rule indexForMinEligEpoch(I:Int IL) => indexForMinEligEpoch(I, IL)
-  rule indexForMinEligEpoch( MIN => #if getValidator(MIN).activationEligibilityEpoch <=Int getValidator(I).activationEligibilityEpoch
-                                      #then MIN #else I #fi,
-                             (I:Int IL) => IL )
+
+  rule indexForMinEligEpoch( MIN, (I:Int IL) => IL )
+    requires getValidator(MIN).activationEligibilityEpoch <=Int getValidator(I).activationEligibilityEpoch
+
+  rule indexForMinEligEpoch( MIN => I, (I:Int IL) => IL )
+    requires notBool getValidator(MIN).activationEligibilityEpoch <=Int getValidator(I).activationEligibilityEpoch
+
   rule indexForMinEligEpoch(MIN, .IntList) => MIN
 
 /*
@@ -2125,11 +2289,24 @@ def process_final_updates(state: BeaconState) -> None:
            ~> rotateEpochAttestations()
        ... </k>
        <slot> SLOT </slot>
-       <eth1-data-votes> E1DL => #if (SLOT +Int 1) %Int SLOTS_PER_ETH1_VOTING_PERIOD ==K 0
-                                 #then .Eth1DataList
-                                 #else E1DL
-                                 #fi
+       <eth1-data-votes> E1DL => .Eth1DataList
        </eth1-data-votes>
+    requires (SLOT +Int 1) %Int SLOTS_PER_ETH1_VOTING_PERIOD ==Int 0
+
+  rule <k> process_final_updates()
+           => updateEffectiveBalances(0, numOfValidators(), EFFECTIVE_BALANCE_INCREMENT /Int 2)  // param: HALF_INCREMENT
+           ~> setActiveIndexRoots(get_current_epoch() +Int 1 +Int ACTIVATION_EXIT_DELAY)        // param: index_epoch
+           ~> setCommitteesRoot((get_current_epoch() +Int 1) %Int EPOCHS_PER_HISTORICAL_VECTOR) // param: committee_root_position
+           ~> resetSlashings((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)     // param: (slashings index)
+           ~> setRandaoMix((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)       // param: (rnd mixes index)
+           ~> setHistoricalRootAccumulator()
+           ~> updateStartShard(get_current_epoch())                                             // param: current_epoch
+           ~> rotateEpochAttestations()
+       ... </k>
+       <slot> SLOT </slot>
+       <eth1-data-votes> E1DL
+       </eth1-data-votes>
+    requires notBool (SLOT +Int 1) %Int SLOTS_PER_ETH1_VOTING_PERIOD ==Int 0
 
   syntax KItem ::= updateEffectiveBalances ( i: Int, nrValidators: Int, increment: Int )
   rule <k> updateEffectiveBalances(INDEX => INDEX +Int 1, N, HALF_INCREMENT) ... </k>
@@ -2188,14 +2365,20 @@ def process_final_updates(state: BeaconState) -> None:
   rule <k> setHistoricalRootAccumulator() => .K ... </k>
     <historical-roots>
       HL:BytesList
-         => #if (get_current_epoch() +Int 1) %Int (SLOTS_PER_HISTORICAL_ROOT /Int SLOTS_PER_EPOCH) ==Int 0
-              #then HL +append hash_tree_root(#HistoricalBatch({mapToList(BlockRoots, 0, .BytesList)}:>BytesList,
+         => HL +append hash_tree_root(#HistoricalBatch({mapToList(BlockRoots, 0, .BytesList)}:>BytesList,
                                                                   {mapToList(StateRoots, 0, .BytesList)}:>BytesList ))
-              #else HL
-            #fi
     </historical-roots>
     <block-roots> BlockRoots </block-roots>
     <state-roots> StateRoots </state-roots>
+    requires (get_current_epoch() +Int 1) %Int (SLOTS_PER_HISTORICAL_ROOT /Int SLOTS_PER_EPOCH) ==Int 0
+
+  rule <k> setHistoricalRootAccumulator() => .K ... </k>
+    <historical-roots>
+      HL:BytesList
+    </historical-roots>
+    <block-roots> BlockRoots </block-roots>
+    <state-roots> StateRoots </state-roots>
+    requires notBool (get_current_epoch() +Int 1) %Int (SLOTS_PER_HISTORICAL_ROOT /Int SLOTS_PER_EPOCH) ==Int 0
 
   syntax KItem ::= "rotateEpochAttestations" "(" ")"
   rule <k> rotateEpochAttestations() => .K ... </k>
@@ -2292,10 +2475,10 @@ def process_eth1_data(state: BeaconState, body: BeaconBlockBody) -> None:
      requires notBool countEth1(VOTES +append (BlockBODY.eth1Data), BlockBODY.eth1Data) *Int 2 >Int SLOTS_PER_ETH1_VOTING_PERIOD
 
   syntax Int ::= countEth1(Eth1DataList, Eth1Data) [function]
-  rule countEth1(E1D E1DL, E1D') => #if E1D ==K E1D'
-                                    #then 1 +Int countEth1(E1DL, E1D')
-                                    #else countEth1(E1DL, E1D')
-                                    #fi
+  rule countEth1(E1D E1DL, E1D') => 1 +Int countEth1(E1DL, E1D')
+    requires E1D ==K E1D'
+  rule countEth1(E1D E1DL, E1D') => countEth1(E1DL, E1D')
+    requires notBool E1D ==K E1D'
   rule countEth1(.Eth1DataList, E1D') => 0
 
 

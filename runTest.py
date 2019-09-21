@@ -488,11 +488,6 @@ def main():
     test_title = str(test_dir)
     _notif(test_title)
 
-    meta_yaml = loadYaml(test_dir, "meta.yaml")
-    if meta_yaml is not None and 'bls_setting' in meta_yaml and meta_yaml['bls_setting'] == 1:
-        _warning('Skipping test with `bls_setting` enabled')
-        return
-
     init_config_subst = copy.deepcopy(init_cells)
     all_keys = list(init_cells.keys())
 
@@ -524,6 +519,11 @@ def main():
             krun_args.append('--debug')
         (returnCode, krunPrinted, _) = krun(*krun_args)
         krunPrinted = krunPrinted.strip()
+
+    meta_yaml = loadYaml(test_dir, "meta.yaml")
+    if meta_yaml is not None and 'bls_setting' in meta_yaml and meta_yaml['bls_setting'] == 1:
+        _warning('`bls_setting` enabled: skipping post-state verification')
+        return
 
     # Printing the post state
     post_yaml = loadYaml(test_dir, getPostFile(test_dir))

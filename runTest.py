@@ -488,16 +488,10 @@ def main():
     test_title = str(test_dir)
     _notif(test_title)
 
-    post_yaml = loadYaml(test_dir, getPostFile(test_dir))
-    post_k_cell = buildPostKCell(test_dir)
-    post_state_present = post_yaml is not None or post_k_cell is not None
-
-    # Skipping negative tests with bls_setting enabled
-    if not post_state_present:
-        meta_yaml = loadYaml(test_dir, "meta.yaml")
-        if meta_yaml is not None and 'bls_setting' in meta_yaml and meta_yaml['bls_setting'] == 1:
-            _warning('Skipping test with `bls_setting` enabled')
-            return
+    meta_yaml = loadYaml(test_dir, "meta.yaml")
+    if meta_yaml is not None and 'bls_setting' in meta_yaml and meta_yaml['bls_setting'] == 1:
+        _warning('Skipping test with `bls_setting` enabled')
+        return
 
     init_config_subst = copy.deepcopy(init_cells)
     all_keys = list(init_cells.keys())
@@ -532,7 +526,9 @@ def main():
         krunPrinted = krunPrinted.strip()
 
     # Printing the post state
-    if post_state_present:
+    post_yaml = loadYaml(test_dir, getPostFile(test_dir))
+    post_k_cell = buildPostKCell(test_dir)
+    if post_yaml is not None or post_k_cell is not None:
         if returnCode != 0:
             _fatal('krun returned non-zero exit code for positive test: ' + test_title, code = returnCode)
 

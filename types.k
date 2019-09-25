@@ -243,11 +243,11 @@ class Eth1Data(Container):
     deposit_count: uint64
     block_hash: Hash
   */
-  syntax Eth1Data ::= #Eth1Data( Hash, Uint64, Hash ) [klabel(#Eth1Data), symbol]
+  syntax Eth1Data ::= #Eth1Data( Hash, Int, Hash ) [klabel(#Eth1Data), symbol]
 
   syntax Hash ::= Eth1Data "." "deposit_root" [function]
   rule #Eth1Data(DROOT, _, _).deposit_root => DROOT
-  syntax Uint64 ::= Eth1Data "." "deposit_count" [function]
+  syntax Int ::= Eth1Data "." "deposit_count" [function]
   rule #Eth1Data(_, DCOUNT, _).deposit_count => DCOUNT
   syntax Hash ::= Eth1Data "." "block_hash" [function]
   rule #Eth1Data(_, _, BHASH).block_hash => BHASH
@@ -786,4 +786,13 @@ def bytes_to_int(data: bytes) -> uint64:
     requires I >Int 0
   rule initCompCommListOfSize(0) => .CompactCommitteeList
 
+  // Check membership of a Transfer term in a TransferList
+  syntax Bool ::= Transfer "in" TransferList          [function]
+  rule T1 in T (TL:TransferList) => (T1 ==K T) orBool (T1 in TL)
+  rule T1 in .TransferList => false
+
+  // Check whether a list of transfers is duplicate-free
+  syntax Bool ::= isDuplicateFree(transferList: TransferList)          [function]
+  rule isDuplicateFree(T:Transfer TL:TransferList) => (notBool T in TL) andBool isDuplicateFree(TL)
+  rule isDuplicateFree(.TransferList) => true
 endmodule

@@ -235,6 +235,7 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
 */
   syntax Int ::= "compute_shuffled_index" "(" Int "," Int "," Hash ")" [function]
   rule compute_shuffled_index(INDEX, COUNT, SEED) => compute_shuffled_index_loop(INDEX, COUNT, SEED, 0, SHUFFLE_ROUND_COUNT)
+    requires INDEX <Int COUNT
 
   syntax Int ::= "compute_shuffled_index_loop" "(" Int "," Int "," Hash "," Int "," Int ")" [function]
   rule compute_shuffled_index_loop(
@@ -1222,6 +1223,7 @@ def get_matching_source_attestations(state: BeaconState, epoch: Epoch) -> Sequen
     #if EPOCH ==K get_current_epoch() #then CEA #else PEA #fi ]]
     <current-epoch-attestations> CEA </current-epoch-attestations>
     <previous-epoch-attestations> PEA </previous-epoch-attestations>
+    requires EPOCH in (SetItem(get_previous_epoch())  SetItem(get_current_epoch()))
 
 /*
 def get_matching_target_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
@@ -2318,9 +2320,14 @@ def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
             function(state, operation)
 */
   syntax KItem ::= "process_operations" "(" BeaconBlockBody ")"
-  rule process_operations(BlockBODY)
+  rule <k> process_operations(BlockBODY)
        => process_operations_aux(BlockBODY.proposerSlashings, BlockBODY.attesterSlashings,  BlockBODY.attestations,
                                  BlockBODY.deposits,          BlockBODY.voluntaryExits,     BlockBODY.transfers)
+       ... </k>
+       <eth1-data> ETH1DATA </eth1-data>
+       <eth1-deposit-index> ETH1DINDEX </eth1-deposit-index>
+    requires len(BlockBODY.deposits) ==Int minInt(MAX_DEPOSITS, ETH1DATA.deposit_count -Int ETH1DINDEX)
+     andBool isDuplicateFree(BlockBODY.transfers)
 
   syntax KItem ::= "process_operations_aux" "(" ProposerSlashingList "," AttesterSlashingList "," AttestationList
                                             "," DepositList "," VoluntaryExitList "," TransferList ")"

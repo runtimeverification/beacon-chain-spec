@@ -406,10 +406,15 @@ context-free grammar) in BNF notation with appropriate production rules. Most of
 modeled using the three basic types built into K, namely \textsf{Bool} for Boolean, \textsf{Int} for
 integers, \textsf{String} for strings, and K's list and map constructors. For example, a hash value
 is modeled by a fixed-length string (with the fixed length being enforced by the semantics):
-\begin{asciik} syntax Hash ::= String \end{asciik} And the zeroed hash value is defined a string of
+\begin{asciik} 
+syntax Hash ::= String 
+\end{asciik} 
+And the zeroed hash value is defined a string of
 zeros of length 32 (in hexadecimal notation matching the one used in the otrginial implementation):
-\begin{asciik} syntax Hash ::= defaultHash() [function] rule defaultHash() =>
-{defaultBytes32()}:>String \end{asciik}
+\begin{asciik} 
+syntax Hash ::= defaultHash() [function]
+rule defaultHash() => {defaultBytes32()}:>String 
+\end{asciik}
 
 Furthermore, certain other types are modeled by extended versions of K's internal types. For
 example, although standard validator indices are modeled by (non-negative) integer values, the case
@@ -421,22 +426,40 @@ In addition to the basic data types, the beacon chain implementation defines sev
 container types consisting of several fields. For each container data type in the implementation, we
 introduce in the K model a new type (non-terminal) that is constructed syntactically by an operator
 that takes the the container's fields as arguments. For example, the validator container in the
-implementation is declared with eight fields as follows: \begin{lstlisting}[language=python,
-basicstyle=\small, tabsize=2, columns=flexible, basicstyle=\ttfamily] class Validator(Container):
-pubkey: BLSPubkey withdrawal_credentials: Hash   effective_balance: Gwei   slashed: boolean
-activation_eligibility_epoch: Epoch   activation_epoch: Epoch exit_epoch: Epoch withdrawable_epoch:
-Epoch   \end{lstlisting} The corresponding type in the model is defined by the following syntactic
-declaration: \begin{asciik} syntax Validator ::= #Validator( pubkey: BLSPubkey,
-withdrawalCredentials: Hash, effectiveBalance: Int, slashed: Bool, activationEligibilityEpoch: Int,
-activationEpoch: Int, exitEpoch: Int, withdrawableEpoch: Int ) [klabel(#Validator), symbol]
+implementation is declared with eight fields as follows: 
+\begin{lstlisting}[language=python, basicstyle=\small, tabsize=2, columns=flexible, basicstyle=\ttfamily] 
+class Validator(Container):
+    pubkey: BLSPubkey
+    withdrawal_credentials: Hash  
+    effective_balance: Gwei  
+    slashed: boolean
+    activation_eligibility_epoch: Epoch  
+    activation_epoch: Epoch
+    exit_epoch: Epoch
+    withdrawable_epoch: Epoch  
+\end{lstlisting} 
+The corresponding type in the model is defined by the following syntactic
+declaration: 
+\begin{asciik} 
+syntax Validator ::= #Validator( pubkey: BLSPubkey,
+                                     withdrawalCredentials: Hash,
+                                     effectiveBalance: Int,
+                                     slashed: Bool,
+                                     activationEligibilityEpoch: Int,
+                                     activationEpoch: Int,
+                                     exitEpoch: Int,
+                                     withdrawableEpoch: Int
+                                   ) [klabel(#Validator), symbol]
 \end{asciik} The rule attributes \texttt{klabel} and \texttt{symbol} instruct the parser to give the
 unique name \texttt{\#Validator} to nodes constructed with this rule in the abstract syntax tree, so
 they may be referred to easily when analyzing a state.
 
 In addition to the type declaration itself, we introduce syntax that allows accessing fields in a
 container by name. For example, for the type \texttt{Validator} above, a validator's effective
-balance can be accessed using the following syntax: \begin{asciik} syntax Int ::= Validator "."
-"effectiveBalance" [function] rule #Validator(_,_, EffBal, _,_,_,_,_).effectiveBalance => EffBal
+balance can be accessed using the following syntax: 
+\begin{asciik} 
+syntax Int ::= Validator "." "effectiveBalance" [function] 
+rule #Validator(_,_, EffBal, _,_,_,_,_).effectiveBalance => EffBal
 \end{asciik}
 
 Finally, we also define various basic operations on types that will be useful for defining other
@@ -450,20 +473,41 @@ The beacon chain state's implementation is given a Python container class that i
 number of fields, including for instance, the current slot value, a link to the underlying Ethereum
 1.0 blockchain, a full registry of validators and their current states, collected attestations,
 crosslinks to shards, and justification and finalization information. Below is an excerpt of the
-container declaration in Python: \begin{lstlisting}[language=python, basicstyle=\small, tabsize=2,
-columns=flexible, basicstyle=\ttfamily] class BeaconState(Container): ... slot: Slot eth1_data:
-Eth1Data validators: List[Validator, VALIDATOR_REGISTRY_LIMIT] balances: List[Gwei,
-VALIDATOR_REGISTRY_LIMIT] slashings: Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR] current_crosslinks:
-Vector[Crosslink, SHARD_COUNT] finalized_checkpoint: Checkpoint ... \end{lstlisting}
+container declaration in Python: 
+\begin{lstlisting}[language=python, basicstyle=\small, tabsize=2, columns=flexible, basicstyle=\ttfamily] 
+class BeaconState(Container): 
+	... 
+	slot: Slot 
+	eth1_data: Eth1Data 
+	validators: List[Validator, VALIDATOR_REGISTRY_LIMIT] 
+	balances: List[Gwei, VALIDATOR_REGISTRY_LIMIT] 
+	slashings: Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR] 
+	current_crosslinks: Vector[Crosslink, SHARD_COUNT] 
+	finalized_checkpoint: Checkpoint 
+	... 
+\end{lstlisting}
 
 We model the state structure as a configuration in K, where each field is modeled by an appropriate
 cell in the configuration. For example, the configuration declaration and the part that corresponds
-to the excerpt above is show next: \begin{asciik} configuration <beacon-chain> <k> $PGM:KItem </k>
-<state>                           //Type BeaconState in python spec. ... <slot> 0 </slot>
-<eth1-data> .Eth1Data </eth1-data> <validators> .Map </validators>  <balances> .Map </balances>
-<slashings> .Map </slashings>  <current-crosslinks> .Map </current-crosslinks>
-<finalized-checkpoint> .Checkpoint </finalized-checkpoint> ... </state> <zerohashes-cache> .Map
-</zerohashes-cache> </beacon-chain> \end{asciik} We note that in many cases, indexed lists and
+to the excerpt above is show next: 
+\begin{asciik} 
+configuration <beacon-chain> 
+                 <k> $PGM:KItem </k>
+                 <state>                           //Type BeaconState in python spec. 
+                   ... 
+                   <slot> 0 </slot>
+                   <eth1-data> .Eth1Data </eth1-data> 
+                   <validators> .Map </validators>  
+                   <balances> .Map </balances>
+                   <slashings> .Map </slashings>  
+                   <current-crosslinks> .Map </current-crosslinks>
+                   <finalized-checkpoint> .Checkpoint </finalized-checkpoint> 
+                   ... 
+                 </state> 
+                 <zerohashes-cache> .Map </zerohashes-cache> 
+               </beacon-chain> 
+\end{asciik} 
+We note that in many cases, indexed lists and
 vectors in Python are modeled in the configuration by maps, of which the dot construct \texttt{.Map}
 represents the empty map. Indexed maps enable matching against specific map element patterns, such
 as matching against a slashed validator structure mapped to by a given index value. Obviously, the
@@ -509,31 +553,50 @@ deterministic, i.e. the post-state is completely determined by the pre-state and
 In the K model, the state transition function is specified by an operator in K that transforms the
 beacon chain configuration (representing the pre-state) into another beacon chain configuration
 configuration (representing the post-state) given a beacon block term as an argument to the
-operator: \begin{asciik} syntax KItem ::= "state_transition" "(" block: BeaconBlock ")"
-[klabel(state_transition), symbol] \end{asciik}
+operator: 
+\begin{asciik} 
+syntax KItem ::= "state_transition" "(" block: BeaconBlock ")" [klabel(state_transition), symbol] 
+\end{asciik}
 
 As described in Section~\ref{sec:}, there are two main consecutive steps involved: (1) advancing
 slots all the way to the block's slot value \texttt{process\_slots}, and then (2) processing the
 block \texttt{process\_block}. Sequencing of commands in K is naturally specified as stacking a
 computation on top of a continuation, using the operator \texttt{~>}. For example,  the state
-transition function is defined using the following computation stack: \begin{asciik} rule
-state_transition(BLOCK) => process_slots(BLOCK.slot) ~> process_block(BLOCK)  \end{asciik} Only when
+transition function is defined using the following computation stack: 
+\begin{asciik} 
+rule state_transition(BLOCK) => process_slots(BLOCK.slot) ~> process_block(BLOCK)  
+\end{asciik} 
+Only when
 \texttt{process\_slots} terminates successfully will the next computation defined by
 \texttt{process\_block} take place, which captures the intended semantics.
 
 \subsubsection{Sequencing.} This sequencing pattern is seen throughout the Python implementation
 and, in many cases, it is handled in the same way using user-defined computational structures in K
 and the stacking operator \texttt{~>}. For example, advancing a slot across an epoch boundary
-invokes the following function: \begin{lstlisting}[language=python, basicstyle=\small, tabsize=2,
-columns=flexible, basicstyle=\ttfamily] def process_epoch(state: BeaconState) -> None:
-process_justification_and_finalization(state) process_crosslinks(state)
-process_rewards_and_penalties(state) process_registry_updates(state) process_slashings(state)
-process_final_updates(state) \end{lstlisting} which consists of a sequence of function calls on the
-beacon chain state. This sequence is modeled by the following definition in K: \begin{asciik} syntax
-KItem ::= "process_epoch" "(" ")" rule <k> process_epoch() =>
-process_justification_and_finalization() ~> process_crosslinks() ~> process_rewards_and_penalties()
-~> process_registry_updates() ~> process_slashings() ~> process_final_updates() ... </k>
-\end{asciik} Notice that the corresponding operators in K have arity 0, as they operate on the
+invokes the following function: 
+\begin{lstlisting}[language=python, basicstyle=\small, tabsize=2, columns=flexible, basicstyle=\ttfamily] 
+def process_epoch(state: BeaconState) -> None:
+    process_justification_and_finalization(state)
+    process_crosslinks(state)
+    process_rewards_and_penalties(state)
+    process_registry_updates(state)
+    process_slashings(state)
+    process_final_updates(state)
+\end{lstlisting} 
+which consists of a sequence of function calls on the
+beacon chain state. This sequence is modeled by the following definition in K: 
+\begin{asciik} syntax
+  syntax KItem ::= "process_epoch" "(" ")"
+  rule <k> process_epoch() =>
+                process_justification_and_finalization()
+             ~> process_crosslinks()
+             ~> process_rewards_and_penalties()
+             ~> process_registry_updates()
+             ~> process_slashings()
+             ~> process_final_updates()
+       ... </k>
+\end{asciik} 
+Notice that the corresponding operators in K have arity 0, as they operate on the
 current configuration containing the computation cell k to which they belong.
 
 \subsubsection{Variables and assignments.} Another prevalent pattern in the Python implementation,
@@ -546,14 +609,24 @@ auxiliary function declarations taking extra arguments.
 The expression \verb+#fun(X => E) E'+ corresponds to evaluating the argument \verb+E'+ first to a
 value V, and then returning the result of evaluating \verb+E+ with every (free) occurrence of X in E
 replaced by V (call-by-value semantics of lambda). An example of using this construct to bind a
-value to a local name in the K model is shown below: \begin{asciik} syntax IndexedAttestation ::=
-"get_indexed_attestation" "(" Attestation ")" [function] rule
-get_indexed_attestation(#Attestation(AggregationBits, DATA, CustodyBits, SIG)) =>
-#fun(AttestingIndices => #fun(CustodyBit1Indices => #fun(CustodyBit0Indices => #IndexedAttestation(
-sortIntList(CustodyBit0Indices), sortIntList(CustodyBit1Indices), DATA, SIG )
-)(listDiff(AttestingIndices, CustodyBit1Indices)) )(get_attesting_indices(DATA, CustodyBits))
-)(get_attesting_indices(DATA, AggregationBits)) requires listDiff(get_attesting_indices(DATA,
-CustodyBits),  get_attesting_indices(DATA, AggregationBits)) ==K .IntList \end{asciik} The rule
+value to a local name in the K model is shown below: 
+\begin{asciik} 
+syntax IndexedAttestation ::= "get_indexed_attestation" "(" Attestation ")" [function]
+rule get_indexed_attestation(#Attestation(AggregationBits, DATA, CustodyBits, SIG)) =>
+    #fun(AttestingIndices =>
+    #fun(CustodyBit1Indices =>
+    #fun(CustodyBit0Indices => #IndexedAttestation(
+                                  sortIntList(CustodyBit0Indices),
+                                  sortIntList(CustodyBit1Indices),
+                                  DATA,
+                                  SIG
+                               )
+    )(listDiff(AttestingIndices, CustodyBit1Indices))
+    )(get_attesting_indices(DATA, CustodyBits))
+    )(get_attesting_indices(DATA, AggregationBits))
+    requires listDiff(get_attesting_indices(DATA, CustodyBits), 
+                        get_attesting_indices(DATA, AggregationBits)) ==K .IntList
+ \end{asciik} The rule
 constructs a new indexed attestation structure populated by values bound to local names introduced
 by three nested instances of \verb+#fun+. For example, the name \verb+AttestingIndices+ is bound to
 the value of the expression \verb+get_attesting_indices(DATA, AggregationBits)+. Note also that the
@@ -561,14 +634,25 @@ rule is conditional with the condition specified using the \verb+requires+ claus
 
 In other, less complex statements, declaring an additional operator that takes extra arguments
 corresponding to temporary local values is more appropriate. \verb+process_slot+ (for processing a
-single slot) is an example: \begin{asciik} syntax KItem ::= "process_slot" "(" ")" rule <k>
-process_slot() => processSlotAux(hash_tree_root_state(), SLOT %Int SLOTS_PER_HISTORICAL_ROOT)
-...</k> <slot> SLOT </slot> \end{asciik} where the hash-tree root of the beacon chain state and the
+single slot) is an example: 
+\begin{asciik} 
+  syntax KItem ::= "process_slot" "(" ")"
+  rule <k> process_slot()
+           => processSlotAux(hash_tree_root_state(), SLOT %Int SLOTS_PER_HISTORICAL_ROOT)
+       ...</k>
+       <slot> SLOT </slot>
+\end{asciik} 
+where the hash-tree root of the beacon chain state and the
 current slot value are bound to local names in the newly introduced auxiliary function
 \verb+processSlotAux+. Another example is the function for computing the list of active validator
-indices: \begin{asciik} syntax IntList ::= "get_active_validator_indices" "(" epoch: Int ")"
-[function] rule [[ get_active_validator_indices(EP) => getActiveValidatorIndicesAux(.IntList, 0,
-VALIDATORS, EP) ]] <validators> VALIDATORS </validators> \end{asciik} The auxiliary function
+indices: 
+\begin{asciik} 
+  syntax IntList ::= "get_active_validator_indices" "(" epoch: Int ")" [function]
+  rule [[ get_active_validator_indices(EP) => 
+            getActiveValidatorIndicesAux(.IntList, 0, VALIDATORS, EP) ]]
+    <validators> VALIDATORS </validators>
+\end{asciik} 
+The auxiliary function
 \verb+getActiveValidatorIndicesAux+ adds three new arguments for computing the index list, which are
 local values for that function call. Note that the use of the double square brackets \verb+[[+ and
 \verb+]]+ is necessary to allow this function-defining rule to access contents of other cells in the
@@ -581,16 +665,22 @@ specification by reaching a stuck configuration, a non-terminal configuration to
 applies (non-terminal in that the computation cell \verb+<k>+ is not the empty computation
 \verb+.K+). The way to achieve this is to add rules guarded by Boolean expressions corresponding to
 assertions wherever they appear in the implementation. For instance, the function
-\verb+get_block_root_at_slot+ begins with an assertion: \begin{lstlisting}[language=python,
-basicstyle=\small, tabsize=2, columns=flexible, basicstyle=\ttfamily] def
-get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash: assert slot < state.slot <= slot +
-SLOTS_PER_HISTORICAL_ROOT return state.block_roots[slot % SLOTS_PER_HISTORICAL_ROOT]
-\end{lstlisting} The function returns the block root at the given slot value only when the assertion
+\verb+get_block_root_at_slot+ begins with an assertion: 
+\begin{lstlisting}[language=python, basicstyle=\small, tabsize=2, columns=flexible, basicstyle=\ttfamily] 
+def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
+    assert slot < state.slot <= slot + SLOTS_PER_HISTORICAL_ROOT
+    return state.block_roots[slot % SLOTS_PER_HISTORICAL_ROOT]
+\end{lstlisting} 
+The function returns the block root at the given slot value only when the assertion
 holds. Otherwise, it halts with a failure. This is modeled by the following conditional rule:
-\begin{asciik} syntax Hash ::= "get_block_root_at_slot" "(" Int ")" [function] rule [[
-get_block_root_at_slot(SLOT) => {BLOCKROOTS[ SLOT %Int SLOTS_PER_HISTORICAL_ROOT ]}:>Hash ]] <slot>
-StateSLOT </slot> <block-roots> BLOCKROOTS </block-roots> requires SLOT <Int StateSLOT andBool
-StateSLOT <=Int (SLOT +Int SLOTS_PER_HISTORICAL_ROOT) \end{asciik} Since this rule is the only rule
+\begin{asciik} 
+  syntax Hash ::= "get_block_root_at_slot" "(" Int ")" [function]
+  rule [[ get_block_root_at_slot(SLOT) => {BLOCKROOTS[ SLOT %Int SLOTS_PER_HISTORICAL_ROOT ]}:>Hash ]]
+    <slot> StateSLOT </slot>
+    <block-roots> BLOCKROOTS </block-roots>
+    requires SLOT <Int StateSLOT andBool StateSLOT <=Int (SLOT +Int SLOTS_PER_HISTORICAL_ROOT)
+\end{asciik} 
+Since this rule is the only rule
 that defines the operator \verb+get_block_root_at_slot+ in the specification, execution stops while
 evaluating this operation and a stuck configuration is reached when the condition fails. On the
 other hand, if the condition holds, execution proceeds normally.
@@ -599,10 +689,13 @@ other hand, if the condition holds, execution proceeds normally.
 specified in the K model using either: (1) K's internal conditional expressions \verb+#if ... #fi+,
 or (1) conditional rules with K's \verb+requires+ clause. When used with K's localized rewriting,
 the use of the internal conditional expression to capture branching behaviors can result in compact
-yet quite readable definitions. An example is shown below: \begin{asciik} syntax KItem ::=
-"decrease_balance" "(" ValidatorIndex "," Int ")" rule <k> decrease_balance(ValIndex, Delta) => .
-...</k> <balances>... ValIndex |-> (BAL => #if Delta >Int BAL #then 0 #else BAL -Int Delta #fi)
-...</balances> \end{asciik} The rule defines how the balance of a validator is decreased in the
+yet quite readable definitions. An example is shown below: 
+\begin{asciik} syntax KItem ::=
+syntax KItem ::= "decrease_balance" "(" ValidatorIndex "," Int ")"
+rule <k> decrease_balance(ValIndex, Delta) => . ...</k>
+       <balances>... ValIndex |-> (BAL => #if Delta >Int BAL #then 0 #else BAL -Int Delta #fi) ...</balances>
+\end{asciik} 
+The rule defines how the balance of a validator is decreased in the
 beacon chain state. The balance rewrites to the reduced value if it is non-negative, and to 0
 otherwise.
 
@@ -612,14 +705,17 @@ Conditional rules also have the advantage of exposing branching to rule-based co
 tools in K, but that usually comes at the expense of a less consice specification (see
 Section~\ref{sec:testing}).  For example, the operation \verb+initiate_validator_exit+ corresponding
 to the identically named function in Python for initiating the process of exiting the system of a
-given validator has the following definition: \begin{asciik} syntax KItem ::=
-"initiate_validator_exit" "(" Int ")"
+given validator has the following definition: 
+\begin{asciik} 
+  syntax KItem ::= "initiate_validator_exit" "(" Int ")"
 
-  rule initiate_validator_exit(INDEX) => .K requires getValidator(INDEX).exitEpoch =/=K
-  FAR_FUTURE_EPOCH
-
+  rule initiate_validator_exit(INDEX) => .K
+    requires getValidator(INDEX).exitEpoch =/=K FAR_FUTURE_EPOCH
+    
   rule initiate_validator_exit(INDEX) => initiateValidatorExitAux(INDEX, exitQueueEpochAux(INDEX))
-requires getValidator(INDEX).exitEpoch ==K FAR_FUTURE_EPOCH \end{asciik} There are two cases: (1)
+    requires getValidator(INDEX).exitEpoch ==K FAR_FUTURE_EPOCH
+\end{asciik} 
+There are two cases: (1)
 either the validator has already exited, which is handled by the first rule above, in which case
 execution terminates (\verb+.K+ is the empty computation), or (2) the validator has not exited the
 system, handled by the second rule, in which case the rest of the computations involved in
@@ -637,34 +733,59 @@ K. The advantage, however, is that the encoding readily enables a more detailed 
 (see Section~\ref{sec:testing}).
 
 A simple example of translating looping constructs is is \verb+process_slots+ function definition:
-\begin{lstlisting}[language=python, basicstyle=\small, tabsize=2, columns=flexible,
-basicstyle=\ttfamily] def process_slots(state: BeaconState, slot: Slot) -> None: assert state.slot
-<= slot while state.slot < slot: process_slot(state) if (state.slot + 1) % SLOTS_PER_EPOCH == 0:
-process_epoch(state) state.slot += Slot(1) \end{lstlisting} The function increments the state slot
+\begin{lstlisting}[language=python, basicstyle=\small, tabsize=2, columns=flexible, basicstyle=\ttfamily] 
+def process_slots(state: BeaconState, slot: Slot) -> None:
+    assert state.slot <= slot
+    while state.slot < slot:
+        process_slot(state)
+        if (state.slot + 1) % SLOTS_PER_EPOCH == 0:
+            process_epoch(state)
+        state.slot += Slot(1)
+\end{lstlisting} 
+The function increments the state slot
 value in steps, invoking epoch processing operations when crossing epoch boundaries, up to the slot
 value of the block (given as an argument). The operator declaration in the K model that corresponds
-to this function is: \begin{asciik} syntax KItem ::= "process_slots" "(" Int ")"
-[klabel(process_slots), symbol] \end{asciik} We note here again that the state does not need to be
+to this function is: 
+\begin{asciik} 
+syntax KItem ::= "process_slots" "(" Int ")" [klabel(process_slots), symbol] 
+\end{asciik} 
+We note here again that the state does not need to be
 supplied as an argument. The configuration in which computations take place encode the state. The
 first step in the encoding of this function is to check that the assertion holds, before proceeding
 to the loop encoding, given by \verb+processSlotsLoop+ (whose declaration is not shown):
-\begin{asciik} rule <k> process_slots(SLOT) => processSlotsLoop(SLOT) ...</k> <slot> StateSLOT
-</slot> requires StateSLOT <=Int SLOT \end{asciik} If the assertion fails, i.e. the condition of the
+\begin{asciik} 
+  rule <k> process_slots(SLOT) => processSlotsLoop(SLOT) ...</k>
+       <slot> StateSLOT </slot>
+    requires StateSLOT <=Int SLOT
+\end{asciik} 
+If the assertion fails, i.e. the condition of the
 rule above does not hold, the rule does not fire, and since there is no other rule that rewrites
 \verb+process_slots+, rewriting gets stuck at this term signaling a dynamic (runtime) error.
 Otherwise, we proceed with processing the loop. The looping branch of the while statement has the
-following encoding: \begin{asciik} rule <k> processSlotsLoop(SLOT) => process_slot() ~> #if
-(StateSLOT +Int 1) %Int SLOTS_PER_EPOCH ==K 0 #then process_epoch() #else .K #fi ~> incrementSlot()
-~> processSlotsLoop(SLOT) ...</k> <slot> StateSLOT </slot> requires StateSLOT <Int SLOT \end{asciik}
+following encoding: 
+\begin{asciik} 
+  rule <k> processSlotsLoop(SLOT) =>
+             process_slot()
+             ~> #if (StateSLOT +Int 1) %Int SLOTS_PER_EPOCH ==K 0 #then process_epoch() #else .K #fi
+             ~> incrementSlot()
+             ~> processSlotsLoop(SLOT)
+       ...</k>
+       <slot> StateSLOT </slot>
+    requires StateSLOT <Int SLOT
+\end{asciik}
 The body of the loop consists of three steps: process one slot, invoke epoch processing if needed,
 and then increment the state slot. The steps are done in sequence, modeled stacking computational
 structures using \verb+~>+, one structure per step. the fourth and last computational structure in
 the sequence introduced by the rule is \verb+processSlotsLoop+ itself, which recursively causes the
 loop to repeat, as required. Note that this rule applies only when loop's Boolean condition holds.
 
-The exit branch of the loop is modeled by the following rule: \begin{asciik} rule <k>
-processSlotsLoop(SLOT) => .K ... </k> <slot> StateSLOT </slot> requires StateSLOT >=Int SLOT
-\end{asciik} which simply terminates execution, when the loop's Boolean condition fails.
+The exit branch of the loop is modeled by the following rule: 
+\begin{asciik} 
+  rule <k> processSlotsLoop(SLOT) => .K ... </k>
+       <slot> StateSLOT </slot>
+    requires StateSLOT >=Int SLOT
+\end{asciik} 
+which simply terminates execution, when the loop's Boolean condition fails.
 
 More complex looping structures, e.g. iterating over elements of a list container type or list/set
 comprehension expressions, require more elaborate encodings to keep track of indices and stopping

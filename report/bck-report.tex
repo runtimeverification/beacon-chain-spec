@@ -800,12 +800,65 @@ operations. Examples include \verb+compute_committee+ and
 \section{Validating the Model}
 \label{sec:testing}
 
-[TBA]
+Ethereum foundation provides a rich test suite for the beacon chain protocol. It exists in 2 formats. First is a set of unit tests-style tests specifically for the reference implementation of Beacon Chain, written in Python. It tests both the \verb+state_transition+ function and separate steps within state transition, like \verb+process_attestation+ or \verb+process_slot+. To ensure that various production versions of Beacon Chain client conform to the reference, they provide same tests in a 2nd, implementation-independent format. It essentially contains the \verb+BeaconState+ object before the tested oepration, after the tested operation, and operation parameters. For example for \verb+process_attestation+ the test will contain 3 obiects: pre-state \verb+BeaconChain+, post-state \verb+BeaconChain+, and the \verb+Attestation+ object.
+If the test is for a failure case, e.g. it tests that the cliend rejects invalid input data, then there's no post-state.
+All objects are given in yaml, which is a version of xml. These conformance tests are geenrtated from python unit tests, thus the 2 test formats represent the same testing conditions.
+
+We tested K Beacon Chain specification using the implementation-independent test format.
+More precisely, K Beacon Chain runs all tests designed for Beacon Chain Phase 0, except a small number of tests that are specifically testing bls validation. Bls validation as outside the scope of the present project.
+
 
 \section{Evaluating Test Coverage}
 \label{sec:coverage}
 
-[TBA]
+Beacon Chain test suite was designed with code coverage in mind. When running the Python-style test suite over reference implementation, code coverage shows only one line not covered by tests, on the execution path of \verb+process_rewards_and_penalties+. This is the only big function that doesn't have it's own test suite, something Beacon Chain developers are aware of and working on it.
+
+K Framework also has a test coverage tool which we could use. Its granularity is at rule level, e.g. it decides for each rule whether it was applied or not during test suite execution. At first we were skeptical whether K coverage tool could expose any non-covered functionality, given the attention to coverage that Beacon Chain developers have. However it provided a number of surprising results.
+
+We initially expected K coveage to be more coarse-grained than python, thus less inforamtive. This is beccause most \verb+if+ statements are modeled through K \verb+#if_#then_#else_#fi+ construct, and do not represent separate rules. Thus K coverage cannot distinguish between then and else case. However, K Beacon Chain is more fine grained than python in other aspects, as we show below. Next we enumerate useful findings resulting from K code coverage.
+
+First we discovered a line that is only covered by tests with \verb+bls_setting+ enabled. Beacon Cahin developers confirned that any non-bls functionality must be covered by non-bls tests, thus this is indeed an issue.
+
+Second, there is a while loop of the form \verb+while True: ...+ in \verb+get_beacon_proposer_index+, which had to be modeled through 3 separate rules. As a consequence of this, coverage discovered that in all tests this loop has one iteration.
+Normally coverage tools do not distinguish between numbers of iterations for loops, but in this particular case a test for the case with multiple iterations is useful, at least to demonstrate that it is possible.
+
+And most interesting, we discovered 12 other rules not covered by tests, in addition to what python coverage tool reports, on valid execution paths. All of them relate to python loop comprehension statements, perhaps the most elegant language feature specific to Python.
+A loop comprehension performs quite a lot of logic: like enumerating elements of a list, filtering them and putting results in a new list. Yet it is treated as just one line of code by Python coverage tool. As a result, as long as loop comprehension statement is reached, Python considers it completely covered, without distinguishing various scenarios of what happens inside. For example, if loop comprehension always returns an empty list, Python will consider it covered.
+
+In K, a loop comprehension with filtering usually has to be modeled through 3 separate rules.
+
+Example.
+
+\textbf{Python:}
+\begin{asciik}
+def get_matching_target_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
+  return [
+    a for a in get_matching_source_attestations(state, epoch)
+      if a.data.target.root == get_block_root(state, epoch)
+  ]
+\end{asciik} 
+
+\textbf{K:}
+\begin{asciik} 
+syntax PendingAttestationList ::= "get_matching_target_attestations" "(" Int ")" [function]
+rule get_matching_target_attestations(EPOCH) =>
+  filterOutNonMatchingTargets(get_matching_source_attestations(EPOCH), EPOCH, .PendingAttestationList)
+
+syntax PendingAttestationList ::= filterOutNonMatchingTargets(PendingAttestationList, Int, PendingAttestationList) [function]
+rule filterOutNonMatchingTargets(PA PAList => PAList, EPOCH, RES => RES +append PA)
+  requires PA.data.target.root ==K get_block_root(EPOCH)
+rule filterOutNonMatchingTargets(PA PAList => PAList, EPOCH, RES)
+  requires PA.data.target.root =/=K get_block_root(EPOCH)
+rule filterOutNonMatchingTargets(.PendingAttestationList, EPOCH, RES) => RES
+\end{asciik} 
+
+As a consequence of this K coverage distinguishes cases when (a) loop comprehension performs filtering, (b) loop comprehension doesn't perform filtering but returns non-empty result, (c) loopcomprehension returns empty result.
+
+For example, for the code above, 2nd rule for \verb+filterOutNonMatchingTargets+ is not covered, meaning that filtering is never performed. All other 11 detections for loop coverage are on execution path of \verb+process_rewards_and_penalties+. We plan to re-run coverage when tests for this function are added to the test suite, to see if there are missing cases remaining. For the other 2 detections described above, we contributed tests that cover them to Beaco nChain project.
+
+We also plan to implement an ad-hoc context sensitive code coverage for \verb+#if+ construct, to eliminate granularity issue we described above. Initial experiments show that this leads to more functionality not being covered.
+
+
 
 
 %\begin{figure}%[t!]

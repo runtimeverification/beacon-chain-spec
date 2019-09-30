@@ -1645,24 +1645,29 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
 */
   syntax MapMapPair ::= "get_attestation_deltas" "(" ")" [function]
   rule get_attestation_deltas()
+       => #fun(MicroIncentives
        => #mapMapPair(
-            // Rewards
-            delayMicroRewards(microIncentivesForRewards())
-            ,
-            // Penalties
-            inactivityPenalty(microIncentivesForPenalties())
-       )
+            delayMicroRewards(MicroIncentives.map1),  // Rewards
+            inactivityPenalty(MicroIncentives.map2) ) // Penalties
+          )( microIncentives() )
 
-  // First (inner) step in computing rewards/penalties
-  syntax Map ::= microIncentivesForRewards() [function]
-  rule microIncentivesForRewards() => microIncentives().map1
-
-  syntax Map ::= microIncentivesForPenalties() [function]
-  rule microIncentivesForPenalties() => microIncentives().map2
-
+/*  # Micro-incentives for matching FFG source, FFG target, and head
+    matching_source_attestations = get_matching_source_attestations(state, previous_epoch)
+    matching_target_attestations = get_matching_target_attestations(state, previous_epoch)
+    matching_head_attestations = get_matching_head_attestations(state, previous_epoch)
+    for attestations in (matching_source_attestations, matching_target_attestations, matching_head_attestations):
+        unslashed_attesting_indices = get_unslashed_attesting_indices(state, attestations)
+        attesting_balance = get_total_balance(state, unslashed_attesting_indices)
+        for index in eligible_validator_indices:
+            if index in unslashed_attesting_indices:
+                rewards[index] += get_base_reward(state, index) * attesting_balance // total_balance
+            else:
+                penalties[index] += get_base_reward(state, index)
+*/
   syntax MapMapPair ::= microIncentives() [function]
   rule microIncentives() =>
          loopOverEligibleValidatorIndices(
+           get_total_active_balance(),
            getEligibleValidatorIndices(get_previous_epoch()),
            get_unslashed_attesting_indices(get_matching_head_attestations(get_previous_epoch())),
            get_total_balance(get_unslashed_attesting_indices(get_matching_head_attestations(get_previous_epoch()))),
@@ -1671,6 +1676,7 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   syntax MapMapPair ::= microIncentivesAfterTargetAtt() [function]
   rule microIncentivesAfterTargetAtt() =>
          loopOverEligibleValidatorIndices(
+           get_total_active_balance(),
            getEligibleValidatorIndices(get_previous_epoch()),
            get_unslashed_attesting_indices(get_matching_target_attestations(get_previous_epoch())),
            get_total_balance(get_unslashed_attesting_indices(get_matching_target_attestations(get_previous_epoch()))),
@@ -1679,17 +1685,23 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   syntax MapMapPair ::= microIncentivesAfterSourceAtt() [function]
   rule microIncentivesAfterSourceAtt() =>
          loopOverEligibleValidatorIndices(
+           get_total_active_balance(),
            getEligibleValidatorIndices(get_previous_epoch()),
            get_unslashed_attesting_indices(get_matching_source_attestations(get_previous_epoch())),
            get_total_balance(get_unslashed_attesting_indices(get_matching_source_attestations(get_previous_epoch()))),
            #mapMapPair( initMapOfSize(numOfValidators()), initMapOfSize(numOfValidators())) )
 
-  syntax MapMapPair ::= loopOverEligibleValidatorIndices(IntList, IntList, Int, MapMapPair) [function]
-  rule loopOverEligibleValidatorIndices(I IL => IL,
+  syntax MapMapPair ::= loopOverEligibleValidatorIndices( totalBalance:               Int,
+                                                          unslashedAttestingIndices:  IntList,
+                                                          unslashedAttestingIndices:  IntList,
+                                                          attestingBalance:           Int,
+                                                          rewardsAndPenalties:        MapMapPair) [function]
+  rule loopOverEligibleValidatorIndices(TotalBalance, I IL => IL,
                        UnslashedIndices,
                        AttestingBalance,
                        #mapMapPair(Rewards => #if contains(I, UnslashedIndices)
-                                              #then Rewards[I <- ({Rewards[I]}:>Int +Int get_base_reward(I) *Int AttestingBalance)]
+                                              #then Rewards[I <- ({Rewards[I]}:>Int +Int get_base_reward(I)
+                                                                  *Int AttestingBalance /Int TotalBalance)]
                                               #else Rewards
                                               #fi,
                                   Penalties => #if notBool contains(I, UnslashedIndices)
@@ -1697,7 +1709,7 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
                                                #else Penalties
                                                #fi) )
 
-  rule loopOverEligibleValidatorIndices(.IntList, _, _, RewardsPenalties) => RewardsPenalties
+  rule loopOverEligibleValidatorIndices(_, .IntList, _, _, RewardsPenalties) => RewardsPenalties
 
   // Second step in computing rewards
   syntax Map ::= delayMicroRewards(Map) [function]
@@ -1915,7 +1927,8 @@ def process_rewards_and_penalties(state: BeaconState) -> None:
           #fi
        ... </k>
 
-  syntax KItem ::= "processRewardsAndPenaltiesLoop" "(" Int "," Int "," MapMapPair "," MapMapPair ")"
+  syntax KItem ::= "processRewardsAndPenaltiesLoop" "(" i: Int "," n: Int "," attestationDeltas: MapMapPair ","
+                                                                              crosslinkDeltas: MapMapPair ")"
   rule <k> (. => increase_balance(INDEX, {Rewards1[INDEX]}:>Int +Int {Rewards2[INDEX]}:>Int)
               ~> decrease_balance(INDEX, {Penalties1[INDEX]}:>Int +Int {Penalties2[INDEX]}:>Int)
            ) ~> processRewardsAndPenaltiesLoop(
@@ -1926,7 +1939,7 @@ def process_rewards_and_penalties(state: BeaconState) -> None:
                  )
        ... </k>
     requires INDEX <Int N
-  rule <k> processRewardsAndPenaltiesLoop(INDEX, N, _, _) => .K ... </k>
+  rule processRewardsAndPenaltiesLoop(INDEX, N, _, _) => .K
     requires INDEX >=Int N
 
 /*

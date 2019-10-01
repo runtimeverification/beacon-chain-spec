@@ -336,14 +336,16 @@ def state_transition(state: BeaconState, block: BeaconBlock ...) -> BeaconState:
 \end{lstlisting}
 
 Processing begins at the genesis state (the state having the genesis beacon block already
-processed). When processing a (non-genesis) block proposed for slot $N$ ($N \geq 0$), and assuming the block
-is valid (i.e. the block passes all the internal checks specified by the state transition function
-and all its sub-procedures), the state transition function advances in steps its slot value to $N$, while initiating epoch-transition processing if an epoch boundary is crossed in the
-process, and then processes the block at slot $N$. The resulting state is the post-state of
-processing that block, which is also the pre-state of the next block to be processed. We note that
-the state transition function is defined only for valid blocks, and the validity of an entire chain
-beginning at the genesis block is derived recursively from the successive application of the state
-transition function on the sequence of blocks as they appear in the chain. More details can be found here~\cite{EFBCAR:2019}.
+processed). When processing a (non-genesis) block proposed for slot $N$ ($N \geq 0$), and assuming
+the block is valid (i.e. the block passes all the internal checks specified by the state transition
+function and all its sub-procedures), the state transition function advances in steps its slot value
+to $N$, while initiating epoch-transition processing if an epoch boundary is crossed in the process,
+and then processes the block at slot $N$. The resulting state is the post-state of processing that
+block, which is also the pre-state of the next block to be processed. We note that the state
+transition function is defined only for valid blocks, and the validity of an entire chain beginning
+at the genesis block is derived recursively from the successive application of the state transition
+function on the sequence of blocks as they appear in the chain. More details can be found
+here~\cite{EFBCAR:2019}.
 
 \section{Modeling the Beacon Chain in K}
 \label{sec:bck}
@@ -358,28 +360,35 @@ tests or the specification is minimized or even eliminated). Despite being fairl
 formalization abstracts over signature verification since that is outside the scope of the project.
 
 We, therefore, present an executable formalization in the K framework of the beacon chain (Phase 0)
-specification~\cite{EFBC:2019,EFBCAR:2019}, including its two core components: the beacon chain state and the beacon chain state
-transition function. The model is characterized by being: (1) executable by pattern rewriting in the
-K tool, so that an interpreter for the beacon chain state transition function is obtained directly
-from the specification (at no extra cost), and (2) concrete, in that its specification corresponds
-directly to the Python implementation of the system (modulo some specific abstractions, such as
-signature verification). These two characteristics not only enable simulation and testing, but also
-facilitate further future developments, including deriving efficiently executable
-correct-by-construction reference implementations and automatically generating concrete tests (see
-our previous work on generating reference implementations based on K specifications~\cite{Hildenbrandt:2018,Kasampalis:2019}).
+specification~\cite{EFBC:2019,EFBCAR:2019}, including its two core components: the beacon chain
+state and the beacon chain state transition function. The model is characterized by being: (1)
+executable by pattern rewriting in the K tool, so that an interpreter for the beacon chain state
+transition function is obtained directly from the specification (at no extra cost), and (2)
+concrete, in that its specification corresponds directly to the Python implementation of the system
+(modulo some specific abstractions, such as signature verification). These two characteristics not
+only enable simulation and testing, but also facilitate further future developments, including
+deriving efficiently executable correct-by-construction reference implementations and automatically
+generating concrete tests (see our previous work on generating reference implementations based on K
+specifications~\cite{Hildenbrandt:2018,Kasampalis:2019}).
 
 %We have already derived reference implementations from formal K specifications of a variety of
 %languages, virtual machines, and systems, such as, for example, EVM and the recent IELE, and have
 %ample experience in this space (see, for example, the languages that we formalized in K both in the
 %FSL lab at the University of Illinois and at Runtime Verification).
 
-Furthermore, we chose to define the model using K's declarative programming features directly, and not through an intermediate representation or through some definition of Python's semantics. Although an intermediate language would likely have resulted in a more high-level specification, this approach gets us finer-grained tooling support needed in this project, such as parsing, type-checking, semantic debugging and test-coverage analysis facilities, that would otherwise be less effective.
+Furthermore, we chose to define the model using K's declarative programming features directly, and
+not through an intermediate representation or through some definition of Python's semantics.
+Although an intermediate language would likely have resulted in a more high-level specification,
+this approach gets us finer-grained tooling support needed in this project, such as parsing,
+type-checking, semantic debugging and test-coverage analysis facilities, that would otherwise be
+less effective.
 
 %based on K providing a pragmatic, well-validated formal model of the beacon chain specification
 
 The full specification of the model in K is available at
 \url{https://github.com/runtimeverification/beacon-chain-spec}. We list below the main
-components/files of the model: \begin{itemize}
+components/files of the model:
+\begin{itemize}
 \item The core K model specification:
 	\begin{itemize}
 	\item \texttt{constants-minimal.k}: definitions of system-wide constants for testing purposes, corresponding to the "minimal" test suite of beacon chain
@@ -394,7 +403,8 @@ components/files of the model: \begin{itemize}
 	\end{itemize}
 \end{itemize}
 
-We focus in this section on the core K model. Testing and model validation is described in Section~\ref{sec:testing}.
+We focus in this section on the core K model. Testing and model validation is described in
+Section~\ref{sec:testing}.
 
 \subsection{Types and Basic Operations}
 
@@ -451,9 +461,10 @@ syntax Validator ::= #Validator( pubkey: BLSPubkey,
                                      exitEpoch: Int,
                                      withdrawableEpoch: Int
                                    ) [klabel(#Validator), symbol]
-\end{asciik} The rule attributes \texttt{klabel} and \texttt{symbol} instruct the parser to give the
-unique name \texttt{\#Validator} to nodes constructed with this rule in the abstract syntax tree, so
-they may be referred to easily when analyzing a state.
+\end{asciik}
+The rule attributes \texttt{klabel} and \texttt{symbol} instruct the parser to give the unique name
+\texttt{\#Validator} to nodes constructed with this rule in the abstract syntax tree, so they may be
+referred to easily when analyzing a state.
 
 In addition to the type declaration itself, we introduce syntax that allows accessing fields in a
 container by name. For example, for the type \texttt{Validator} above, a validator's effective
@@ -518,17 +529,19 @@ concrete state of the beacon chain (when testing for example).
 Having the state modeled explicitly as a K configuration makes the definition of the state
 transition function more natural, as the state transition system induced by the function becomes
 explicit. Furthermore, the configuration may include other supporting fields, including the special
-computation cell k to specify the operations to be executed and the \verb+<zerohashes-cache>+ cell used as part of hash tree root computation (both shown above).
+computation cell k to specify the operations to be executed and the \verb+<zerohashes-cache>+ cell
+used as part of hash tree root computation (both shown above).
 
 
 \subsection{Hash-tree Computation}
 
 Several components of the beacon chain state store hashes of values and structures computed through
-a custom-defined hash-tree (merkle-ization) process defined in Python~\cite{EFPYSSZ:2019} and described more generally in this document~\cite{EFSSZ:2019}. This process is
-captured in the Python implementation by the \texttt{hath\_tree\_root} function, which computes for
-every value and container a single root in a hash tree structure. For example, the beacon chain
-state stores in its \texttt{BeaconBlockHeader} container the hash of the latest block seen and the
-hash of the block's parent, as per this function.
+a custom-defined hash-tree (merkle-ization) process defined in Python~\cite{EFPYSSZ:2019} and
+described more generally in this document~\cite{EFSSZ:2019}. This process is captured in the Python
+implementation by the \texttt{hath\_tree\_root} function, which computes for every value and
+container a single root in a hash tree structure. For example, the beacon chain state stores in its
+\texttt{BeaconBlockHeader} container the hash of the latest block seen and the hash of the block's
+parent, as per this function.
 
 Since one main objective of the model is to use it to run existing tests directly, and since many of
 the these tests involve checking validity of supplied hashes, we specify the hashing function
@@ -546,7 +559,9 @@ in Section~\ref{sec:bc}, maps a beacon chain pre-state $S_i$ and a beacon chain 
 beacon chain post-state $S_{i+1}$. In a sequence of state updates (consecutive function
 applications) , the resulting post-state $S_{i+1}$ is itself the pre-state of the next function
 application step on some block $B_{i+1}$, and so on. We note that the transition function is
-deterministic, i.e. the post-state is completely determined by the pre-state and the block. Another important observation is that the function is implemented as a non-pure function (a function with side effects) in Python that modifies the state object passed to it as an argument.
+deterministic, i.e. the post-state is completely determined by the pre-state and the block. Another
+important observation is that the function is implemented as a non-pure function (a function with
+side effects) in Python that modifies the state object passed to it as an argument.
 
 In the K model, the state transition function is specified by an operator in K that transforms the
 beacon chain configuration (representing the pre-state) into another beacon chain configuration
@@ -625,11 +640,11 @@ rule get_indexed_attestation(#Attestation(AggregationBits, DATA, CustodyBits, SI
     )(get_attesting_indices(DATA, AggregationBits))
     requires listDiff(get_attesting_indices(DATA, CustodyBits),
                         get_attesting_indices(DATA, AggregationBits)) ==K .IntList
- \end{asciik} The rule
-constructs a new indexed attestation structure populated by values bound to local names introduced
-by three nested instances of \verb+#fun+. For example, the name \verb+AttestingIndices+ is bound to
-the value of the expression \verb+get_attesting_indices(DATA, AggregationBits)+. Note also that the
-rule is conditional with the condition specified using the \verb+requires+ clause.
+ \end{asciik}
+The rule constructs a new indexed attestation structure populated by values bound to local names
+introduced by three nested instances of \verb+#fun+. For example, the name \verb+AttestingIndices+
+is bound to the value of the expression \verb+get_attesting_indices(DATA, AggregationBits)+. Note
+also that the rule is conditional with the condition specified using the \verb+requires+ clause.
 
 In other, less complex statements, declaring an additional operator that takes extra arguments
 corresponding to temporary local values is more appropriate. \verb+process_slot+ (for processing a
@@ -804,31 +819,72 @@ operations. Examples include \verb+compute_committee+ and
 \section{Validating the Model}
 \label{sec:testing}
 
-The Ethereum Foundation provides a rich test suite for the beacon chain protocol~\cite{EFBCTEST:2019}. It exists in 2 formats. First is a set of unit tests-style tests specifically for the reference implementation of beacon chain, written in Python. It tests both the \verb+state_transition+ function and separate steps within the state transition, like \verb+process_attestation+ or \verb+process_slot+. To ensure that various production versions of beacon chain clients conform to the reference implementation, they provide same tests in a second, implementation-independent format. It essentially contains the \verb+BeaconState+ object before the tested operation, after the tested operation, and operation parameters. For example for \verb+process_attestation+ the test will contain 3 objects: pre-state \verb+BeaconChain+, post-state \verb+BeaconChain+, and the \verb+Attestation+ object.
-If the test is for a failure case, e.g. it tests that the client rejects invalid input data, then there's no post-state.
-All objects are given in yaml, which is a version of xml. These conformance tests are generated from Python unit tests, and thus the two test formats represent the same testing conditions.
+The Ethereum Foundation provides a rich test suite for the beacon chain
+protocol~\cite{EFBCTEST:2019}. It exists in 2 formats. First is a set of unit tests-style tests
+specifically for the reference implementation of beacon chain, written in Python. It tests both the
+\verb+state_transition+ function and separate steps within the state transition, like
+\verb+process_attestation+ or \verb+process_slot+. To ensure that various production versions of
+beacon chain clients conform to the reference implementation, they provide same tests in a second,
+implementation-independent format. It essentially contains the \verb+BeaconState+ object before the
+tested operation, after the tested operation, and operation parameters. For example for
+\verb+process_attestation+ the test will contain 3 objects: pre-state \verb+BeaconChain+, post-state
+\verb+BeaconChain+, and the \verb+Attestation+ object. If the test is for a failure case, e.g. it
+tests that the client rejects invalid input data, then there's no post-state. All objects are given
+in yaml, which is a version of xml. These conformance tests are generated from Python unit tests,
+and thus the two test formats represent the same testing conditions.
 
-We tested our K beacon chain specification using the implementation-independent test format.
-More precisely, K beacon chain runs all tests designed for Beacon Chain Phase 0~\cite{EFBCTEST:2019}, except a small number of tests that are specifically testing BLS signature validation. BLS validation is outside the scope of the present project.
+We tested our K beacon chain specification using the implementation-independent test format. More
+precisely, K beacon chain runs all tests designed for Beacon Chain Phase 0~\cite{EFBCTEST:2019},
+except a small number of tests that are specifically testing BLS signature validation. BLS
+validation is outside the scope of the present project.
 
 
 \section{Evaluating Test Coverage}
 \label{sec:coverage}
 
-The beacon chain test suite was designed with code coverage in mind. When running the Python-style test suite over the reference implementation, code coverage shows only one line not covered by tests, on the execution path of \verb+process_rewards_and_penalties+. This is the only large function that doesn't have its own test suite, something the beacon chain developers are aware of and working on it.
+The beacon chain test suite was designed with code coverage in mind. When running the Python-style
+test suite over the reference implementation, code coverage shows only one line not covered by
+tests, on the execution path of \verb+process_rewards_and_penalties+. This is the only large
+function that doesn't have its own test suite, something the beacon chain developers are aware of
+and working on it.
 
-The K Framework also has a test coverage tool which we can use. Its granularity is at the rule level. For example, it detects for each rule whether it was applied or not during test suite execution. At first, we were skeptical whether the K coverage tool could expose any non-covered functionality, given the attention to coverage that beacon chain developers have. However, it turned out to be quite useful and provided a number of surprising results.
+The K Framework also has a test coverage tool which we can use. Its granularity is at the rule
+level. For example, it detects for each rule whether it was applied or not during test suite
+execution. At first, we were skeptical whether the K coverage tool could expose any non-covered
+functionality, given the attention to coverage that beacon chain developers have. However, it turned
+out to be quite useful and provided a number of surprising results.
 
-We initially expected K coverage to be more coarse-grained than Python, and thus less informative. This was mainly because most \verb+if+ statements are modeled through K's \verb+#if_#then_#else_#fi+ construct, and do not represent separate rules. Thus, K's coverage would not be able to distinguish between the then and else cases. However, K beacon chain is more fine-grained than the Python's implementation in other aspects, as we show below. Next we enumerate useful findings resulting from K's code coverage analysis tool.
+We initially expected K coverage to be more coarse-grained than Python, and thus less informative.
+This was mainly because most \verb+if+ statements are modeled through K's \verb+#if_#then_#else_#fi+
+construct, and do not represent separate rules. Thus, K's coverage would not be able to distinguish
+between the then and else cases. However, K beacon chain is more fine-grained than the Python's
+implementation in other aspects, as we show below. Next we enumerate useful findings resulting from
+K's code coverage analysis tool.
 
-First, we identified a line of code that is only covered by tests with \verb+bls_setting+ enabled (while not necessarily related o BLS verification). This has been reported to the beacon chain developers and they confirmed that any non-BLS functionality must be covered by non-BLS tests, and thus this has been indeed recognized as an issue.
+First, we identified a line of code that is only covered by tests with \verb+bls_setting+ enabled
+(while not necessarily related o BLS verification). This has been reported to the beacon chain
+developers and they confirmed that any non-BLS functionality must be covered by non-BLS tests, and
+thus this has been indeed recognized as an issue.
 
-Second, there is a while loop of the form \verb+while True: ...+ in \verb+get_beacon_proposer_index+, which had to be modeled through three separate rules in the K model. As a consequence of this, coverage discovered that in all tests this loop does only one iteration. Normally coverage tools do not distinguish the numbers of iterations loops take, but in this particular case, it would be useful to have tests that exhibit behaviors taking multiple iterations of the loop, at least to demonstrate that it is possible.
+Second, there is a while loop of the form \verb+while True: ...+ in
+\verb+get_beacon_proposer_index+, which had to be modeled through three separate rules in the K
+model. As a consequence of this, coverage discovered that in all tests this loop does only one
+iteration. Normally coverage tools do not distinguish the numbers of iterations loops take, but in
+this particular case, it would be useful to have tests that exhibit behaviors taking multiple
+iterations of the loop, at least to demonstrate that it is possible.
 
-Furthermore, and most interestingly, we identified twelve other rules not covered by tests, in addition to what Python's coverage tool reports, on valid execution paths. All of these rules relate to Python's set/list comprehension statements, which is perhaps the most elegant language feature specific to Python.
-A list comprehension construct is very semantically rich involving quite a lot of logic, including enumerating elements of a list, filtering them and constructing a new list out of the results. Yet it is treated as just one line of code by Python coverage tool. As a result, as long as the comprehension statement is reached, Python considers it completely covered, without distinguishing various scenarios of what happens inside. For example, if list comprehension always returns an empty list, Python will consider it covered.
+Furthermore, and most interestingly, we identified twelve other rules not covered by tests, in
+addition to what Python's coverage tool reports, on valid execution paths. All of these rules relate
+to Python's set/list comprehension statements, which is perhaps the most elegant language feature
+specific to Python. A list comprehension construct is very semantically rich involving quite a lot
+of logic, including enumerating elements of a list, filtering them and constructing a new list out
+of the results. Yet it is treated as just one line of code by Python coverage tool. As a result, as
+long as the comprehension statement is reached, Python considers it completely covered, without
+distinguishing various scenarios of what happens inside. For example, if list comprehension always
+returns an empty list, Python will consider it covered.
 
-In K, a list comprehension with filtering usually has to be modeled through 3 separate rules. For example. \verb+get_matching_target_attestations+ has the following Python definition:
+In K, a list comprehension with filtering usually has to be modeled through 3 separate rules. For
+example. \verb+get_matching_target_attestations+ has the following Python definition:
 \begin{lstlisting}[language=python, basicstyle=\small, tabsize=2, columns=flexible, basicstyle=\ttfamily]
 def get_matching_target_attestations(state: BeaconState, epoch: Epoch)
      -> Sequence[PendingAttestation]:
@@ -857,11 +913,21 @@ rule filterOutNonMatchingTargets(PA PAList => PAList, EPOCH, RES)
 rule filterOutNonMatchingTargets(.PendingAttestationList, EPOCH, RES) => RES
 \end{asciik}
 
-As a consequence of this, K's coverage distinguishes three cases: (a) list comprehension performs filtering, (b) list comprehension does not perform filtering but returns a non-empty result, (c) list comprehension returns an empty result.
+As a consequence of this, K's coverage distinguishes three cases: (a) list comprehension performs
+filtering, (b) list comprehension does not perform filtering but returns a non-empty result, (c)
+list comprehension returns an empty result.
 
-For example, for the code above, the second rule for \verb+filterOutNonMatchingTargets+ is not covered, meaning that filtering is never performed. All other eleven detections for loop coverage are on execution paths of \verb+process_rewards_and_penalties+. New tests for this function are being developed by the beacon chain developers at the time of this writing and we plan to re-run coverage when they are added to the test suite, to see if there are still missing cases remaining. For the other two detections described above, we contributed tests that cover them to beacon chain project.
+For example, for the code above, the second rule for \verb+filterOutNonMatchingTargets+ is not
+covered, meaning that filtering is never performed. All other eleven detections for loop coverage
+are on execution paths of \verb+process_rewards_and_penalties+. New tests for this function are
+being developed by the beacon chain developers at the time of this writing and we plan to re-run
+coverage when they are added to the test suite, to see if there are still missing cases remaining.
+For the other two detections described above, we contributed tests that cover them to beacon chain
+project.
 
-We also plan to implement an ad-hoc context sensitive code coverage for \verb+#if+ construct, to eliminate granularity issue we described above. Initial experiments show that this leads to more functionality not being covered.
+We also plan to implement an ad-hoc context sensitive code coverage for \verb+#if+ construct, to
+eliminate granularity issue we described above. Initial experiments show that this leads to more
+functionality not being covered.
 
 
 
@@ -887,9 +953,22 @@ We also plan to implement an ad-hoc context sensitive code coverage for \verb+#i
 
 \section{Conclusion}
 \label{sec:conc}
-We presented an executable formal model in K of Ethereum 2.0 Phase 0 Specification of the beacon chain. The model is distinguished by being fairly comprehensive (models the entirety of the beacon chain state transition function - modulo signature verification), executable (yielding an interpreter for the protocol), and concrete (specified at a low-enough level of abstraction that enables running the standard tests unmodified). We have validated the model against the beacon chain specification test suite, analyzed test coverage using K's rule-based test coverage tool, identified a number of cases for which test coverage can be improved and proposed some additional tests.
+We presented an executable formal model in K of Ethereum 2.0 Phase 0 Specification of the beacon
+chain. The model is distinguished by being fairly comprehensive (models the entirety of the beacon
+chain state transition function - modulo signature verification), executable (yielding an
+interpreter for the protocol), and concrete (specified at a low-enough level of abstraction that
+enables running the standard tests unmodified). We have validated the model against the beacon chain
+specification test suite, analyzed test coverage using K's rule-based test coverage tool, identified
+a number of cases for which test coverage can be improved and proposed some additional tests.
 
-Moving forward, there are several interesting directions for further development and research. The model can be extended to support Phase 1 of the beacon chain specification on sharding, once that specification becomes ready for such development. Similar testing and code coverage analysis can be performed there as well. Another direction is to formally specify and verify desirable properties about the beacon chain transition function, which can be either low-level invariants expressible at this level of abstraction or high-level properties (such as safety and liveness properties) that can be expressed and verified at some higher-level abstraction that the concrete model is shown to suitably refine.
+Moving forward, there are several interesting directions for further development and research. The
+model can be extended to support Phase 1 of the beacon chain specification on sharding, once that
+specification becomes ready for such development. Similar testing and code coverage analysis can be
+performed there as well. Another direction is to formally specify and verify desirable properties
+about the beacon chain transition function, which can be either low-level invariants expressible at
+this level of abstraction or high-level properties (such as safety and liveness properties) that can
+be expressed and verified at some higher-level abstraction that the concrete model is shown to
+suitably refine.
 
 
 

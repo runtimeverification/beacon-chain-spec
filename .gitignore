@@ -6,6 +6,5 @@ __pycache__
 report/*.aux
 report/*.blg
 report/*.log
-report/*.pdf
 report/*.synctex.gz
 report/comment.cut

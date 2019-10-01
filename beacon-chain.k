@@ -208,9 +208,9 @@ def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, in
                                  )
     requires I <Int Depth
 
-  syntax K ::= "#if1" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if1 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if1 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Hash ::= "#if1" Bool "#then" Hash "#else" Hash "#fi"   [function]
+  rule #if1 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if1 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule is_valid_merkle_branch_aux(_, Depth, _, Root, I, Value) => Root ==String Value
     requires I >=Int Depth
@@ -256,9 +256,9 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
     )
     requires CurrRound <Int RoundCount
 
-  syntax K ::= "#if2" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if2 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if2 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Int ::= "#if2" Bool "#then" Int "#else" Int "#fi"   [function]
+  rule #if2 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if2 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule compute_shuffled_index_loop(INDEX, _, _, CurrRound, RoundCount) => INDEX
     requires CurrRound >=Int RoundCount
@@ -382,9 +382,9 @@ def get_previous_epoch(state: BeaconState) -> Epoch:
                                 #else get_current_epoch() -Int 1
                                 #fi
 
-  syntax K ::= "#if3" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if3 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if3 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Int ::= "#if3" Bool "#then" Int "#else" Int "#fi"   [function]
+  rule #if3 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if3 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
 /*
 def get_block_root(state: BeaconState, epoch: Epoch) -> Hash:
@@ -755,18 +755,18 @@ def get_domain(state: BeaconState, domain_type: DomainType, message_epoch: Epoch
   rule get_domain(DTYPE, OEPOCH)
     => get_domain_aux(DTYPE, #if5 isNone(OEPOCH) #then get_current_epoch() #else intOf(OEPOCH) #fi)
 
-  syntax K ::= "#if5" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if5 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if5 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Int ::= "#if5" Bool "#then" Int "#else" Int "#fi"   [function]
+  rule #if5 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if5 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   syntax Domain ::= "get_domain_aux" "(" DomainType "," Int ")" [function]
   rule [[ get_domain_aux(DTYPE, EPOCH)
     => compute_domain(DTYPE, #if6 EPOCH <Int FEPOCH #then FPREV #else FCURR #fi) ]]
   <fork> #Fork(FPREV,FCURR,FEPOCH) </fork>
 
-  syntax K ::= "#if6" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if6 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if6 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Version ::= "#if6" Bool "#then" Version "#else" Version "#fi"   [function]
+  rule #if6 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if6 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
 /*
 def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> IndexedAttestation:
@@ -846,9 +846,9 @@ def decrease_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> 
   rule <k> decrease_balance(ValIndex, Delta) => . ...</k>
        <balances>... ValIndex |-> (BAL => #if7 Delta >Int BAL #then 0 #else BAL -Int Delta #fi) ...</balances>
 
-  syntax K ::= "#if7" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if7 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if7 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Int ::= "#if7" Bool "#then" Int "#else" Int "#fi"   [function]
+  rule #if7 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if7 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
 /*
 def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
@@ -894,13 +894,13 @@ def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
                          #fi +Int MIN_VALIDATOR_WITHDRAWABILITY_DELAY)
        </validators>
 
-  syntax K ::= "#if8" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if8 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if8 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Int ::= "#if8" Bool "#then" Int "#else" Int "#fi"   [function]
+  rule #if8 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if8 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
-  syntax K ::= "#if9" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if9 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if9 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Int ::= "#if9" Bool "#then" Int "#else" Int "#fi"   [function]
+  rule #if9 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if9 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   syntax Int ::= exitQueueEpochAux ( Int ) [function]
   rule [[ exitQueueEpochAux(INDEX)
@@ -965,9 +965,9 @@ def slash_validator(state: BeaconState,
           ...</k>
          <validators> SlashedINDEX |-> VAL ...</validators>
 
-  syntax K ::= "#if10" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if10 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if10 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax ValidatorIndex ::= "#if10" Bool "#then" ValidatorIndex "#else" ValidatorIndex "#fi"   [function]
+  rule #if10 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if10 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
  syntax KItem ::= "slashValidatorAux" "(" ValidatorIndex "," ValidatorIndex "," ValidatorIndex "," Int "," Int "," Int ")"
     rule <k> slashValidatorAux(SlashedINDEX, WhistleblINDEX, ProposerINDEX, WhistleREWARD, ProposerREWARD, Epoch)
@@ -1104,13 +1104,13 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
        ...</validators>
     requires INDEX <Int COUNT
 
-  syntax K ::= "#if11" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if11 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if11 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Int ::= "#if11" Bool "#then" Int "#else" Int "#fi"   [function]
+  rule #if11 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if11 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
-  syntax K ::= "#if12" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if12 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if12 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Int ::= "#if12" Bool "#then" Int "#else" Int "#fi"   [function]
+  rule #if12 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if12 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule processEth1Activations(COUNT, COUNT) => .K
 
@@ -1146,9 +1146,9 @@ def is_valid_genesis_state(state: BeaconState) -> bool:
           #fi ]]
        <genesis-time> Gtime </genesis-time>
 
-  syntax K ::= "#if13" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if13 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if13 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Bool ::= "#if13" Bool "#then" Bool "#else" Bool "#fi"   [function]
+  rule #if13 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if13 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
 
   // Beacon chain state transition function
@@ -1190,16 +1190,16 @@ def process_slots(state: BeaconState, slot: Slot) -> None:
   syntax KItem ::= "processSlotsLoop" "(" Int ")"
   rule <k> processSlotsLoop(SLOT) =>
              process_slot()
-             ~> #if14 (StateSLOT +Int 1) %Int SLOTS_PER_EPOCH ==K 0 #then process_epoch() #else .K #fi
+             ~> #if14 (StateSLOT +Int 1) %Int SLOTS_PER_EPOCH ==K 0 #then process_epoch() #else .KItem #fi
              ~> incrementSlot()
              ~> processSlotsLoop(SLOT)
        ...</k>
        <slot> StateSLOT </slot>
     requires StateSLOT <Int SLOT
 
-  syntax K ::= "#if14" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if14 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if14 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax KItem ::= "#if14" Bool "#then" KItem "#else" KItem "#fi"   [function]
+  rule #if14 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if14 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule <k> processSlotsLoop(SLOT) => .K ... </k>
        <slot> StateSLOT </slot>
@@ -1236,9 +1236,9 @@ def process_slot(state: BeaconState) -> None:
                                                           #else BHStateRoot
                                                         #fi , _,_) </latest-block-header>
 
-  syntax K ::= "#if15" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if15 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if15 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Hash ::= "#if15" Bool "#then" Hash "#else" Hash "#fi"   [function]
+  rule #if15 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if15 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   syntax KItem ::= "cacheBlockRoot" "(" Int ")"
   rule <k> cacheBlockRoot(SLOT) => .K ...</k>
@@ -1282,9 +1282,9 @@ def get_matching_source_attestations(state: BeaconState, epoch: Epoch) -> Sequen
     <previous-epoch-attestations> PEA </previous-epoch-attestations>
     requires EPOCH in (SetItem(get_previous_epoch())  SetItem(get_current_epoch()))
 
-  syntax K ::= "#if16" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if16 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if16 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax PendingAttestationList ::= "#if16" Bool "#then" PendingAttestationList "#else" PendingAttestationList "#fi"   [function]
+  rule #if16 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if16 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
 /*
 def get_matching_target_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
@@ -1344,9 +1344,9 @@ def get_unslashed_attesting_indices(state: BeaconState,
                                           #else I filterOutSlashedIndices(IL)
                                         #fi
 
-  syntax K ::= "#if17" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if17 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if17 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax IntList ::= "#if17" Bool "#then" IntList "#else" IntList "#fi"   [function]
+  rule #if17 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if17 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule filterOutSlashedIndices(.IntList) => .IntList
 
@@ -1408,9 +1408,9 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
           )
           )(PATT.data.crosslink)
 
-  syntax K ::= "#if18" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if18 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if18 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax CrosslinkList ::= "#if18" Bool "#then" CrosslinkList "#else" CrosslinkList "#fi"   [function]
+  rule #if18 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if18 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule getCrosslinksOfAttestationsMatchingShardCrosslink(.PendingAttestationList, _, RES) => RES
 
@@ -1443,17 +1443,17 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
            )(CROSSLINK.dataRoot)
            )( get_attesting_balance(pendingAttestationsMatchingCrosslink(PendAttList, CROSSLINK, .PendingAttestationList)) )
 
-  syntax K ::= "#if19" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if19 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if19 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax CrosslinkList ::= "#if19" Bool "#then" CrosslinkList "#else" CrosslinkList "#fi"   [function]
+  rule #if19 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if19 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
-  syntax K ::= "#if20" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if20 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if20 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Int ::= "#if20" Bool "#then" Int "#else" Int "#fi"   [function]
+  rule #if20 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if20 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
-  syntax K ::= "#if21" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if21 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if21 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Hash ::= "#if21" Bool "#then" Hash "#else" Hash "#fi"   [function]
+  rule #if21 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if21 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule maxCrosslinkOnBalanceAndRoot(.CrosslinkList, _, CROSSLINK:Crosslink, _,_ ) => CROSSLINK
   rule maxCrosslinkOnBalanceAndRoot(.CrosslinkList, _, .CrosslinkList, _,_ ) => defaultCrosslink()
@@ -1468,9 +1468,9 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
                                                   #else RES
                                                 #fi)
 
-  syntax K ::= "#if22" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if22 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if22 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax PendingAttestationList ::= "#if22" Bool "#then" PendingAttestationList "#else" PendingAttestationList "#fi"   [function]
+  rule #if22 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if22 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule pendingAttestationsMatchingShard(.PendingAttestationList, _, RES) => RES
 
@@ -1484,9 +1484,9 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
                                                       #else RES
                                                     #fi)
 
-  syntax K ::= "#if23" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if23 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if23 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax PendingAttestationList ::= "#if23" Bool "#then" PendingAttestationList "#else" PendingAttestationList "#fi"   [function]
+  rule #if23 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if23 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule pendingAttestationsMatchingCrosslink(.PendingAttestationList, _, RES) => RES
 
@@ -1599,9 +1599,9 @@ def process_justification_and_finalization(state: BeaconState) -> None:
                 #fi
        </finalized-checkpoint>
 
-  syntax K ::= "#if24" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if24 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if24 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Checkpoint ::= "#if24" Bool "#then" Checkpoint "#else" Checkpoint "#fi"   [function]
+  rule #if24 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if24 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   // if all(bits[1:3]) and old_previous_justified_checkpoint.epoch + 2 == current_epoch:
   syntax KItem ::= "updateFinalizedCheckpoint2" "(" Checkpoint "," BitList ")"
@@ -1613,9 +1613,9 @@ def process_justification_and_finalization(state: BeaconState) -> None:
                 #fi
        </finalized-checkpoint>
 
-  syntax K ::= "#if25" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if25 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if25 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Checkpoint ::= "#if25" Bool "#then" Checkpoint "#else" Checkpoint "#fi"   [function]
+  rule #if25 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if25 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   // if all(bits[0:3]) and old_current_justified_checkpoint.epoch + 2 == current_epoch:
   syntax KItem ::= "updateFinalizedCheckpoint3" "(" Checkpoint "," BitList ")"
@@ -1627,9 +1627,9 @@ def process_justification_and_finalization(state: BeaconState) -> None:
                 #fi
        </finalized-checkpoint>
 
-  syntax K ::= "#if26" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if26 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if26 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Checkpoint ::= "#if26" Bool "#then" Checkpoint "#else" Checkpoint "#fi"   [function]
+  rule #if26 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if26 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   // if all(bits[0:2]) and old_current_justified_checkpoint.epoch + 1 == current_epoch:
   syntax KItem ::= "updateFinalizedCheckpoint4" "(" Checkpoint "," BitList ")"
@@ -1641,9 +1641,9 @@ def process_justification_and_finalization(state: BeaconState) -> None:
                 #fi
        </finalized-checkpoint>
 
-  syntax K ::= "#if27" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if27 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if27 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Checkpoint ::= "#if27" Bool "#then" Checkpoint "#else" Checkpoint "#fi"   [function]
+  rule #if27 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if27 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
 /*
 def process_crosslinks(state: BeaconState) -> None:
@@ -1683,9 +1683,9 @@ def process_crosslinks(state: BeaconState) -> None:
        </current-crosslinks>
     requires OFFSET <Int COUNT
 
-  syntax K ::= "#if28" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if28 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if28 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Map ::= "#if28" Bool "#then" Map "#else" Map "#fi"   [function]
+  rule #if28 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if28 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule <k> processCrosslinksForEpochLoop(OFFSET, COUNT, EP) => .K ... </k>
     requires OFFSET >=Int COUNT
@@ -1821,13 +1821,13 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
                                                #else Penalties
                                                #fi) )
 
-  syntax K ::= "#if29" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if29 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if29 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Map ::= "#if29" Bool "#then" Map "#else" Map "#fi"   [function]
+  rule #if29 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if29 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
-  syntax K ::= "#if30" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if30 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if30 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Map ::= "#if30" Bool "#then" Map "#else" Map "#fi"   [function]
+  rule #if30 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if30 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule loopOverEligibleValidatorIndices(_, .IntList, _, _, RewardsPenalties) => RewardsPenalties
 
@@ -1886,9 +1886,9 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
           #else filterAttForIndex(PAL, INDEX)
           #fi
 
-  syntax K ::= "#if31" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if31 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if31 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax PendingAttestationList ::= "#if31" Bool "#then" PendingAttestationList "#else" PendingAttestationList "#fi"   [function]
+  rule #if31 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if31 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule filterAttForIndex(.PendingAttestationList, _) => .PendingAttestationList
 
@@ -1904,9 +1904,9 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
                        #fi
        )
 
-  syntax K ::= "#if32" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if32 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if32 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax PendingAttestation ::= "#if32" Bool "#then" PendingAttestation "#else" PendingAttestation "#fi"   [function]
+  rule #if32 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if32 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule findMinDelayAttestationAux(.PendingAttestationList, MinDelayPA) => MinDelayPA
 
@@ -1918,9 +1918,9 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
          #else Penalties
          #fi
 
-  syntax K ::= "#if33" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if33 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if33 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Map ::= "#if33" Bool "#then" Map "#else" Map "#fi"   [function]
+  rule #if33 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if33 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   syntax Map ::= inactivityPenaltyAux(Map) [function]
   rule inactivityPenaltyAux(Penalties)
@@ -1939,9 +1939,9 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
                         #else updateBasePenalties(Penalties, I)
                       #fi )
 
-  syntax K ::= "#if34" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if34 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if34 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Map ::= "#if34" Bool "#then" Map "#else" Map "#fi"   [function]
+  rule #if34 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if34 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule loopOverEligibleValsForPen(.IntList, _, Penalties) => Penalties
 
@@ -1972,9 +1972,9 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
               )(getValidator(I))
     requires I <Int N
 
-  syntax K ::= "#if35" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if35 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if35 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax IntList ::= "#if35" Bool "#then" IntList "#else" IntList "#fi"   [function]
+  rule #if35 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if35 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule getEligibleValidatorIndicesLoop(_, I, N, IL) => IL
     requires I >=Int N
@@ -2049,9 +2049,9 @@ def get_crosslink_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence[G
               #fi
        )
 
-  syntax K ::= "#if36" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if36 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if36 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax MapMapPair ::= "#if36" Bool "#then" MapMapPair "#else" MapMapPair "#fi"   [function]
+  rule #if36 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if36 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule getCrosslinkDeltasIndexLoop(.IntList, _, _, _, RewPen) => RewPen
 
@@ -2072,7 +2072,7 @@ def process_rewards_and_penalties(state: BeaconState) -> None:
   syntax KItem ::= "process_rewards_and_penalties" "(" ")" [klabel(process_rewards_and_penalties), symbol]
   rule <k> process_rewards_and_penalties()
        => #if37 get_current_epoch() ==K GENESIS_EPOCH
-          #then .K
+          #then .KItem
           #else processRewardsAndPenaltiesLoop(
                   0,
                   numOfValidators(),
@@ -2081,9 +2081,12 @@ def process_rewards_and_penalties(state: BeaconState) -> None:
           #fi
        ... </k>
 
-  syntax K ::= "#if37" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if37 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if37 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax KItem ::= "#if37" Bool "#then" KItem "#else" KItem "#fi"   [function]
+  rule #if37 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if37 C:Bool #then _ #else B2 #fi => B2 requires notBool C
+
+  syntax KItem ::= ".KItem"
+  rule .KItem => .K
 
   syntax KItem ::= "processRewardsAndPenaltiesLoop" "(" i: Int "," n: Int "," attestationDeltas: MapMapPair ","
                                                                               crosslinkDeltas: MapMapPair ")"
@@ -2138,7 +2141,7 @@ def process_registry_updates(state: BeaconState) -> None:
   rule <k> (. => #if38 is_active_validator(VAL, get_current_epoch())
                       andBool VAL.effectiveBalance <=Int EJECTION_BALANCE
                     #then initiate_validator_exit(INDEX)
-                    #else .K
+                    #else .KItem
                  #fi
            )
            ~> processRegistryUpdatesLoop1(_:Map (INDEX |-> VAL => .Map) )
@@ -2152,13 +2155,13 @@ def process_registry_updates(state: BeaconState) -> None:
              #fi,
           _,_,_) #as VAL) ...</validators>
 
-  syntax K ::= "#if38" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if38 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if38 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax KItem ::= "#if38" Bool "#then" KItem "#else" KItem "#fi"   [function]
+  rule #if38 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if38 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
-  syntax K ::= "#if39" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if39 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if39 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Int ::= "#if39" Bool "#then" Int "#else" Int "#fi"   [function]
+  rule #if39 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if39 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule processRegistryUpdatesLoop1(.Map) => .K
 
@@ -2219,9 +2222,9 @@ def process_registry_updates(state: BeaconState) -> None:
                                       #then MIN #else I #fi,
                              (I:Int IL) => IL )
 
-  syntax K ::= "#if40" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if40 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if40 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Int ::= "#if40" Bool "#then" Int "#else" Int "#fi"   [function]
+  rule #if40 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if40 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule indexForMinEligEpoch(MIN, .IntList) => MIN
 
@@ -2317,9 +2320,9 @@ def process_final_updates(state: BeaconState) -> None:
                                  #fi
        </eth1-data-votes>
 
-  syntax K ::= "#if41" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if41 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if41 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Eth1DataList ::= "#if41" Bool "#then" Eth1DataList "#else" Eth1DataList "#fi"   [function]
+  rule #if41 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if41 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   syntax KItem ::= updateEffectiveBalances ( i: Int, nrValidators: Int, increment: Int )
   rule <k> updateEffectiveBalances(INDEX => INDEX +Int 1, N, HALF_INCREMENT) ... </k>
@@ -2387,9 +2390,9 @@ def process_final_updates(state: BeaconState) -> None:
     <block-roots> BlockRoots </block-roots>
     <state-roots> StateRoots </state-roots>
 
-  syntax K ::= "#if42" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if42 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if42 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax BytesList ::= "#if42" Bool "#then" BytesList "#else" BytesList "#fi"   [function]
+  rule #if42 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if42 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   syntax KItem ::= "rotateEpochAttestations" "(" ")"
   rule <k> rotateEpochAttestations() => .K ... </k>
@@ -2491,9 +2494,9 @@ def process_eth1_data(state: BeaconState, body: BeaconBlockBody) -> None:
                                     #else countEth1(E1DL, E1D')
                                     #fi
 
-  syntax K ::= "#if43" Bool "#then" K "#else" K "#fi"   [function, functional, hook(KEQUAL.ite), poly(0, 2, 3)]
-  rule #if43 C:Bool #then B1::K #else _ #fi => B1 requires C
-  rule #if43 C:Bool #then _ #else B2::K #fi => B2 requires notBool C
+  syntax Int ::= "#if43" Bool "#then" Int "#else" Int "#fi"   [function]
+  rule #if43 C:Bool #then B1 #else _ #fi => B1 requires C
+  rule #if43 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule countEth1(.Eth1DataList, E1D') => 0
 

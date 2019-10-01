@@ -1870,15 +1870,22 @@ def get_crosslink_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence[G
   syntax MapMapPair ::= getCrosslinkDeltasOffsetLoop(Int, Int, Int, MapMapPair) [function]
   rule getCrosslinkDeltasOffsetLoop(
          Offset => Offset +Int 1, N, EP,
-         RewPen => getCrosslinkDeltasIndexLoop(
-                      get_crosslink_committee(EP, getOffsetShard(Offset)),                                            // Crosslink committee
-                      get_winning_crosslink_and_attesting_indices(EP, getOffsetShard(Offset)).intList,                   // Attesting indices
-                      get_total_balance(get_winning_crosslink_and_attesting_indices(EP, getOffsetShard(Offset)).intList),  // Attesting balance
-                      get_total_balance(get_crosslink_committee(EP, getOffsetShard(Offset))),                           // Committee balance
-                      RewPen                                                                                        // Rewards and Penalties
-                    )
+         RewardsAndPenalties
+                => #fun(SHARD
+                => #fun(CrosslinkCommittee
+                => #fun(AttestingIndices
+                => #fun(AttestingBalance
+                => #fun(CommitteeBalance
+                => getCrosslinkDeltasIndexLoop(CrosslinkCommittee, AttestingIndices, AttestingBalance,
+                                               CommitteeBalance, RewardsAndPenalties)
+                   )(get_total_balance(CrosslinkCommittee))
+                   )(get_total_balance(AttestingIndices))
+                   )(get_winning_crosslink_and_attesting_indices(EP, SHARD).intList)
+                   )(get_crosslink_committee(EP, SHARD))
+                   )(getOffsetShard(Offset))
        )
     requires Offset <Int N
+
   rule getCrosslinkDeltasOffsetLoop(Offset, N, _, RewPen) => RewPen
     requires Offset >=Int N
 

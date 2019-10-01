@@ -11,3 +11,4 @@ report/src/*.blg
 report/src/*.pdf
 report/src/*.synctex.gz
 report/src/comment.cut
+report/.latex

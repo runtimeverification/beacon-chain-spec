@@ -5,7 +5,7 @@ An executable, formal specification of [Eth2.0 Beacon Chain Phase 0 specificatio
 - an executable model of the beacon chain state transition function that is validated against the standard test suite of the beacon chain
 - testing and rule-based test coverage analysis on the model's K specification
 
-<img src="resources/pdf-icon.png" alt="PDF" width="2%" /> *[An Executable K Model of Ethereum 2.0 Beacon Chain Phase 0 Specification](https://github.com/runtimeverification/beacon-chain-spec/blob/beacon-chain-k-report/report/bck-report.pdf)*
+<img src="report/src/resources/pdf-icon.png" alt="PDF" width="2%" /> *[An Executable K Model of Ethereum 2.0 Beacon Chain Phase 0 Specification](https://github.com/runtimeverification/beacon-chain-spec/blob/beacon-chain-k-report/report/bck-report.pdf)*
 
 
 Building

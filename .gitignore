@@ -3,3 +3,12 @@
 /rustc*
 
 __pycache__
+report/src/*.aux
+report/src/*.blg
+report/src/*.log
+report/src/*.bib
+report/src/*.blg
+report/src/*.pdf
+report/src/*.synctex.gz
+report/src/comment.cut
+report/.latex

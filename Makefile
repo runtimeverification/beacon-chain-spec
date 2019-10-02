@@ -220,3 +220,28 @@ test-ssz: $(ssz_tests:=.test)
 # Same as above, but invokes krun with --debug and does not halt when diff vs expected state is detected
 %.yaml.test-debug: %.yaml $(llvm_kompiled)
 	python3 runTest.py parse --test $*.yaml --debug --allow-diff
+
+# Sphinx HTML Documentation
+
+# You can set these variables from the command line.
+SPHINXOPTS     =
+SPHINXBUILD    = sphinx-build
+PAPER          =
+SPHINXBUILDDIR = $(BUILD_DIR)/sphinx-docs
+
+# Internal variables.
+PAPEROPT_a4     = -D latex_paper_size=a4
+PAPEROPT_letter = -D latex_paper_size=letter
+ALLSPHINXOPTS   = -d ../$(SPHINXBUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
+# the i18n builder cannot share the environment and doctrees with the others
+I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
+
+sphinx:
+	mkdir -p $(SPHINXBUILDDIR) \
+	    && cp -r media/sphinx-docs/* $(SPHINXBUILDDIR) \
+	    && cp -r *.md $(SPHINXBUILDDIR)/. \
+	    && cp -r *.k $(SPHINXBUILDDIR)/. \
+	    && cd $(SPHINXBUILDDIR) \
+	    && ./k-to-md.sh \
+	    && $(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) html \
+	    && $(SPHINXBUILD) -b text $(ALLSPHINXOPTS) html/text

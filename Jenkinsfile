@@ -34,7 +34,7 @@ pipeline {
         '''
       }
     }
-    stage('Coverage') {
+    stage('Publish') {
       steps {
         sh '''
           deps/k/k-distribution/target/release/k/bin/kcovr .build/defn/llvm/beacon-chain-kompiled \
@@ -42,7 +42,18 @@ pipeline {
             > coverage.xml
         '''
         cobertura coberturaReportFile: 'coverage.xml'
+
+        sh 'make sphinx'
+        publishHTML (target: [
+          allowMissing: false,
+          alwaysLinkToLastBuild: false,
+          keepAll: true,
+          reportDir: '.build/sphinx-docs/html',
+          reportFiles: 'index.html',
+          reportName: "Semantics (HTML)"
+        ])
       }
     }
+
   }
 }

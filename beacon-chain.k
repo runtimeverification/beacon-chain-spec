@@ -1339,12 +1339,19 @@ def get_unslashed_attesting_indices(state: BeaconState,
   rule getAttestingIndicesLoop(.PendingAttestationList, IL) => IL
 
   syntax IntList ::= filterOutSlashedIndices(IntList) [function]
-  rule filterOutSlashedIndices(I IL) => #if17 getValidator(I).slashed
+  rule filterOutSlashedIndices(I IL) => #if getValidator(I).slashed //Duplication needed. Crashes otherwise
                                           #then filterOutSlashedIndices(IL)
                                           #else I filterOutSlashedIndices(IL)
                                         #fi
+    requires getValidator(I).slashed
 
-  syntax IntList ::= "#if17" Bool "#then" IntList "#else" IntList "#fi"   [function]
+  rule filterOutSlashedIndices(I IL) => #if getValidator(I).slashed
+                                          #then filterOutSlashedIndices(IL)
+                                          #else I filterOutSlashedIndices(IL)
+                                        #fi
+    requires notBool getValidator(I).slashed
+
+  syntax IntList ::= "#if17" Bool "#then" IntList "#else" IntList "#fi"   [function] //KItem doesn't help
   rule #if17 C:Bool #then B1 #else _ #fi => B1 requires C
   rule #if17 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
@@ -1880,11 +1887,11 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
           ], key=lambda a: a.inclusion_delay)
   */
   syntax PendingAttestationList ::= filterAttForIndex(PendingAttestationList, Int) [function]
-  rule filterAttForIndex(PA PAL, INDEX)
-       => #if31 contains(INDEX, get_attesting_indices(PA.data, PA.aggregationBits))
-          #then PA filterAttForIndex(PAL, INDEX)
-          #else filterAttForIndex(PAL, INDEX)
-          #fi
+  rule filterAttForIndex(PA PAL, INDEX) => PA filterAttForIndex(PAL, INDEX) //duplication, #if31 doesn't work
+    requires contains(INDEX, get_attesting_indices(PA.data, PA.aggregationBits))
+
+  rule filterAttForIndex(PA PAL, INDEX) => filterAttForIndex(PAL, INDEX)
+    [owise]
 
   syntax PendingAttestationList ::= "#if31" Bool "#then" PendingAttestationList "#else" PendingAttestationList "#fi"   [function]
   rule #if31 C:Bool #then B1 #else _ #fi => B1 requires C
@@ -1965,14 +1972,23 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   syntax IntList ::= getEligibleValidatorIndicesLoop(Int, Int, Int, IntList) [function]
   rule getEligibleValidatorIndicesLoop(PrevEP, I, N, IL)
        => #fun(VAL
-       => #if35 is_active_validator(VAL, PrevEP) orBool (VAL.slashed andBool PrevEP +Int 1 <Int VAL.withdrawableEpoch)
+       => #if is_active_validator(VAL, PrevEP) orBool (VAL.slashed andBool PrevEP +Int 1 <Int VAL.withdrawableEpoch) //rule duplication to fix a crash
             #then getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL +append I)
             #else getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL)
           #fi
               )(getValidator(I))
-    requires I <Int N
+    requires I <Int N andBool (is_active_validator(getValidator(I), PrevEP) orBool (getValidator(I).slashed andBool PrevEP +Int 1 <Int getValidator(I).withdrawableEpoch))
 
-  syntax IntList ::= "#if35" Bool "#then" IntList "#else" IntList "#fi"   [function]
+  rule getEligibleValidatorIndicesLoop(PrevEP, I, N, IL)
+       => #fun(VAL
+       => #if is_active_validator(VAL, PrevEP) orBool (VAL.slashed andBool PrevEP +Int 1 <Int VAL.withdrawableEpoch)
+            #then getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL +append I)
+            #else getEligibleValidatorIndicesLoop(PrevEP, I +Int 1, N, IL)
+          #fi
+              )(getValidator(I))
+      [owise]
+
+  syntax IntList ::= "#if35" Bool "#then" IntList "#else" IntList "#fi"   [function] //#ifxx returning IntList doesn't work.
   rule #if35 C:Bool #then B1 #else _ #fi => B1 requires C
   rule #if35 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 

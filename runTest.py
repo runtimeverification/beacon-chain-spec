@@ -536,7 +536,7 @@ def main():
         if post_yaml is not None:
             post_config_subst.update(buildConfigSubstitution(post_yaml, init_config_cells,
                                                              skip_keys=skip_keys, debug_keys=debug_keys))
-        post_config_subst['K_CELL'] = post_k_cell if post_k_cell is not None else init_subst['K_CELL']
+        post_config_subst['K_CELL'] = post_k_cell if post_k_cell is not None else KConstant('init')
 
         post_config = substitute(generated_top_config, post_config_subst)
         post_kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : post_config }

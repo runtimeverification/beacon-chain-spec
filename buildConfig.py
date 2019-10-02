@@ -8,7 +8,7 @@ from functools import reduce
 
 import pyk
 
-from pyk.kast      import combineDicts, appliedLabelStr, constLabel, underbarUnparsing, K_symbols, KApply, KConstant, KSequence, KVariable, KToken
+from pyk.kast      import combineDicts, appliedLabelStr, constLabel, underbarUnparsing, KApply, KConstant, KSequence, KVariable, KToken
 from pyk.kastManip import substitute, prettyPrintKast
 
 def printerr(msg):
@@ -32,12 +32,10 @@ def assocSort(elemSort):
         elemSort = "Bytes"
     return '_TYPES__' + elemSort + '_' + listSort(elemSort)
 
-
 def listSort(elemSort):
     if elemSort == 'Hash':
         return 'BytesList'
     return elemSort + 'List'
-
 
 def assocJoin(elemSort):
     return '__' + assocSort(elemSort)
@@ -67,59 +65,14 @@ def labelWithKeyPairs(label, keyConverters):
         return KApply(label, args)
     return _labelWithKeyPairs
 
+BEACON_CHAIN_definition_llvm = pyk.readKastTerm('.build/defn/llvm/beacon-chain-kompiled/compiled.json')
+BEACON_CHAIN_symbols = pyk.buildSymbolTable(BEACON_CHAIN_definition_llvm)
+
 def kast(inputFile, *kastArgs):
     return pyk.kast('.build/defn/llvm', inputFile, kastArgs = list(kastArgs), kRelease = 'deps/k/k-distribution/target/release/k')
 
 def krun(inputFile, *krunArgs):
     return pyk.krun('.build/defn/llvm', inputFile, krunArgs = list(krunArgs), kRelease = 'deps/k/k-distribution/target/release/k')
-
-BEACON_CHAIN_symbols = { '.ProposerSlashingCellMap' : constLabel('.ProposerSlashingCellMap') }
-
-TYPES_constLabels = [ '.Eth1Data'
-                    , '.Fork'
-                    , '.Checkpoint'
-                    , '.BlockHeader'
-                    ]
-
-for cLabel in TYPES_constLabels:
-    BEACON_CHAIN_symbols[cLabel + '_TYPES_'] = constLabel(cLabel)
-
-TYPES_appliedLabels = [ '#Fork'
-                      , '#Validator'
-                      , '#Crosslink'
-                      , '#BeaconBlockHeader'
-                      , '#Eth1Data'
-                      , '#AttestationData'
-                      , '#PendingAttestation'
-                      , '#Transfer'
-                      ]
-
-for appliedLabel in TYPES_appliedLabels:
-    BEACON_CHAIN_symbols[appliedLabel] = appliedLabelStr(appliedLabel)
-
-BEACON_CHAIN_lists = [ 'PendingAttestation'
-                     , 'AttesterSlashing'
-                     , 'Attestation'
-                     , 'Deposit'
-                     , 'VoluntaryExit'
-                     , 'Transfer'
-                     , 'Bytes32'
-                     , 'Uint64'
-                     , 'Eth1Data'
-                     , 'Crosslink'
-                     , 'Hash'
-                     , 'Bit'
-                     , 'Transfer'
-                     ]
-
-for list_sort in BEACON_CHAIN_lists:
-    BEACON_CHAIN_symbols[assocUnit(list_sort)] = constLabel('.' + listSort(list_sort))
-    BEACON_CHAIN_symbols[assocJoin(list_sort)] = lambda e, es: e + '  ' + es
-
-ALL_symbols = combineDicts(K_symbols, BEACON_CHAIN_symbols)
-
-# Read in the symbolic configuration
-# configuration = readKastTerm(sys.argv[1])
 
 def krunJson(inputJson, *krunArgs):
     return pyk.krunJSON('.build/defn/llvm', inputJson, krunArgs = list(krunArgs), kRelease = 'deps/k/k-distribution/target/release/k')

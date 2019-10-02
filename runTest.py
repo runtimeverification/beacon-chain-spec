@@ -348,7 +348,7 @@ def buildConfigSubstitution(test_pre_state, config_cells, skip_keys = [], debug_
                 if cell_var in debug_keys:
                     _notif(cell_var)
                     printerr(str(kast_term))
-                    printerr(prettyPrintKast(kast_term, ALL_symbols))
+                    printerr(prettyPrintKast(kast_term, BEACON_CHAIN_symbols))
                 new_key_table[cell_var] = kast_term
                 used_key_chains.append(pre_keys)
         else:
@@ -501,7 +501,7 @@ def main():
         json.dump(kast_json, pre_json_file)
         pre_json_file.flush()
 
-        fastPrinted = prettyPrintKast(init_config['args'][0], ALL_symbols).strip()
+        fastPrinted = prettyPrintKast(init_config['args'][0], BEACON_CHAIN_symbols).strip()
         _notif('kast content')
         print(fastPrinted, file = sys.stderr, flush = True)
 

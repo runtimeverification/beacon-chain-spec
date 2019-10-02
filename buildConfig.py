@@ -27,15 +27,15 @@ unimplemented = lambda input: KToken('UNIMPLEMENTED << ' + str(input) + ' >>', '
 
 foldr = lambda func, init: lambda xs: reduce(lambda x, y: func(y, x), xs[::-1], init)
 
-def assocSort(elemSort):
-    if elemSort == 'Hash':
-        elemSort = "Bytes"
-    return '_TYPES__' + elemSort + '_' + listSort(elemSort)
-
 def listSort(elemSort):
     if elemSort == 'Hash':
         return 'BytesList'
     return elemSort + 'List'
+
+def assocSort(elemSort):
+    if elemSort == 'Hash':
+        elemSort = "Bytes"
+    return '_TYPES_' + listSort(elemSort) + '_' + elemSort + '_' + listSort(elemSort)
 
 def assocJoin(elemSort):
     return '__' + assocSort(elemSort)

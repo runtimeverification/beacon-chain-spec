@@ -166,6 +166,7 @@ $(llvm_kompiled): $(llvm_files) $(libff_out)
 	                 --syntax-module $(SYNTAX_MODULE) $(llvm_dir)/$(MAIN_DEFN_FILE).k \
 	                 --directory $(llvm_dir) -I $(llvm_dir)                           \
 	                 --hook-namespaces KRYPTO                                         \
+	                 --emit-json                                                      \
 	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                   \
 	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp            \
 	                 $(addprefix -ccopt ,$(LINK_PROCPS))                              \
@@ -179,7 +180,8 @@ $(llvm_kompiled): $(llvm_files) $(libff_out)
 $(haskell_kompiled): $(haskell_files)
 	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend haskell              \
 	                 --syntax-module $(SYNTAX_MODULE) $(haskell_dir)/$(MAIN_DEFN_FILE).k \
-	                 --directory $(haskell_dir) -I $(haskell_dir)
+	                 --directory $(haskell_dir) -I $(haskell_dir)                        \
+	                 --emit-json
 
 # Testing
 # -------

@@ -1,0 +1,298 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>K Semantics of Eth2.0 Beacon Chain &mdash; The Beacon Chain 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex/" />
+    <link rel="search" title="Search" href="../search/" />
+    <link rel="next" title="Beacon Chain" href="../beacon-chain/" />
+    <link rel="prev" title="Human Readable Semantics of Beacon Chain in K" href="../" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../" class="icon icon-home"> The Beacon Chain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search/" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">K Semantics of Eth2.0 Beacon Chain</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#building">Building</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dependencies">Dependencies</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#linux">Linux</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#macos">MacOS</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#building">Building</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#testing">Testing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#files">Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-help">Getting Help</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../beacon-chain/">Beacon Chain</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hash-tree/">Hash Tree</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../config/">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../constants-minimal/">Constants (Minimal)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../constants-mainnet/">Constants (Mainnet)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../types/">Types</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../">The Beacon Chain</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../">Docs</a> &raquo;</li>
+        
+      <li>K Semantics of Eth2.0 Beacon Chain</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/README.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="k-semantics-of-eth2-0-beacon-chain">
+<span id="k-semantics-of-eth2-0-beacon-chain"></span><h1>K Semantics of Eth2.0 Beacon Chain<a class="headerlink" href="#k-semantics-of-eth2-0-beacon-chain" title="Permalink to this headline">¶</a></h1>
+<p>An executable, formal specification of <a class="reference external" href="https://github.com/ethereum/eth2.0-specs/blob/dev/specs/core/0_beacon-chain.md">Eth2.0 Beacon Chain Phase 0 specification</a> in the <a class="reference external" href="http://www.kframework.org">K framework</a>. The project provides:</p>
+<ul class="simple">
+<li>an executable model of the beacon chain state transition function that is validated against the standard test suite of the beacon chain</li>
+<li>testing and rule-based test coverage analysis on the model’s K specification</li>
+</ul>
+<p><img src="report/src/resources/pdf-icon.png" alt="PDF" width="2%" /> <em><a class="reference external" href="https://github.com/runtimeverification/beacon-chain-spec/blob/beacon-chain-k-report/report/bck-report.pdf">An Executable K Model of Ethereum 2.0 Beacon Chain Phase 0 Specification</a></em></p>
+<div class="section" id="building">
+<span id="building"></span><h2>Building<a class="headerlink" href="#building" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="dependencies">
+<span id="dependencies"></span><h3>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h3>
+<p>These dependencies are pulled from <a class="reference external" href="https://github.com/kframework/evm-semantics">KEVM</a>, but with <code class="docutils literal notranslate"><span class="pre">git-lfs</span></code> added.</p>
+<div class="section" id="linux">
+<span id="linux"></span><h4>Linux<a class="headerlink" href="#linux" title="Permalink to this headline">¶</a></h4>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>apt install --yes                                                           <span class="se">\</span>
+    autoconf bison clang-8.0 cmake curl flex gcc git-lfs libboost-test-dev  <span class="se">\</span>
+    libcrypto++-dev libffi-dev libjemalloc-dev libmpfr-dev libprocps-dev    <span class="se">\</span>
+    libsecp256k1-dev libssl-dev libtool libyaml-dev lld-8.0 llvm-8.0-tools  <span class="se">\</span>
+    make maven opam openjdk-8-jdk pandoc pkg-config python3 python-pygments <span class="se">\</span>
+    python-recommonmark python-sphinx <span class="nb">time</span> zlib1g-dev protobuf-compiler     <span class="se">\</span>
+    libprotobuf-dev
+
+git submodule update --init --recursive
+</pre></div>
+</div>
+</div>
+<div class="section" id="macos">
+<span id="macos"></span><h4>MacOS<a class="headerlink" href="#macos" title="Permalink to this headline">¶</a></h4>
+<p>In addition to the dependencies listed at <a class="reference external" href="https://github.com/kframework/evm-semantics">KEVM</a>, install:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>brew install jemalloc llvm libyaml git-lfs cryptopp
+</pre></div>
+</div>
+<p>Build K and K’s dependencies, and build local version of <code class="docutils literal notranslate"><span class="pre">libsecp256k1</span></code>.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>git submodule update --init --recursive
+make deps libsecp256k1
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="building">
+<span id="id1"></span><h3>Building<a class="headerlink" href="#building" title="Permalink to this headline">¶</a></h3>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>make build
+</pre></div>
+</div>
+</div>
+<div class="section" id="testing">
+<span id="testing"></span><h3>Testing<a class="headerlink" href="#testing" title="Permalink to this headline">¶</a></h3>
+<p>Get YAML test vectors:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>make test-split
+</pre></div>
+</div>
+<p>Run the tests:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>make <span class="nb">test</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="files">
+<span id="files"></span><h2>Files<a class="headerlink" href="#files" title="Permalink to this headline">¶</a></h2>
+<p>The main model files and testing scripts, which are located in the directory of this README, are as follows:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">constants-minimal.k</span></code>: definitions of system-wide constants for testing purposes, corresponding to the “minimal” test suite of beacon chain</li>
+<li><code class="docutils literal notranslate"><span class="pre">types.k</span></code>: type definitions and basic operations corresponding to Python data types and builtin functions and beacon-chain-specific types and operations needed by the model</li>
+<li><code class="docutils literal notranslate"><span class="pre">config.k</span></code>: specification of a K configuration defining the structure and components of the beacon state</li>
+<li><code class="docutils literal notranslate"><span class="pre">hash-tree.k</span></code>: specification of the hash-tree (merkle-tree) computation functions on beacon-chain data structures</li>
+<li><code class="docutils literal notranslate"><span class="pre">beacon-chain.k</span></code>: specification of the beacon chain state transition function and all its supporting sub-functions</li>
+<li><code class="docutils literal notranslate"><span class="pre">buildConfig.py</span></code>, <code class="docutils literal notranslate"><span class="pre">runTest.py</span></code>: scripts that load beacon chain implementation-independent tests into K.</li>
+</ul>
+</div>
+<div class="section" id="getting-help">
+<span id="getting-help"></span><h2>Getting Help<a class="headerlink" href="#getting-help" title="Permalink to this headline">¶</a></h2>
+<p>Feel free to report GitHub issues or to contact us at: contact&#64;runtimeverification.com</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../beacon-chain/" class="btn btn-neutral float-right" title="Beacon Chain" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../" class="btn btn-neutral float-left" title="Human Readable Semantics of Beacon Chain in K" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, The Beacon Chain Team
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

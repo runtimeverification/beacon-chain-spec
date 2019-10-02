@@ -1,0 +1,242 @@
+Human Readable Semantics of Beacon Chain in K
+*********************************************
+
+Start by choosing any section below or in the sidebar.
+
+* K Semantics of Eth2.0 Beacon Chain
+
+  * Building
+
+    * Dependencies
+
+      * Linux
+
+      * MacOS
+
+    * Building
+
+    * Testing
+
+  * Files
+
+  * Getting Help
+
+* Beacon Chain
+
+  * "integer_squareroot"
+
+  * "xor"
+
+  * "is_active_validator"
+
+  * "is_slashable_validator"
+
+  * "is_slashable_attestation_data"
+
+  * "is_valid_indexed_attestation"
+
+  * "is_valid_merkle_branch"
+
+  * "compute_shuffled_index"
+
+  * "compute_committee"
+
+  * "compute_epoch_of_slot"
+
+  * "compute_start_slot_of_epoch"
+
+  * "compute_activation_exit_epoch"
+
+  * "compute_domain"
+
+  * "get_current_epoch"
+
+  * "get_previous_epoch"
+
+  * "get_block_root"
+
+  * "get_block_root_at_slot"
+
+  * "get_randao_mix"
+
+  * "get_active_validator_indices"
+
+  * "get_validator_churn_limit"
+
+  * "get_seed"
+
+  * "get_committee_count"
+
+  * "get_crosslink_committee"
+
+  * "get_start_shard"
+
+  * "get_shard_delta"
+
+  * "get_beacon_proposer_index"
+
+  * "get_attestation_data_slot"
+
+  * "get_compact_committees_root"
+
+  * "get_total_balance"
+
+  * "get_total_active_balance"
+
+  * "get_domain"
+
+  * "get_indexed_attestation"
+
+  * "get_attesting_indices"
+
+  * "increase_balance"
+
+  * "decrease_balance"
+
+  * "initiate_validator_exit"
+
+  * "slash_validator"
+
+  * "is_valid_genesis_state"
+
+  * "state_transition"
+
+  * "process_slots"
+
+  * "process_slot"
+
+  * "process_epoch"
+
+  * "get_matching_source_attestations"
+
+  * "get_matching_target_attestations"
+
+  * "get_matching_head_attestations"
+
+  * "get_unslashed_attesting_indices"
+
+  * "get_attesting_balance"
+
+  * "get_winning_crosslink_and_attesting_indices"
+
+  * "process_justification_and_finalization"
+
+  * "process_crosslinks"
+
+  * "get_base_reward"
+
+  * "get_attestation_deltas"
+
+  * "get_crosslink_deltas"
+
+  * "process_rewards_and_penalties"
+
+  * "process_registry_updates"
+
+  * "process_slashings"
+
+  * "process_final_updates"
+
+  * "process_block"
+
+  * "process_block_header"
+
+  * "process_randao"
+
+  * "process_operations"
+
+  * "process_proposer_slashing"
+
+  * "process_attester_slashing"
+
+  * "process_attestation"
+
+  * "process_deposit"
+
+  * "process_voluntary_exit"
+
+  * "process_transfer"
+
+* Hash Tree
+
+  * "hash"
+
+  * "serialize_basic"
+
+  * "merkleize_chunks"
+
+  * "is_bottom_layer_kind"
+
+  * "hash_tree_root"
+
+  * "mix_in_length"
+
+  * "chunk_count"
+
+  * "item_length"
+
+  * "signing_root"
+
+* Configuration
+
+  * "BeaconState"
+
+* Constants (Minimal)
+
+* Constants (Mainnet)
+
+* Types
+
+  * "Fork"
+
+  * "Checkpoint"
+
+  * "Validator"
+
+  * "Crosslink"
+
+  * "AttestationData"
+
+  * "AttestationDataAndCustodyBit"
+
+  * "IndexedAttestation"
+
+  * "PendingAttestation"
+
+  * "HistoricalBatch"
+
+  * "DepositData"
+
+  * "CompactCommittee"
+
+  * "BeaconBlockHeader"
+
+  * "ProposerSlashing"
+
+  * "AttesterSlashing"
+
+  * "Attestation"
+
+  * "Deposit"
+
+  * "VoluntaryExit"
+
+  * "Transfer"
+
+  * "BeaconBlockBody"
+
+  * "BeaconBlock"
+
+  * "as_bytes"
+
+  * "bytes_to_int"
+
+
+Indices and tables
+******************
+
+* Index
+
+* Module Index
+
+* Search Page

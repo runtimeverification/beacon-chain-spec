@@ -1,0 +1,310 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Configuration &mdash; The Beacon Chain 0.1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex/" />
+    <link rel="search" title="Search" href="../search/" />
+    <link rel="next" title="Constants (Minimal)" href="../constants-minimal/" />
+    <link rel="prev" title="Hash Tree" href="../hash-tree/" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../" class="icon icon-home"> The Beacon Chain
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search/" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../README/">K Semantics of Eth2.0 Beacon Chain</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../beacon-chain/">Beacon Chain</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hash-tree/">Hash Tree</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#beaconstate"><code class="docutils literal notranslate"><span class="pre">BeaconState</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../constants-minimal/">Constants (Minimal)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../constants-mainnet/">Constants (Mainnet)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../types/">Types</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../">The Beacon Chain</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../">Docs</a> &raquo;</li>
+        
+      <li>Configuration</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/config.md.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="configuration">
+<span id="configuration"></span><h1>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-k notranslate"><div class="highlight"><pre><span></span><span class="nv">module</span><span class="w"> </span><span class="nv">CONFIG</span><span class="w"></span>
+<span class="w">  </span><span class="nv">imports</span><span class="w"> </span><span class="nv">DOMAINS</span><span class="w"></span>
+<span class="w">  </span><span class="nv">imports</span><span class="w"> </span><span class="nv">TYPES</span><span class="w"></span>
+</pre></div>
+</div>
+<div class="section" id="beaconstate">
+<span id="beaconstate"></span><h2><code class="docutils literal notranslate"><span class="pre">BeaconState</span></code><a class="headerlink" href="#beaconstate" title="Permalink to this headline">¶</a></h2>
+<p>Python reference:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">BeaconState</span><span class="p">(</span><span class="n">Container</span><span class="p">):</span>
+    <span class="c1"># Versioning</span>
+    <span class="n">genesis_time</span><span class="p">:</span> <span class="n">uint64</span>
+    <span class="n">slot</span><span class="p">:</span> <span class="n">Slot</span>
+    <span class="n">fork</span><span class="p">:</span> <span class="n">Fork</span>
+    <span class="c1"># History</span>
+    <span class="n">latest_block_header</span><span class="p">:</span> <span class="n">BeaconBlockHeader</span>
+    <span class="n">block_roots</span><span class="p">:</span> <span class="n">Vector</span><span class="p">[</span><span class="n">Hash</span><span class="p">,</span> <span class="n">SLOTS_PER_HISTORICAL_ROOT</span><span class="p">]</span>
+    <span class="n">state_roots</span><span class="p">:</span> <span class="n">Vector</span><span class="p">[</span><span class="n">Hash</span><span class="p">,</span> <span class="n">SLOTS_PER_HISTORICAL_ROOT</span><span class="p">]</span>
+    <span class="n">historical_roots</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Hash</span><span class="p">,</span> <span class="n">HISTORICAL_ROOTS_LIMIT</span><span class="p">]</span>
+    <span class="c1"># Eth1</span>
+    <span class="n">eth1_data</span><span class="p">:</span> <span class="n">Eth1Data</span>
+    <span class="n">eth1_data_votes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Eth1Data</span><span class="p">,</span> <span class="n">SLOTS_PER_ETH1_VOTING_PERIOD</span><span class="p">]</span>
+    <span class="n">eth1_deposit_index</span><span class="p">:</span> <span class="n">uint64</span>
+    <span class="c1"># Registry</span>
+    <span class="n">validators</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Validator</span><span class="p">,</span> <span class="n">VALIDATOR_REGISTRY_LIMIT</span><span class="p">]</span>
+    <span class="n">balances</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Gwei</span><span class="p">,</span> <span class="n">VALIDATOR_REGISTRY_LIMIT</span><span class="p">]</span>
+    <span class="c1"># Shuffling</span>
+    <span class="n">start_shard</span><span class="p">:</span> <span class="n">Shard</span>
+    <span class="n">randao_mixes</span><span class="p">:</span> <span class="n">Vector</span><span class="p">[</span><span class="n">Hash</span><span class="p">,</span> <span class="n">EPOCHS_PER_HISTORICAL_VECTOR</span><span class="p">]</span>
+    <span class="n">active_index_roots</span><span class="p">:</span> <span class="n">Vector</span><span class="p">[</span><span class="n">Hash</span><span class="p">,</span> <span class="n">EPOCHS_PER_HISTORICAL_VECTOR</span><span class="p">]</span>  <span class="c1"># Active index digests for light clients</span>
+    <span class="n">compact_committees_roots</span><span class="p">:</span> <span class="n">Vector</span><span class="p">[</span><span class="n">Hash</span><span class="p">,</span> <span class="n">EPOCHS_PER_HISTORICAL_VECTOR</span><span class="p">]</span>  <span class="c1"># Committee digests for light clients</span>
+    <span class="c1"># Slashings</span>
+    <span class="n">slashings</span><span class="p">:</span> <span class="n">Vector</span><span class="p">[</span><span class="n">Gwei</span><span class="p">,</span> <span class="n">EPOCHS_PER_SLASHINGS_VECTOR</span><span class="p">]</span>  <span class="c1"># Per-epoch sums of slashed effective balances</span>
+    <span class="c1"># Attestations</span>
+    <span class="n">previous_epoch_attestations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PendingAttestation</span><span class="p">,</span> <span class="n">MAX_ATTESTATIONS</span> <span class="o">*</span> <span class="n">SLOTS_PER_EPOCH</span><span class="p">]</span>
+    <span class="n">current_epoch_attestations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">PendingAttestation</span><span class="p">,</span> <span class="n">MAX_ATTESTATIONS</span> <span class="o">*</span> <span class="n">SLOTS_PER_EPOCH</span><span class="p">]</span>
+    <span class="c1"># Crosslinks</span>
+    <span class="n">previous_crosslinks</span><span class="p">:</span> <span class="n">Vector</span><span class="p">[</span><span class="n">Crosslink</span><span class="p">,</span> <span class="n">SHARD_COUNT</span><span class="p">]</span>  <span class="c1"># Previous epoch snapshot</span>
+    <span class="n">current_crosslinks</span><span class="p">:</span> <span class="n">Vector</span><span class="p">[</span><span class="n">Crosslink</span><span class="p">,</span> <span class="n">SHARD_COUNT</span><span class="p">]</span>
+    <span class="c1"># Finality</span>
+    <span class="n">justification_bits</span><span class="p">:</span> <span class="n">Bitvector</span><span class="p">[</span><span class="n">JUSTIFICATION_BITS_LENGTH</span><span class="p">]</span>  <span class="c1"># Bit set for every recent justified epoch</span>
+    <span class="n">previous_justified_checkpoint</span><span class="p">:</span> <span class="n">Checkpoint</span>  <span class="c1"># Previous epoch snapshot</span>
+    <span class="n">current_justified_checkpoint</span><span class="p">:</span> <span class="n">Checkpoint</span>
+    <span class="n">finalized_checkpoint</span><span class="p">:</span> <span class="n">Checkpoint</span>
+
+</pre></div>
+</div>
+<p>K semantics:</p>
+<div class="highlight-k notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="nv">configuration</span><span class="w"></span>
+<span class="w">    </span><span class="err">&lt;</span><span class="nv">beacon</span><span class="err">-</span><span class="nv">chain</span><span class="err">&gt;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&lt;k&gt;</span><span class="w"> </span><span class="nv">$PGM</span><span class="p">:</span><span class="nv">KItem</span><span class="w"> </span><span class="nt">&lt;/k&gt;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&lt;state&gt;</span><span class="w">                           </span><span class="c1">//Type BeaconState in python spec.</span>
+<span class="w">        </span><span class="c1">// Versioning</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">genesis</span><span class="err">-</span><span class="nv">time</span><span class="err">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">genesis</span><span class="err">-</span><span class="nv">time</span><span class="err">&gt;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&lt;slot&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="nt">&lt;/slot&gt;</span><span class="w"></span>
+<span class="w">        </span><span class="nt">&lt;fork&gt;</span><span class="w"> </span><span class="nv">.Fork</span><span class="w"> </span><span class="nt">&lt;/fork&gt;</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// History</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">latest</span><span class="err">-</span><span class="nv">block</span><span class="err">-</span><span class="nv">header</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.BlockHeader</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">latest</span><span class="err">-</span><span class="nv">block</span><span class="err">-</span><span class="nv">header</span><span class="err">&gt;</span><span class="w"></span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">block</span><span class="err">-</span><span class="nv">roots</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.Map</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">block</span><span class="err">-</span><span class="nv">roots</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">//Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">state</span><span class="err">-</span><span class="nv">roots</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.Map</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">state</span><span class="err">-</span><span class="nv">roots</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">//Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">historical</span><span class="err">-</span><span class="nv">roots</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.BytesList</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">historical</span><span class="err">-</span><span class="nv">roots</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">//List[Hash, HISTORICAL_ROOTS_LIMIT]</span>
+<span class="w">        </span><span class="c1">// Eth1</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">eth1</span><span class="err">-</span><span class="nv">data</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.Eth1Data</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">eth1</span><span class="err">-</span><span class="nv">data</span><span class="err">&gt;</span><span class="w"></span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">eth1</span><span class="err">-</span><span class="nv">data</span><span class="err">-</span><span class="nv">votes</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.Eth1DataList</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">eth1</span><span class="err">-</span><span class="nv">data</span><span class="err">-</span><span class="nv">votes</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">//List[Eth1Data, SLOTS_PER_ETH1_VOTING_PERIOD]</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">eth1</span><span class="err">-</span><span class="nv">deposit</span><span class="err">-</span><span class="nv">index</span><span class="err">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">eth1</span><span class="err">-</span><span class="nv">deposit</span><span class="err">-</span><span class="nv">index</span><span class="err">&gt;</span><span class="w"></span>
+<span class="w">        </span><span class="c1">// Registry</span>
+<span class="w">        </span><span class="nt">&lt;validators&gt;</span><span class="w"> </span><span class="nv">.Map</span><span class="w"> </span><span class="nt">&lt;/validators&gt;</span><span class="w"> </span><span class="c1">//List[Validator, VALIDATOR_REGISTRY_LIMIT]</span>
+<span class="w">        </span><span class="nt">&lt;balances&gt;</span><span class="w"> </span><span class="nv">.Map</span><span class="w"> </span><span class="nt">&lt;/balances&gt;</span><span class="w"> </span><span class="c1">//List[Gwei, VALIDATOR_REGISTRY_LIMIT]</span>
+<span class="w">        </span><span class="c1">// Shuffling</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">start</span><span class="err">-</span><span class="nv">shard</span><span class="err">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">start</span><span class="err">-</span><span class="nv">shard</span><span class="err">&gt;</span><span class="w"></span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">randao</span><span class="err">-</span><span class="nv">mixes</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.BytesList</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">randao</span><span class="err">-</span><span class="nv">mixes</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">//Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">active</span><span class="err">-</span><span class="nv">index</span><span class="err">-</span><span class="nv">roots</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.BytesList</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">active</span><span class="err">-</span><span class="nv">index</span><span class="err">-</span><span class="nv">roots</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">//Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">compact</span><span class="err">-</span><span class="nv">committees</span><span class="err">-</span><span class="nv">roots</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.BytesList</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">compact</span><span class="err">-</span><span class="nv">committees</span><span class="err">-</span><span class="nv">roots</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">//Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]</span>
+<span class="w">        </span><span class="c1">// Slashings</span>
+<span class="w">        </span><span class="nt">&lt;slashings&gt;</span><span class="w"> </span><span class="nv">.Map</span><span class="w"> </span><span class="nt">&lt;/slashings&gt;</span><span class="w"> </span><span class="c1">//Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]</span>
+<span class="w">        </span><span class="c1">// Attestations</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">previous</span><span class="err">-</span><span class="nv">epoch</span><span class="err">-</span><span class="nv">attestations</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.PendingAttestationList</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">previous</span><span class="err">-</span><span class="nv">epoch</span><span class="err">-</span><span class="nv">attestations</span><span class="err">&gt;</span><span class="w"></span>
+<span class="w">                                                       </span><span class="c1">//List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">current</span><span class="err">-</span><span class="nv">epoch</span><span class="err">-</span><span class="nv">attestations</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.PendingAttestationList</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">current</span><span class="err">-</span><span class="nv">epoch</span><span class="err">-</span><span class="nv">attestations</span><span class="err">&gt;</span><span class="w"></span>
+<span class="w">                                                       </span><span class="c1">//List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]</span>
+<span class="w">        </span><span class="c1">// Crosslinks</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">previous</span><span class="err">-</span><span class="nv">crosslinks</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.Map</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">previous</span><span class="err">-</span><span class="nv">crosslinks</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">//Vector[Crosslink, SHARD_COUNT]</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">current</span><span class="err">-</span><span class="nv">crosslinks</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.Map</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">current</span><span class="err">-</span><span class="nv">crosslinks</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">//Vector[Crosslink, SHARD_COUNT]</span>
+<span class="w">        </span><span class="c1">// Finality</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">justification</span><span class="err">-</span><span class="nv">bits</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.BitList</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">justification</span><span class="err">-</span><span class="nv">bits</span><span class="err">&gt;</span><span class="w"> </span><span class="c1">//Bitvector[JUSTIFICATION_BITS_LENGTH]</span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">previous</span><span class="err">-</span><span class="nv">justified</span><span class="err">-</span><span class="nv">checkpoint</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.Checkpoint</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">previous</span><span class="err">-</span><span class="nv">justified</span><span class="err">-</span><span class="nv">checkpoint</span><span class="err">&gt;</span><span class="w"></span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">current</span><span class="err">-</span><span class="nv">justified</span><span class="err">-</span><span class="nv">checkpoint</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.Checkpoint</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">current</span><span class="err">-</span><span class="nv">justified</span><span class="err">-</span><span class="nv">checkpoint</span><span class="err">&gt;</span><span class="w"></span>
+<span class="w">        </span><span class="err">&lt;</span><span class="nv">finalized</span><span class="err">-</span><span class="nv">checkpoint</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.Checkpoint</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">finalized</span><span class="err">-</span><span class="nv">checkpoint</span><span class="err">&gt;</span><span class="w"></span>
+<span class="w">      </span><span class="nt">&lt;/state&gt;</span><span class="w"></span>
+<span class="w">      </span><span class="err">&lt;</span><span class="nv">zerohashes</span><span class="err">-</span><span class="nv">cache</span><span class="err">&gt;</span><span class="w"> </span><span class="nv">.Map</span><span class="w"> </span><span class="err">&lt;/</span><span class="nv">zerohashes</span><span class="err">-</span><span class="nv">cache</span><span class="err">&gt;</span><span class="w"></span>
+<span class="w">    </span><span class="err">&lt;/</span><span class="nv">beacon</span><span class="err">-</span><span class="nv">chain</span><span class="err">&gt;</span><span class="w"></span>
+
+<span class="nv">endmodule</span><span class="w"></span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../constants-minimal/" class="btn btn-neutral float-right" title="Constants (Minimal)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="../hash-tree/" class="btn btn-neutral float-left" title="Hash Tree" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, The Beacon Chain Team
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

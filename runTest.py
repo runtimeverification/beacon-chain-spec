@@ -488,13 +488,13 @@ def main():
     test_title = str(test_dir)
     _notif(test_title)
 
-    init_config_subst = copy.deepcopy(init_cells)
-    all_keys = list(init_cells.keys())
+    init_config_subst = copy.deepcopy(init_subst)
+    all_keys = list(init_subst.keys())
 
     init_config_subst.update(buildPreConfigSubst(test_dir))             # build state
     init_config_subst['K_CELL'] = buildKCell(test_dir)                  # build <k>
 
-    init_config = substitute(symbolic_configuration, init_config_subst)
+    init_config = substitute(generated_top_config, init_config_subst)
     kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
 
     with tempfile.NamedTemporaryFile(mode = 'w', delete = not args.debug) as pre_json_file:
@@ -536,9 +536,9 @@ def main():
         if post_yaml is not None:
             post_config_subst.update(buildConfigSubstitution(post_yaml, init_config_cells,
                                                              skip_keys=skip_keys, debug_keys=debug_keys))
-        post_config_subst['K_CELL'] = post_k_cell if post_k_cell is not None else init_cells['K_CELL']
+        post_config_subst['K_CELL'] = post_k_cell if post_k_cell is not None else init_subst['K_CELL']
 
-        post_config = substitute(symbolic_configuration, post_config_subst)
+        post_config = substitute(generated_top_config, post_config_subst)
         post_kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : post_config }
         with tempfile.NamedTemporaryFile(mode = 'w', delete = not args.debug) as post_json_file:
             json.dump(post_kast_json, post_json_file)

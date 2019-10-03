@@ -2,10 +2,12 @@ K Semantics of Eth2.0 Beacon Chain
 ==================================
 
 An executable, formal specification of [Eth2.0 Beacon Chain Phase 0 specification](https://github.com/ethereum/eth2.0-specs/blob/dev/specs/core/0_beacon-chain.md) in the [K framework](http://www.kframework.org). The project provides:
-- an executable model of the beacon chain state transition function that is validated against the standard test suite of the beacon chain
+- an executable model of the beacon chain state transition function that is validated against the standard test suite of the beacon chain, and
 - testing and rule-based test coverage analysis on the model's K specification
 
-<img src="report/src/resources/pdf-icon.png" alt="PDF" width="2%" /> *[An Executable K Model of Ethereum 2.0 Beacon Chain Phase 0 Specification](https://github.com/runtimeverification/beacon-chain-spec/blob/beacon-chain-k-report/report/bck-report.pdf)*
+The specification and test coverage analysis results are described in the technical report:
+
+<img src="report/src/resources/pdf-icon.png" alt="PDF" width="2%" /> *[An Executable K Model of Ethereum 2.0 Beacon Chain Phase 0 Specification](https://github.com/runtimeverification/beacon-chain-spec/blob/master/report/bck-report.pdf)*
 
 
 Building

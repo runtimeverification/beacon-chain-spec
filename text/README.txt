@@ -6,10 +6,13 @@ specification in the K framework. The project provides:
 
 * an executable model of the beacon chain state transition function
   that is validated against the standard test suite of the beacon
-  chain
+  chain, and
 
 * testing and rule-based test coverage analysis on the model’s K
   specification
+
+The specification and test coverage analysis results are described in
+the technical report:
 
  *An Executable K Model of Ethereum 2.0 Beacon Chain Phase 0
 Specification*

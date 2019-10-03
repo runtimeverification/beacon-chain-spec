@@ -258,7 +258,7 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'ACTIVE_INDEX_ROOTS_CELL'            : (['active_index_roots']                 , bytesListTerm)
                     , 'COMPACT_COMMITTEES_ROOTS_CELL'      : (['compact_committees_roots']           , bytesListTerm)
                     , 'SLASHINGS_CELL'                     : (['slashings']                          , indexedMapOf(converter = intToken))
-                    , 'PREVIOUS_EPOCH_ATTESTATION_CELL'    : (['previous_epoch_attestations']        , listOf('PendingAttestation', converter = pendingAttestationTerm))
+                    , 'PREVIOUS_EPOCH_ATTESTATIONS_CELL'    : (['previous_epoch_attestations']       , listOf('PendingAttestation', converter = pendingAttestationTerm))
                     , 'CURRENT_EPOCH_ATTESTATIONS_CELL'    : (['current_epoch_attestations']         , listOf('PendingAttestation', converter = pendingAttestationTerm))
                     , 'PREVIOUS_CROSSLINKS_CELL'           : (['previous_crosslinks']                , indexedMapOf(converter = crosslinkTerm))
                     , 'CURRENT_CROSSLINKS_CELL'            : (['current_crosslinks']                 , indexedMapOf(converter = crosslinkTerm))
@@ -287,7 +287,7 @@ skip_keys = [
             # , 'ACTIVE_INDEX_ROOTS_CELL'
             # , 'COMPACT_COMMITTEES_ROOTS_CELL'
             # , 'SLASHINGS_CELL'
-            # , 'PREVIOUS_EPOCH_ATTESTATION_CELL'
+            # , 'PREVIOUS_EPOCH_ATTESTATIONS_CELL'
             # , 'CURRENT_EPOCH_ATTESTATIONS_CELL'
             # , 'PREVIOUS_CROSSLINKS_CELL'
             # , 'CURRENT_CROSSLINKS_CELL'

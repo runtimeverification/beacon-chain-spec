@@ -344,16 +344,6 @@ def compute_activation_exit_epoch(epoch: Epoch) -> Epoch:
   syntax Int ::= "compute_activation_exit_epoch" "(" Int ")" [function]
   rule compute_activation_exit_epoch(EP) => EP +Int 1 +Int ACTIVATION_EXIT_DELAY
 
-/*
-def compute_domain(domain_type: DomainType, fork_version: Version=Version()) -> Domain:
-    """
-    Return the domain for the ``domain_type`` and ``fork_version``.
-    """
-    return Domain(domain_type + fork_version)
-*/
-  syntax Domain ::= "compute_domain" "(" DomainType "," Version ")"    [function]
-  rule compute_domain(Domain_Type, Fork_Version) => {Domain_Type +Bytes Fork_Version}:>Domain
-
   // Helper functions -- Beacon state accessors
   //====================================================
 
@@ -741,32 +731,6 @@ def get_total_active_balance(state: BeaconState) -> Gwei:
 */
   syntax Int ::= "get_total_active_balance" "(" ")" [function]
   rule get_total_active_balance() => get_total_balance(get_active_validator_indices(get_current_epoch()))
-
-/*
-def get_domain(state: BeaconState, domain_type: DomainType, message_epoch: Epoch=None) -> Domain:
-    """
-    Return the signature domain (fork version concatenated with domain type) of a message.
-    """
-    epoch = get_current_epoch(state) if message_epoch is None else message_epoch
-    fork_version = state.fork.previous_version if epoch < state.fork.epoch else state.fork.current_version
-    return compute_domain(domain_type, fork_version)
-*/
-  syntax Domain ::= "get_domain" "(" DomainType "," OptionInt ")" [function]
-  rule get_domain(DTYPE, OEPOCH)
-    => get_domain_aux(DTYPE, #if5 isNone(OEPOCH) #then get_current_epoch() #else intOf(OEPOCH) #fi)
-
-  syntax Int ::= "#if5" Bool "#then" Int "#else" Int "#fi"   [function]
-  rule #if5 C:Bool #then B1 #else _ #fi => B1 requires C
-  rule #if5 C:Bool #then _ #else B2 #fi => B2 requires notBool C
-
-  syntax Domain ::= "get_domain_aux" "(" DomainType "," Int ")" [function]
-  rule [[ get_domain_aux(DTYPE, EPOCH)
-    => compute_domain(DTYPE, #if6 EPOCH <Int FEPOCH #then FPREV #else FCURR #fi) ]]
-  <fork> #Fork(FPREV,FCURR,FEPOCH) </fork>
-
-  syntax Version ::= "#if6" Bool "#then" Version "#else" Version "#fi"   [function]
-  rule #if6 C:Bool #then B1 #else _ #fi => B1 requires C
-  rule #if6 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
 /*
 def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> IndexedAttestation:
@@ -1351,10 +1315,6 @@ def get_unslashed_attesting_indices(state: BeaconState,
                                         #fi
     requires notBool getValidator(I).slashed
 
-  syntax IntList ::= "#if17" Bool "#then" IntList "#else" IntList "#fi"   [function] //KItem doesn't help
-  rule #if17 C:Bool #then B1 #else _ #fi => B1 requires C
-  rule #if17 C:Bool #then _ #else B2 #fi => B2 requires notBool C
-
   rule filterOutSlashedIndices(.IntList) => .IntList
 
 /*
@@ -1893,10 +1853,6 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   rule filterAttForIndex(PA PAL, INDEX) => filterAttForIndex(PAL, INDEX)
     [owise]
 
-  syntax PendingAttestationList ::= "#if31" Bool "#then" PendingAttestationList "#else" PendingAttestationList "#fi"   [function]
-  rule #if31 C:Bool #then B1 #else _ #fi => B1 requires C
-  rule #if31 C:Bool #then _ #else B2 #fi => B2 requires notBool C
-
   rule filterAttForIndex(.PendingAttestationList, _) => .PendingAttestationList
 
   syntax PendingAttestation ::= findMinDelayAttestation(PendingAttestationList) [function]
@@ -1987,10 +1943,6 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
           #fi
               )(getValidator(I))
       [owise]
-
-  syntax IntList ::= "#if35" Bool "#then" IntList "#else" IntList "#fi"   [function] //#ifxx returning IntList doesn't work.
-  rule #if35 C:Bool #then B1 #else _ #fi => B1 requires C
-  rule #if35 C:Bool #then _ #else B2 #fi => B2 requires notBool C
 
   rule getEligibleValidatorIndicesLoop(_, I, N, IL) => IL
     requires I >=Int N

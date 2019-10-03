@@ -26,7 +26,8 @@ module BEACON-CHAIN
 
   // Initialization
   //====================================================
-  syntax KItem ::= "init"                                 [klabel(init), symbol]
+  syntax KItem ::= "noop"                    [klabel(noop), symbol]
+                 | "init"                    [klabel(init), symbol]
                  | initZeroHashes(Int, Int)
 
 /*

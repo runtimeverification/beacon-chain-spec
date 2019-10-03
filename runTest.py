@@ -258,7 +258,7 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'ACTIVE_INDEX_ROOTS_CELL'            : (['active_index_roots']                 , bytesListTerm)
                     , 'COMPACT_COMMITTEES_ROOTS_CELL'      : (['compact_committees_roots']           , bytesListTerm)
                     , 'SLASHINGS_CELL'                     : (['slashings']                          , indexedMapOf(converter = intToken))
-                    , 'PREVIOUS_EPOCH_ATTESTATION_CELL'    : (['previous_epoch_attestations']        , listOf('PendingAttestation', converter = pendingAttestationTerm))
+                    , 'PREVIOUS_EPOCH_ATTESTATIONS_CELL'    : (['previous_epoch_attestations']       , listOf('PendingAttestation', converter = pendingAttestationTerm))
                     , 'CURRENT_EPOCH_ATTESTATIONS_CELL'    : (['current_epoch_attestations']         , listOf('PendingAttestation', converter = pendingAttestationTerm))
                     , 'PREVIOUS_CROSSLINKS_CELL'           : (['previous_crosslinks']                , indexedMapOf(converter = crosslinkTerm))
                     , 'CURRENT_CROSSLINKS_CELL'            : (['current_crosslinks']                 , indexedMapOf(converter = crosslinkTerm))
@@ -287,7 +287,7 @@ skip_keys = [
             # , 'ACTIVE_INDEX_ROOTS_CELL'
             # , 'COMPACT_COMMITTEES_ROOTS_CELL'
             # , 'SLASHINGS_CELL'
-            # , 'PREVIOUS_EPOCH_ATTESTATION_CELL'
+            # , 'PREVIOUS_EPOCH_ATTESTATIONS_CELL'
             # , 'CURRENT_EPOCH_ATTESTATIONS_CELL'
             # , 'PREVIOUS_CROSSLINKS_CELL'
             # , 'CURRENT_CROSSLINKS_CELL'
@@ -348,7 +348,7 @@ def buildConfigSubstitution(test_pre_state, config_cells, skip_keys = [], debug_
                 if cell_var in debug_keys:
                     _notif(cell_var)
                     printerr(str(kast_term))
-                    printerr(prettyPrintKast(kast_term, ALL_symbols))
+                    printerr(prettyPrintKast(kast_term, BEACON_CHAIN_symbols))
                 new_key_table[cell_var] = kast_term
                 used_key_chains.append(pre_keys)
         else:
@@ -488,20 +488,20 @@ def main():
     test_title = str(test_dir)
     _notif(test_title)
 
-    init_config_subst = copy.deepcopy(init_cells)
-    all_keys = list(init_cells.keys())
+    init_config_subst = copy.deepcopy(init_subst)
+    all_keys = list(init_subst.keys())
 
     init_config_subst.update(buildPreConfigSubst(test_dir))             # build state
     init_config_subst['K_CELL'] = buildKCell(test_dir)                  # build <k>
 
-    init_config = substitute(symbolic_configuration, init_config_subst)
+    init_config = substitute(generated_top_config, init_config_subst)
     kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : init_config }
 
     with tempfile.NamedTemporaryFile(mode = 'w', delete = not args.debug) as pre_json_file:
         json.dump(kast_json, pre_json_file)
         pre_json_file.flush()
 
-        fastPrinted = prettyPrintKast(init_config['args'][0], ALL_symbols).strip()
+        fastPrinted = prettyPrintKast(init_config['args'][0], BEACON_CHAIN_symbols).strip()
         _notif('kast content')
         print(fastPrinted, file = sys.stderr, flush = True)
 
@@ -536,9 +536,9 @@ def main():
         if post_yaml is not None:
             post_config_subst.update(buildConfigSubstitution(post_yaml, init_config_cells,
                                                              skip_keys=skip_keys, debug_keys=debug_keys))
-        post_config_subst['K_CELL'] = post_k_cell if post_k_cell is not None else init_cells['K_CELL']
+        post_config_subst['K_CELL'] = post_k_cell if post_k_cell is not None else KConstant('init')
 
-        post_config = substitute(symbolic_configuration, post_config_subst)
+        post_config = substitute(generated_top_config, post_config_subst)
         post_kast_json = { 'format' : 'KAST' , 'version' : 1.0 , 'term' : post_config }
         with tempfile.NamedTemporaryFile(mode = 'w', delete = not args.debug) as post_json_file:
             json.dump(post_kast_json, post_json_file)

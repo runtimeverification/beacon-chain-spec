@@ -95,8 +95,6 @@ pipeline {
                 cp -rf ../docs/.build/sphinx-docs/html/* .
                 git add --all
 
-                git config user.email "admin@runtimeverification.com"
-                git config user.name "rv-jenkins"
                 git commit -am "Updating public documentation."
                 git push --set-upstream origin gh-pages
               '''

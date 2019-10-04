@@ -158,143 +158,144 @@
             
   <div class="section" id="constants-minimal">
 <span id="constants-minimal"></span><h1>Constants (Minimal)<a class="headerlink" href="#constants-minimal" title="Permalink to this headline">¶</a></h1>
-<div class="highlight-kmodule CONSTANTS notranslate"><div class="highlight"><pre><span></span>  imports DOMAINS
+<div class="highlight-k notranslate"><div class="highlight"><pre><span></span><span class="nv">module</span><span class="w"> </span><span class="nv">CONSTANTS</span><span class="w"></span>
+<span class="w">  </span><span class="nv">imports</span><span class="w"> </span><span class="nv">DOMAINS</span><span class="w"></span>
 
-  // (Non-configurable) constants
-  //====================================================
-  syntax Int ::= &quot;FAR_FUTURE_EPOCH&quot;
-  rule FAR_FUTURE_EPOCH =&gt; 2 ^Int 64 -Int 1                   [macro]
-  syntax Int ::= &quot;BASE_REWARDS_PER_EPOCH&quot;
-  rule BASE_REWARDS_PER_EPOCH =&gt; 5                            [macro]
-  syntax Int ::= &quot;DEPOSIT_CONTRACT_TREE_DEPTH&quot;
-  rule DEPOSIT_CONTRACT_TREE_DEPTH =&gt; 2 ^Int 5                [macro]
-  syntax Int ::= &quot;SECONDS_PER_DAY&quot;
-  rule SECONDS_PER_DAY =&gt; 86400                               [macro]
-  syntax Int ::= &quot;JUSTIFICATION_BITS_LENGTH&quot;
-  rule JUSTIFICATION_BITS_LENGTH =&gt; 4                         [macro]
-  syntax String ::= &quot;ENDIANNESS&quot;
-  rule ENDIANNESS =&gt; &quot;little&quot;                                 [macro]
+<span class="w">  </span><span class="c1">// (Non-configurable) constants</span>
+<span class="w">  </span><span class="c1">//====================================================</span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;FAR_FUTURE_EPOCH&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">FAR_FUTURE_EPOCH</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="err">^</span><span class="nv">Int</span><span class="w"> </span><span class="mi">64</span><span class="w"> </span><span class="err">-</span><span class="nv">Int</span><span class="w"> </span><span class="mi">1</span><span class="w">                   </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;BASE_REWARDS_PER_EPOCH&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">BASE_REWARDS_PER_EPOCH</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">5</span><span class="w">                            </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;DEPOSIT_CONTRACT_TREE_DEPTH&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">DEPOSIT_CONTRACT_TREE_DEPTH</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="err">^</span><span class="nv">Int</span><span class="w"> </span><span class="mi">5</span><span class="w">                </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;SECONDS_PER_DAY&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">SECONDS_PER_DAY</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">86400</span><span class="w">                               </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;JUSTIFICATION_BITS_LENGTH&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">JUSTIFICATION_BITS_LENGTH</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">4</span><span class="w">                         </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">String</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;ENDIANNESS&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="k">END</span><span class="nv">IANNESS</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="s">&quot;little&quot;</span><span class="w">                                 </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
 
-  // Configuration -- Misc
-  //====================================================
-  syntax Int ::= &quot;SHARD_COUNT&quot;
-  rule SHARD_COUNT =&gt; 8                                       [macro]
-  syntax Int ::= &quot;TARGET_COMMITTEE_SIZE&quot;
-  rule TARGET_COMMITTEE_SIZE =&gt; 4                             [macro]
-  syntax Int ::= &quot;MAX_VALIDATORS_PER_COMMITTEE&quot;
-  rule MAX_VALIDATORS_PER_COMMITTEE =&gt; 4096                   [macro]
-  syntax Int ::= &quot;MIN_PER_EPOCH_CHURN_LIMIT&quot;
-  rule MIN_PER_EPOCH_CHURN_LIMIT =&gt; 4                         [macro]
-  syntax Int ::= &quot;CHURN_LIMIT_QUOTIENT&quot;
-  rule CHURN_LIMIT_QUOTIENT =&gt; 65536                          [macro]
-  syntax Int ::= &quot;SHUFFLE_ROUND_COUNT&quot;
-  rule SHUFFLE_ROUND_COUNT =&gt; 10                              [macro]
-  syntax Int ::= &quot;MIN_GENESIS_ACTIVE_VALIDATOR_COUNT&quot;
-  rule MIN_GENESIS_ACTIVE_VALIDATOR_COUNT =&gt; 64               [macro]
-  syntax Int ::= &quot;MIN_GENESIS_TIME&quot;
-  rule MIN_GENESIS_TIME =&gt; 1578009600                         [macro]
+<span class="w">  </span><span class="c1">// Configuration -- Misc</span>
+<span class="w">  </span><span class="c1">//====================================================</span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;SHARD_COUNT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">SHARD_COUNT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">8</span><span class="w">                                       </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;TARGET_COMMITTEE_SIZE&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">TARGET_COMMITTEE_SIZE</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">4</span><span class="w">                             </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MAX_VALIDATORS_PER_COMMITTEE&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MAX_VALIDATORS_PER_COMMITTEE</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">4096</span><span class="w">                   </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MIN_PER_EPOCH_CHURN_LIMIT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MIN_PER_EPOCH_CHURN_LIMIT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">4</span><span class="w">                         </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;CHURN_LIMIT_QUOTIENT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">CHURN_LIMIT_QUOTIENT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">65536</span><span class="w">                          </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;SHUFFLE_ROUND_COUNT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">SHUFFLE_ROUND_COUNT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">10</span><span class="w">                              </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MIN_GENESIS_ACTIVE_VALIDATOR_COUNT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MIN_GENESIS_ACTIVE_VALIDATOR_COUNT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">64</span><span class="w">               </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MIN_GENESIS_TIME&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MIN_GENESIS_TIME</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1578009600</span><span class="w">                         </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
 
-  // Configuration -- Gwei values
-  //====================================================
-  syntax Int ::= &quot;MIN_DEPOSIT_AMOUNT&quot;
-  rule MIN_DEPOSIT_AMOUNT =&gt; 1000000000                       [macro]
-  syntax Int ::= &quot;MAX_EFFECTIVE_BALANCE&quot;
-  rule MAX_EFFECTIVE_BALANCE =&gt; 32000000000                   [macro]
-  syntax Int ::= &quot;EJECTION_BALANCE&quot;
-  rule EJECTION_BALANCE =&gt; 16000000000                        [macro]
-  syntax Int ::= &quot;EFFECTIVE_BALANCE_INCREMENT&quot;
-  rule EFFECTIVE_BALANCE_INCREMENT =&gt; 1000000000              [macro]
+<span class="w">  </span><span class="c1">// Configuration -- Gwei values</span>
+<span class="w">  </span><span class="c1">//====================================================</span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MIN_DEPOSIT_AMOUNT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MIN_DEPOSIT_AMOUNT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1000000000</span><span class="w">                       </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MAX_EFFECTIVE_BALANCE&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MAX_EFFECTIVE_BALANCE</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">32000000000</span><span class="w">                   </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;EJECTION_BALANCE&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">EJECTION_BALANCE</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">16000000000</span><span class="w">                        </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;EFFECTIVE_BALANCE_INCREMENT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">EFFECTIVE_BALANCE_INCREMENT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1000000000</span><span class="w">              </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
 
-  // Configuration -- Initial values
-  //====================================================
-  syntax Int ::= &quot;GENESIS_SLOT&quot;
-  rule GENESIS_SLOT =&gt; 0                                      [macro]
-  syntax Int ::= &quot;GENESIS_EPOCH&quot;
-  rule GENESIS_EPOCH =&gt; 0                                     [macro]
-  syntax Bytes ::= &quot;BLS_WITHDRAWAL_PREFIX&quot;
-  rule BLS_WITHDRAWAL_PREFIX =&gt; &quot;\x00&quot;                        [macro]
+<span class="w">  </span><span class="c1">// Configuration -- Initial values</span>
+<span class="w">  </span><span class="c1">//====================================================</span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;GENESIS_SLOT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">GENESIS_SLOT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w">                                      </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;GENESIS_EPOCH&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">GENESIS_EPOCH</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w">                                     </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Bytes</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;BLS_WITHDRAWAL_PREFIX&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">BLS_WITHDRAWAL_PREFIX</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="s">&quot;\x00&quot;</span><span class="w">                        </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
 
-  // Configuration -- Time parameters
-  //====================================================
-  syntax Int ::= &quot;SECONDS_PER_SLOT&quot;
-  rule SECONDS_PER_SLOT =&gt; 6                                  [macro]
-  syntax Int ::= &quot;MIN_ATTESTATION_INCLUSION_DELAY&quot;
-  rule MIN_ATTESTATION_INCLUSION_DELAY =&gt; 1                   [macro]
-  syntax Int ::= &quot;SLOTS_PER_EPOCH&quot;
-  rule SLOTS_PER_EPOCH =&gt; 8                                   [macro]
-  syntax Int ::= &quot;MIN_SEED_LOOKAHEAD&quot;
-  rule MIN_SEED_LOOKAHEAD =&gt; 1                                [macro]
-  syntax Int ::= &quot;ACTIVATION_EXIT_DELAY&quot;
-  rule ACTIVATION_EXIT_DELAY =&gt; 4                             [macro]
-  syntax Int ::= &quot;SLOTS_PER_ETH1_VOTING_PERIOD&quot;
-  rule SLOTS_PER_ETH1_VOTING_PERIOD =&gt; 16                     [macro]
-  syntax Int ::= &quot;SLOTS_PER_HISTORICAL_ROOT&quot;
-  rule SLOTS_PER_HISTORICAL_ROOT =&gt; 64                        [macro]
-  syntax Int ::= &quot;MIN_VALIDATOR_WITHDRAWABILITY_DELAY&quot;
-  rule MIN_VALIDATOR_WITHDRAWABILITY_DELAY =&gt; 256             [macro]
-  syntax Int ::= &quot;PERSISTENT_COMMITTEE_PERIOD&quot;
-  rule PERSISTENT_COMMITTEE_PERIOD =&gt; 2048                    [macro]
-  syntax Int ::= &quot;MAX_EPOCHS_PER_CROSSLINK&quot;
-  rule MAX_EPOCHS_PER_CROSSLINK =&gt; 4                          [macro]
-  syntax Int ::= &quot;MIN_EPOCHS_TO_INACTIVITY_PENALTY&quot;
-  rule MIN_EPOCHS_TO_INACTIVITY_PENALTY =&gt; 4                  [macro]
+<span class="w">  </span><span class="c1">// Configuration -- Time parameters</span>
+<span class="w">  </span><span class="c1">//====================================================</span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;SECONDS_PER_SLOT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">SECONDS_PER_SLOT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">6</span><span class="w">                                  </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MIN_ATTESTATION_INCLUSION_DELAY&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MIN_ATTESTATION_INCLUSION_DELAY</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1</span><span class="w">                   </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;SLOTS_PER_EPOCH&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">SLOTS_PER_EPOCH</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">8</span><span class="w">                                   </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MIN_SEED_LOOKAHEAD&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MIN_SEED_LOOKAHEAD</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1</span><span class="w">                                </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;ACTIVATION_EXIT_DELAY&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">ACTIVATION_EXIT_DELAY</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">4</span><span class="w">                             </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;SLOTS_PER_ETH1_VOTING_PERIOD&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">SLOTS_PER_ETH1_VOTING_PERIOD</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">16</span><span class="w">                     </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;SLOTS_PER_HISTORICAL_ROOT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">SLOTS_PER_HISTORICAL_ROOT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">64</span><span class="w">                        </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MIN_VALIDATOR_WITHDRAWABILITY_DELAY&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MIN_VALIDATOR_WITHDRAWABILITY_DELAY</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">256</span><span class="w">             </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;PERSISTENT_COMMITTEE_PERIOD&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">PERSISTENT_COMMITTEE_PERIOD</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">2048</span><span class="w">                    </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MAX_EPOCHS_PER_CROSSLINK&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MAX_EPOCHS_PER_CROSSLINK</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">4</span><span class="w">                          </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MIN_EPOCHS_TO_INACTIVITY_PENALTY&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MIN_EPOCHS_TO_INACTIVITY_PENALTY</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">4</span><span class="w">                  </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
 
-  // Configuration -- State list lengths
-  //====================================================
-  syntax Int ::= &quot;EPOCHS_PER_HISTORICAL_VECTOR&quot;
-  rule EPOCHS_PER_HISTORICAL_VECTOR =&gt; 64                     [macro]
-  syntax Int ::= &quot;EPOCHS_PER_SLASHINGS_VECTOR&quot;
-  rule EPOCHS_PER_SLASHINGS_VECTOR =&gt; 64                      [macro]
-  syntax Int ::= &quot;HISTORICAL_ROOTS_LIMIT&quot;
-  rule HISTORICAL_ROOTS_LIMIT =&gt; 16777216                     [macro]
-  syntax Int ::= &quot;VALIDATOR_REGISTRY_LIMIT&quot;
-  rule VALIDATOR_REGISTRY_LIMIT =&gt; 1099511627776              [macro]
+<span class="w">  </span><span class="c1">// Configuration -- State list lengths</span>
+<span class="w">  </span><span class="c1">//====================================================</span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;EPOCHS_PER_HISTORICAL_VECTOR&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">EPOCHS_PER_HISTORICAL_VECTOR</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">64</span><span class="w">                     </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;EPOCHS_PER_SLASHINGS_VECTOR&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">EPOCHS_PER_SLASHINGS_VECTOR</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">64</span><span class="w">                      </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;HISTORICAL_ROOTS_LIMIT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">HISTORICAL_ROOTS_LIMIT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">16777216</span><span class="w">                     </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;VALIDATOR_REGISTRY_LIMIT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">VALIDATOR_REGISTRY_LIMIT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1099511627776</span><span class="w">              </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
 
-  // Configuration -- Rewards and penalties
-  //====================================================
-  syntax Int ::= &quot;BASE_REWARD_FACTOR&quot;
-  rule BASE_REWARD_FACTOR =&gt; 64                               [macro]
-  syntax Int ::= &quot;WHISTLEBLOWER_REWARD_QUOTIENT&quot;
-  rule WHISTLEBLOWER_REWARD_QUOTIENT =&gt; 512                   [macro]
-  syntax Int ::= &quot;PROPOSER_REWARD_QUOTIENT&quot;
-  rule PROPOSER_REWARD_QUOTIENT =&gt; 8                          [macro]
-  syntax Int ::= &quot;INACTIVITY_PENALTY_QUOTIENT&quot;
-  rule INACTIVITY_PENALTY_QUOTIENT =&gt; 33554432                [macro]
-  syntax Int ::= &quot;MIN_SLASHING_PENALTY_QUOTIENT&quot;
-  rule MIN_SLASHING_PENALTY_QUOTIENT =&gt; 32                    [macro]
+<span class="w">  </span><span class="c1">// Configuration -- Rewards and penalties</span>
+<span class="w">  </span><span class="c1">//====================================================</span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;BASE_REWARD_FACTOR&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">BASE_REWARD_FACTOR</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">64</span><span class="w">                               </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;WHISTLEBLOWER_REWARD_QUOTIENT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">WHISTLEBLOWER_REWARD_QUOTIENT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">512</span><span class="w">                   </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;PROPOSER_REWARD_QUOTIENT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">PROPOSER_REWARD_QUOTIENT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">8</span><span class="w">                          </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;INACTIVITY_PENALTY_QUOTIENT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">INACTIVITY_PENALTY_QUOTIENT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">33554432</span><span class="w">                </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MIN_SLASHING_PENALTY_QUOTIENT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MIN_SLASHING_PENALTY_QUOTIENT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">32</span><span class="w">                    </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
 
-  // Configuration -- Max operations per block
-  //====================================================
-  syntax Int ::= &quot;MAX_PROPOSER_SLASHINGS&quot;
-  rule MAX_PROPOSER_SLASHINGS =&gt; 16                           [macro]
-  syntax Int ::= &quot;MAX_ATTESTER_SLASHINGS&quot;
-  rule MAX_ATTESTER_SLASHINGS =&gt; 1                            [macro]
-  syntax Int ::= &quot;MAX_ATTESTATIONS&quot;
-  rule MAX_ATTESTATIONS =&gt; 128                                [macro]
-  syntax Int ::= &quot;MAX_DEPOSITS&quot;
-  rule MAX_DEPOSITS =&gt; 16                                     [macro]
-  syntax Int ::= &quot;MAX_VOLUNTARY_EXITS&quot;
-  rule MAX_VOLUNTARY_EXITS =&gt; 16                              [macro]
-  syntax Int ::= &quot;MAX_TRANSFERS&quot;
-  rule MAX_TRANSFERS =&gt; 0                                     [macro]
+<span class="w">  </span><span class="c1">// Configuration -- Max operations per block</span>
+<span class="w">  </span><span class="c1">//====================================================</span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MAX_PROPOSER_SLASHINGS&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MAX_PROPOSER_SLASHINGS</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">16</span><span class="w">                           </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MAX_ATTESTER_SLASHINGS&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MAX_ATTESTER_SLASHINGS</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1</span><span class="w">                            </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MAX_ATTESTATIONS&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MAX_ATTESTATIONS</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">128</span><span class="w">                                </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MAX_DEPOSITS&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MAX_DEPOSITS</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">16</span><span class="w">                                     </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MAX_VOLUNTARY_EXITS&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MAX_VOLUNTARY_EXITS</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">16</span><span class="w">                              </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MAX_TRANSFERS&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MAX_TRANSFERS</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w">                                     </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
 
-  // Configuration -- Signature domain types
-  //====================================================
-  //todo should be used, but apparently are not. Check values in config.yaml
-  syntax Int ::= &quot;DOMAIN_BEACON_PROPOSER&quot;
-  rule DOMAIN_BEACON_PROPOSER =&gt; 0                            [macro]
-  syntax Int ::= &quot;DOMAIN_RANDAO&quot;
-  rule DOMAIN_RANDAO =&gt; 1                                     [macro]
-  syntax Int ::= &quot;DOMAIN_ATTESTATION&quot;
-  rule DOMAIN_ATTESTATION =&gt; 2                                [macro]
-  syntax Int ::= &quot;DOMAIN_DEPOSIT&quot;
-  rule DOMAIN_DEPOSIT =&gt; 3                                    [macro]
-  syntax Int ::= &quot;DOMAIN_VOLUNTARY_EXIT&quot;
-  rule DOMAIN_VOLUNTARY_EXIT =&gt; 4                             [macro]
-  syntax Int ::= &quot;DOMAIN_TRANSFER&quot;
-  rule DOMAIN_TRANSFER =&gt; 5                                   [macro]
+<span class="w">  </span><span class="c1">// Configuration -- Signature domain types</span>
+<span class="w">  </span><span class="c1">//====================================================</span>
+<span class="w">  </span><span class="c1">//todo should be used, but apparently are not. Check values in config.yaml</span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;DOMAIN_BEACON_PROPOSER&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">DOMAIN_BEACON_PROPOSER</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w">                            </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;DOMAIN_RANDAO&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">DOMAIN_RANDAO</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1</span><span class="w">                                     </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;DOMAIN_ATTESTATION&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">DOMAIN_ATTESTATION</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">2</span><span class="w">                                </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;DOMAIN_DEPOSIT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">DOMAIN_DEPOSIT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">3</span><span class="w">                                    </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;DOMAIN_VOLUNTARY_EXIT&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">DOMAIN_VOLUNTARY_EXIT</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">4</span><span class="w">                             </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;DOMAIN_TRANSFER&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">DOMAIN_TRANSFER</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">5</span><span class="w">                                   </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
 
-endmodule
+<span class="nv">endmodule</span><span class="w"></span>
 </pre></div>
 </div>
 </div>

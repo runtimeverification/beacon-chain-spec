@@ -1,6 +1,7 @@
 Constants (Mainnet)
 *******************
 
+   module CONSTANTS
      imports DOMAINS
 
      // (Non-configurable) constants

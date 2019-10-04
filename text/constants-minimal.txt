@@ -1,6 +1,7 @@
 Constants (Minimal)
 *******************
 
+   module CONSTANTS
      imports DOMAINS
 
      // (Non-configurable) constants

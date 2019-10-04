@@ -37,6 +37,7 @@ Input `String` is interpreted as byte array, e.g. it is NOT hex-encoded.
 
 K semantics:
 ```k
+
   syntax String ::= Sha256 ( String )                                 [function, hook(KRYPTO.sha256)]
 
 
@@ -52,6 +53,7 @@ def hash(data: bytes) -> Hash is SHA256.
 
 K semantics:
 ```k
+
   syntax Hash ::= hash( Bytes )                                       [function]
   rule hash(BYTES) => {toBinary(Sha256(BYTES))}:>Hash
 
@@ -90,6 +92,7 @@ def serialize_basic(value: SSZValue):
 
 K semantics:
 ```k
+
   syntax Bytes ::= "serialize_basic" "(" BasicValue "," ElementType ")" [function]
   rule serialize_basic(A:Int, ElemType) => to_bytes(A, item_length(ElemType))
   rule serialize_basic(true, %bool)  => "" +String chrChar(1)
@@ -115,6 +118,7 @@ def pack(values: Series):
 
 K semantics:
 ```k
+
   //Version for byte array
   syntax Bytes ::= pack ( Bytes )                                     [function]
   rule pack(B:Bytes) => B
@@ -146,6 +150,7 @@ def chunkify(bytez):
 
 K semantics:
 ```k
+
   syntax BytesList ::= chunkify( Bytes )                              [function]
   rule chunkify(B) => chunkifyAux(padTo32(B))
 
@@ -219,6 +224,7 @@ def merkleize_chunks(chunks, limit=None):
 
 K semantics:
 ```k
+
   syntax Hash ::= "merkleize_chunks" "(" BytesList "," Int ")"        [function]
   rule merkleize_chunks(.BytesList, 0) => zerohashes(0)
 
@@ -243,6 +249,7 @@ Python reference:
 
 K semantics:
 ```k
+
   syntax Hash ::= merkleizeChunksLoop1(count:     Int,
                                        depth:     Int,
                                        maxDepth:  Int,
@@ -265,6 +272,7 @@ Python reference:
 
 K semantics:
 ```k
+
   rule merkleizeChunksLoop1(COUNT, DEPTH, MaxDEPTH, .BytesList, I, TMP)
        => merkleizeChunksLoop2(DEPTH, MaxDEPTH,
                                #if (1 <<Int DEPTH =/=Int COUNT)
@@ -284,6 +292,7 @@ Python reference:
 
 K semantics:
 ```k
+
   syntax Hash ::= merkleizeChunksLoop2(Int, // j
                                        Int, // max_depth
                                        Map  //tmp
@@ -319,6 +328,7 @@ Python reference:
 
 K semantics:
 ```k
+
   syntax Map ::= merkleMerge( Hash, // h
                               Int,  // i
                               Int,  // count
@@ -362,6 +372,7 @@ def is_bottom_layer_kind(typ: SSZType):
 
 K semantics:
 ```k
+
   syntax Bool ::= "is_bottom_layer_kind" "(" ValueOrList ")"          [function]
   rule is_bottom_layer_kind(_:BasicValue) => true
   rule is_bottom_layer_kind(_:Bytes) => true
@@ -397,6 +408,7 @@ def hash_tree_root(obj: SSZValue):
 
 K semantics:
 ```k
+
   syntax Hash ::= "hash_tree_root" "(" BytesOrContainer ")"           [function, klabel(hash_tree_root), symbol]
   rule hash_tree_root(VAL:Container) => hash_tree_root(VAL, %container, false)
   rule hash_tree_root(BYTES:Bytes) => hash_tree_root(BYTES, %bytes)
@@ -590,6 +602,7 @@ Python reference:
 
 K semantics:
 ```k
+
   syntax Hash ::= "hash_tree_root_part2_v1" "(" leaves: BytesList "," staticLen: Int "," elemType: ElementType ","
                                                 dynamicLen: Int ")"   [function]
   rule hash_tree_root_part2_v1(LEAVES, StaticLEN, ElemType, DynamicLen)
@@ -607,6 +620,7 @@ Python reference:
 
 K semantics:
 ```k
+
   syntax Hash ::= "hash_tree_root_part2_v2" "(" BytesList ")"         [function]
   rule hash_tree_root_part2_v2(LEAVES) => merkleize_chunks(LEAVES, len(LEAVES))
 
@@ -624,6 +638,7 @@ def mix_in_length(root, length):
 
 K semantics:
 ```k
+
   syntax Hash ::= "mix_in_length" "(" Hash "," Int ")"                [function]
   rule mix_in_length(ROOT, LEN) => hashConcat(ROOT, to_bytes(LEN, 32))
 
@@ -651,6 +666,7 @@ def chunk_count(typ: SSZType) -> int:
 
 K semantics:
 ```k
+
   //cases BasicType and Container are not used by the spec. Only Bits and Elements. See call site.
   syntax Int ::= "chunk_count" "(" staticLen: Int "," elemType:ElementType ")" [function]
   rule chunk_count(StaticLEN, %bool) => (StaticLEN +Int 255) /Int 256 // elif issubclass(typ, Bits)
@@ -674,6 +690,7 @@ def item_length(typ: SSZType) -> int:
 
 K semantics:
 ```k
+
   //returns the length in bytes of a list element. Argument in K is a list of BasicValue.
   syntax Int ::= "item_length" "(" ElementType ")"                    [function]
   rule item_length(%uint8) => 1
@@ -766,6 +783,7 @@ def signing_root(obj: Container):
 
 K semantics:
 ```k
+
   syntax Hash ::= "signing_root" "(" val: Container ")"               [function, klabel(signing_root), symbol]
   rule signing_root(VAL) => hash_tree_root(VAL, %container, true)
 

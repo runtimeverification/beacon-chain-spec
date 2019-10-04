@@ -34,6 +34,7 @@ Python reference:
 
 K semantics:
 
+
      syntax String ::= Sha256 ( String )                                 [function, hook(KRYPTO.sha256)]
 
 
@@ -48,6 +49,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Hash ::= hash( Bytes )                                       [function]
      rule hash(BYTES) => {toBinary(Sha256(BYTES))}:>Hash
@@ -87,6 +89,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Bytes ::= "serialize_basic" "(" BasicValue "," ElementType ")" [function]
      rule serialize_basic(A:Int, ElemType) => to_bytes(A, item_length(ElemType))
      rule serialize_basic(true, %bool)  => "" +String chrChar(1)
@@ -109,6 +112,7 @@ Python reference:
        return b''.join([serialize_basic(value) for value in values]) 
 
 K semantics:
+
 
      //Version for byte array
      syntax Bytes ::= pack ( Bytes )                                     [function]
@@ -138,6 +142,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax BytesList ::= chunkify( Bytes )                              [function]
      rule chunkify(B) => chunkifyAux(padTo32(B))
@@ -212,6 +217,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Hash ::= "merkleize_chunks" "(" BytesList "," Int ")"        [function]
      rule merkleize_chunks(.BytesList, 0) => zerohashes(0)
 
@@ -234,6 +240,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Hash ::= merkleizeChunksLoop1(count:     Int,
                                           depth:     Int,
                                           maxDepth:  Int,
@@ -254,6 +261,7 @@ Python reference:
 
 K semantics:
 
+
      rule merkleizeChunksLoop1(COUNT, DEPTH, MaxDEPTH, .BytesList, I, TMP)
           => merkleizeChunksLoop2(DEPTH, MaxDEPTH,
                                   #if (1 <<Int DEPTH =/=Int COUNT)
@@ -270,6 +278,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Hash ::= merkleizeChunksLoop2(Int, // j
                                           Int, // max_depth
@@ -303,6 +312,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Map ::= merkleMerge( Hash, // h
                                  Int,  // i
@@ -347,6 +357,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Bool ::= "is_bottom_layer_kind" "(" ValueOrList ")"          [function]
      rule is_bottom_layer_kind(_:BasicValue) => true
      rule is_bottom_layer_kind(_:Bytes) => true
@@ -381,6 +392,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Hash ::= "hash_tree_root" "(" BytesOrContainer ")"           [function, klabel(hash_tree_root), symbol]
      rule hash_tree_root(VAL:Container) => hash_tree_root(VAL, %container, false)
@@ -573,6 +585,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Hash ::= "hash_tree_root_part2_v1" "(" leaves: BytesList "," staticLen: Int "," elemType: ElementType ","
                                                    dynamicLen: Int ")"   [function]
      rule hash_tree_root_part2_v1(LEAVES, StaticLEN, ElemType, DynamicLen)
@@ -587,6 +600,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Hash ::= "hash_tree_root_part2_v2" "(" BytesList ")"         [function]
      rule hash_tree_root_part2_v2(LEAVES) => merkleize_chunks(LEAVES, len(LEAVES))
@@ -604,6 +618,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Hash ::= "mix_in_length" "(" Hash "," Int ")"                [function]
      rule mix_in_length(ROOT, LEN) => hashConcat(ROOT, to_bytes(LEN, 32))
@@ -632,6 +647,7 @@ Python reference:
 
 K semantics:
 
+
      //cases BasicType and Container are not used by the spec. Only Bits and Elements. See call site.
      syntax Int ::= "chunk_count" "(" staticLen: Int "," elemType:ElementType ")" [function]
      rule chunk_count(StaticLEN, %bool) => (StaticLEN +Int 255) /Int 256 // elif issubclass(typ, Bits)
@@ -654,6 +670,7 @@ Python reference:
 
 
 K semantics:
+
 
      //returns the length in bytes of a list element. Argument in K is a list of BasicValue.
      syntax Int ::= "item_length" "(" ElementType ")"                    [function]
@@ -746,6 +763,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Hash ::= "signing_root" "(" val: Container ")"               [function, klabel(signing_root), symbol]
      rule signing_root(VAL) => hash_tree_root(VAL, %container, true)

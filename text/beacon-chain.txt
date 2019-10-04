@@ -49,6 +49,7 @@ Python reference:
 
 K semantics:
 
+
      rule <k> init => initZeroHashes(1, 64) ...</k> //max pre-computed zerohash is 64 - ehough for all cases
           <zerohashes-cache> .Map => (0 |-> defaultHash()) </zerohashes-cache>
 
@@ -84,6 +85,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Int ::= "integer_squareroot" "(" Int ")" [function]
      rule integer_squareroot(N) => integer_squareroot_aux(N, N, (N +Int 1) /Int 2)
        requires N >=Int 0
@@ -111,6 +113,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Bytes ::= xor( Bytes, Bytes ) [function]
      rule xor(A, B) => chrChar(ordChar(substrString(A, 0, 1)) xorInt ordChar(substrString(B, 0, 1)))
                        +Bytes xor(substrString(A, 1, lengthString(A)), substrString(B, 1, lengthString(B)))
@@ -137,6 +140,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Bool ::= "is_active_validator" "(" Validator "," Int ")" [function]
      rule is_active_validator( VAL, EPOCH )
        => VAL.activationEpoch <=Int EPOCH andBool EPOCH <Int VAL.exitEpoch
@@ -157,6 +161,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Bool ::= "is_slashable_validator" "(" Validator "," Int ")" [function]
      rule is_slashable_validator( VAL, EPOCH )
@@ -183,6 +188,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Bool ::= "is_slashable_attestation_data" "(" AttestationData "," AttestationData ")" [function]
      rule is_slashable_attestation_data(
@@ -244,6 +250,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Bool ::= "is_valid_indexed_attestation" "(" IndexedAttestation ")" [function]
      rule is_valid_indexed_attestation(IAtt)
        =>      len(IAtt.custodyBit1Indices) ==Int 0
@@ -275,6 +282,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Bool ::= "is_valid_merkle_branch" "(" Hash "," BytesList "," Int "," Int "," Hash ")" [function]
      rule is_valid_merkle_branch(Leaf, Branch, Depth, Index, Root)
@@ -326,6 +334,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Int ::= "compute_shuffled_index" "(" Int "," Int "," Hash ")" [function]
      rule compute_shuffled_index(INDEX, COUNT, SEED) => compute_shuffled_index_loop(INDEX, COUNT, SEED, 0, SHUFFLE_ROUND_COUNT)
        requires INDEX <Int COUNT
@@ -349,10 +358,7 @@ K semantics:
 
    //        byte = source[(position % 256) // 8]
    //        bit = (byte >> (position % 8)) % 2
-     syntax Bool ::= computeBit(Int /* position */, Hash /* seed */, Int /* current round 
-
-K semantics:
-
+     syntax Bool ::= computeBit(Int /* position */, Hash /* seed */, Int /* current round */ ) [function]
      rule computeBit(Position, Seed, CurrRound)
        => (ordChar( substrString({computeSource(Position, Seed, CurrRound)}:>String,
                          (Position %Int 256) /Int 8,
@@ -360,24 +366,15 @@ K semantics:
           ) /Int 2 ^Int (Position %Int 8))  // shifting right by (position % 8)
           %Int 2 ==Int 1
 
-     syntax Hash ::= computeSource(Int /* position */, Hash /* seed */, Int /* current round 
-
-K semantics:
-
+     syntax Hash ::= computeSource(Int /* position */, Hash /* seed */, Int /* current round */) [function]
      rule computeSource(Position, Seed, CurrRound)
        => hash(({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1)) +Bytes to_bytes(Position /Int 256, 4))
 
-     syntax Int ::= computeFlip(Int /* pivot */, Int /* index */, Int /* count 
-
-K semantics:
-
+     syntax Int ::= computeFlip(Int /* pivot */, Int /* index */, Int /* count */ ) [function]
      rule computeFlip(Pivot, Index, Count) => (Pivot +Int Count -Int Index) %Int Count
 
      //pivot = bytes_to_int(hash(seed + int_to_bytes(current_round, length=1))[0:8]) % index_count
-     syntax Int ::= computePivot(Hash /* seed */, Int /* current round */, Int /* index count 
-
-K semantics:
-
+     syntax Int ::= computePivot(Hash /* seed */, Int /* current round */, Int /* index count */ ) [function]
        rule computePivot(Seed, CurrRound, Count)
          => bytes_to_int(substrString({hash({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1))}:>String, 0, 8)) %Int Count
 
@@ -402,6 +399,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax IntList ::= "compute_committee" "(" IntList "," Hash "," Int "," Int ")" [function]
      rule compute_committee(INDICES, SEED, INDEX, COUNT)
@@ -437,6 +435,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Int ::= "compute_epoch_of_slot" "(" Int ")" [function]
      rule compute_epoch_of_slot(SLOT) => SLOT /Int SLOTS_PER_EPOCH
 
@@ -456,6 +455,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Int ::= "compute_start_slot_of_epoch" "(" Int ")" [function]
      rule compute_start_slot_of_epoch(EPOCH) => EPOCH *Int SLOTS_PER_EPOCH
@@ -477,6 +477,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Int ::= "compute_activation_exit_epoch" "(" Int ")" [function]
      rule compute_activation_exit_epoch(EP) => EP +Int 1 +Int ACTIVATION_EXIT_DELAY
 
@@ -496,6 +497,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Domain ::= "compute_domain" "(" DomainType "," Version ")"    [function]
      rule compute_domain(Domain_Type, Fork_Version) => {Domain_Type +Bytes Fork_Version}:>Domain
@@ -520,6 +522,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Int ::= "get_current_epoch" "(" ")" [function]
      rule [[ get_current_epoch() => compute_epoch_of_slot(SLOT) ]]
        <slot> SLOT </slot>
@@ -541,6 +544,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Int ::= "get_previous_epoch" "(" ")" [function]
      rule get_previous_epoch() =>  #if get_current_epoch() ==K GENESIS_EPOCH
@@ -565,6 +569,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Hash ::= "get_block_root" "(" Int ")" [function]
      rule get_block_root(EP) => get_block_root_at_slot(compute_start_slot_of_epoch(EP))
 
@@ -585,6 +590,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Hash ::= "get_block_root_at_slot" "(" Int ")" [function]
      rule [[ get_block_root_at_slot(SLOT) => {BLOCKROOTS[ SLOT %Int SLOTS_PER_HISTORICAL_ROOT ]}:>Hash ]]
@@ -609,6 +615,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Hash ::= "get_randao_mix" "(" Int ")" [function]
      rule [[ get_randao_mix( EPOCH ) => {RMS[ EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR ]}:>Hash ]]
        <randao-mixes> RMS </randao-mixes>
@@ -629,6 +636,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax IntList ::= "get_active_validator_indices" "(" epoch: Int ")" [function]
      rule [[ get_active_validator_indices(EP) => getActiveValidatorIndicesAux(.IntList, 0, VALIDATORS, EP) ]]
@@ -659,6 +667,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Int ::= "get_validator_churn_limit" "(" ")" [function]
      rule get_validator_churn_limit() => maxInt(
              MIN_PER_EPOCH_CHURN_LIMIT,
@@ -682,6 +691,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Hash ::= "get_seed" "(" Int ")" [function]
      rule [[ get_seed(Epoch)
@@ -712,6 +722,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Int ::= "get_committee_count" "(" Int ")" [function]
      rule get_committee_count( EP )
        => maxInt(1, minInt(SHARD_COUNT /Int SLOTS_PER_EPOCH,
@@ -740,6 +751,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax IntList ::= "get_crosslink_committee" "(" Int "," Int ")" [function]
      rule get_crosslink_committee(EPOCH, SHARD)
@@ -772,6 +784,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Int ::= "get_start_shard" "(" Int ")" [function]
      rule [[ get_start_shard(EPOCH) => getStartShardAux(
@@ -810,6 +823,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Int ::= "get_shard_delta" "(" Int ")" [function]
      rule get_shard_delta( EPOCH ) => minInt(
        get_committee_count(EPOCH),
@@ -846,6 +860,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax ValidatorIndex ::= "get_beacon_proposer_index" "(" ")" [function]
      rule [[ get_beacon_proposer_index()
@@ -884,6 +899,7 @@ Python reference:
            i += 1  
 
 K semantics:
+
 
      syntax ValidatorIndex ::= getBeaconProposerIndexLoop(
                                  Int, Int, Int, Int, IntList, Int, Hash, Int) [function]
@@ -930,6 +946,7 @@ Python reference:
 
 K semantics:
 
+
        syntax Int ::= "get_attestation_data_slot" "(" AttestationData ")" [function]
        rule get_attestation_data_slot(#AttestationData(_,_, #Checkpoint(EP,_), #Crosslink(SHARD,_,_,_,_))) =>
          compute_start_slot_of_epoch(EP) +Int
@@ -965,6 +982,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Hash ::= "get_compact_committees_root" "(" Int ")" [function]
      rule get_compact_committees_root(EPOCH)
@@ -1034,6 +1052,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Int ::= "get_total_balance" "(" IntList ")" [function]
      rule get_total_balance(INDICES) => maxInt(1, getTotalBalancePure(INDICES, 0))
 
@@ -1058,6 +1077,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Int ::= "get_total_active_balance" "(" ")" [function]
      rule get_total_active_balance() => get_total_balance(get_active_validator_indices(get_current_epoch()))
 
@@ -1079,6 +1099,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Domain ::= "get_domain" "(" DomainType "," OptionInt ")" [function]
      rule get_domain(DTYPE, OEPOCH)
@@ -1115,6 +1136,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax IndexedAttestation ::= "get_indexed_attestation" "(" Attestation ")" [function]
      rule get_indexed_attestation(#Attestation(AggregationBits, DATA, CustodyBits, SIG)) =>
@@ -1153,6 +1175,7 @@ Python reference:
 
 K semantics:
 
+
      syntax IntList ::= "get_attesting_indices" "(" AttestationData "," BitList ")" [function]
      rule get_attesting_indices(#AttestationData(_,_, #Checkpoint(EP,_), #Crosslink(SHARD,_,_,_,_)), BL) =>
        extractAttestingIndices(get_crosslink_committee(EP, SHARD), BL, .IntList)
@@ -1182,6 +1205,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "increase_balance" "(" ValidatorIndex "," Int ")"
      rule <k> increase_balance(ValIndex, Delta) => . ...</k>
           <balances>... ValIndex |-> (BAL => BAL +Int Delta) ...</balances>
@@ -1202,6 +1226,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax KItem ::= "decrease_balance" "(" ValidatorIndex "," Int ")"
      rule <k> decrease_balance(ValIndex, Delta) => . ...</k>
@@ -1238,11 +1263,9 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "initiate_validator_exit" "(" Int ")"
-                    | initiateValidatorExitAux( Int /*index*/ , Int /*exit_queue_epoch
-
-K semantics:
-
+                    | initiateValidatorExitAux( Int /*index*/ , Int /*exit_queue_epoch*/ )
 
      rule initiate_validator_exit(INDEX) => .K
        requires getValidator(INDEX).exitEpoch =/=K FAR_FUTURE_EPOCH
@@ -1270,28 +1293,19 @@ K semantics:
                        exitEpochsAux(VALIDATORS, .IntList) ) ]]
        <validators> VALIDATORS </validators>
 
-     syntax IntList ::= exitEpochsAux( Map /*validators*/ , IntList /*result
-
-K semantics:
-
+     syntax IntList ::= exitEpochsAux( Map /*validators*/ , IntList /*result*/ ) [function]
      rule exitEpochsAux(_:Map (_ |-> VAL => .Map),
                         RES => VAL.exitEpoch RES )
        requires VAL.exitEpoch =/=K FAR_FUTURE_EPOCH
 
      rule exitEpochsAux(_:Map (_ |-> VAL => .Map),
-                        RES /*unchanged
-
-K semantics:
-
+                        RES /*unchanged*/ )
        requires VAL.exitEpoch ==K FAR_FUTURE_EPOCH
 
      rule exitEpochsAux(.Map, RES) => RES
 
      // exit_queue_churn = len([v for v in state.validator_registry if v.exit_epoch == exit_queue_epoch])
-     syntax Int ::= exitQueueChurnAux ( Int /*exit_queue_epoch*/ , Map /*validator_registry*/ , Int /*result
-
-K semantics:
-
+     syntax Int ::= exitQueueChurnAux ( Int /*exit_queue_epoch*/ , Map /*validator_registry*/ , Int /*result*/ ) [function]
      rule exitQueueChurnAux( ExitQEpoch, _:Map (_ |-> VAL => .Map), RES => RES +Int 1 )
        requires VAL.exitEpoch  ==K ExitQEpoch
      rule exitQueueChurnAux( ExitQEpoch, _:Map (_ |-> VAL => .Map), _ )
@@ -1332,14 +1346,13 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "slash_validator" "(" ValidatorIndex "," /*slashed_index
 
 K semantics:
 
-                                            ValidatorIndex     /*whistleblower_index or .ValidatorIndex if none
 
-K semantics:
-
+                                            ValidatorIndex     /*whistleblower_index or .ValidatorIndex if none*/ ")"
 
        rule <k> slash_validator(SlashedINDEX, WhistleblINDEX)
                 => initiate_validator_exit(SlashedINDEX)
@@ -1414,6 +1427,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Hash "," Int "," DepositList ")" [klabel(initialize_beacon_state_from_eth1), symbol]
      rule <k> initialize_beacon_state_from_eth1(E1BH, E1TS, Deposits)
               => stateInit
@@ -1456,6 +1470,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "processEth1Deposits" "(" DepositList "," DepositDataList "," Int ")"
      rule <k> (. => process_deposit(Dep))
               ~> processEth1Deposits(Dep Deposits => Deposits, Leaves, INDEX => INDEX +Int 1)
@@ -1487,6 +1502,7 @@ Python reference:
                validator.activation_epoch = GENESIS_EPOCH  
 
 K semantics:
+
 
      syntax KItem ::= "processEth1Activations"
                     | processEth1Activations( Int, Int )
@@ -1524,6 +1540,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "populateEth1Roots"
      rule <k> populateEth1Roots => .K ...</k>
           <active-index-roots>
@@ -1549,6 +1566,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Bool ::= "is_valid_genesis_state" "(" ")"                    [function, klabel(is_valid_genesis_state), symbol]
      rule [[ is_valid_genesis_state()
@@ -1585,6 +1603,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "state_transition" "(" block: BeaconBlock "," validateStateRoot: Bool ")"  [klabel(state_transition), symbol]
      rule state_transition(BLOCK, VSR) => process_slots(BLOCK._slot) ~> process_block(BLOCK) ~> validateStateRoot(BLOCK, VSR)
      syntax KItem ::= validateStateRoot ( BeaconBlock, Bool )
@@ -1610,6 +1629,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax KItem ::= "process_slots" "(" Int ")"                      [klabel(process_slots), symbol]
      rule <k> process_slots(SLOT) => processSlotsLoop(SLOT) ...</k>
@@ -1656,6 +1676,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "process_slot" "(" ")"
      rule <k> process_slot()
               => processSlotAux(hash_tree_root_state(), SLOT %Int SLOTS_PER_HISTORICAL_ROOT)
@@ -1701,6 +1722,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "process_epoch" "(" ")"
      rule <k> process_epoch() =>
                    process_justification_and_finalization()
@@ -1726,6 +1748,7 @@ Python reference:
 
 K semantics:
 
+
      syntax PendingAttestationList ::= "get_matching_source_attestations" "(" Int ")" [function]
      rule [[ get_matching_source_attestations(EPOCH) =>
        #if EPOCH ==K get_current_epoch() #then CEA #else PEA #fi ]]
@@ -1749,6 +1772,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax PendingAttestationList ::= "get_matching_target_attestations" "(" Int ")" [function]
      rule get_matching_target_attestations(EPOCH) =>
@@ -1777,6 +1801,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax PendingAttestationList ::= "get_matching_head_attestations" "(" Int ")" [function]
      rule get_matching_head_attestations(EPOCH) =>
@@ -1807,6 +1832,7 @@ Python reference:
 
 K semantics:
 
+
      syntax IntList ::= "get_unslashed_attesting_indices" "(" PendingAttestationList ")" [function]
      rule get_unslashed_attesting_indices(PAL) => filterOutSlashedIndices(getAttestingIndicesLoop(PAL, .IntList))
 
@@ -1835,6 +1861,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Int ::= "get_attesting_balance" "(" PendingAttestationList ")" [function]
      rule get_attesting_balance(PAL) => get_total_balance(get_unslashed_attesting_indices(PAL))
@@ -1865,6 +1892,7 @@ Python reference:
 
 K semantics:
 
+
      syntax CrosslinkIntListPair ::= "get_winning_crosslink_and_attesting_indices" "(" Int "," Int ")" [function]
      rule get_winning_crosslink_and_attesting_indices(EPOCH, SHARD)
           => #fun(ATTESTATIONS
@@ -1894,6 +1922,7 @@ Python reference:
 
 K semantics:
 
+
      syntax CrosslinkList ::= getCrosslinksOfAttestationsMatchingShardCrosslink(PendingAttestationList,
                                                                                 shard: Int, result: CrosslinkList) [function]
      rule getCrosslinksOfAttestationsMatchingShardCrosslink(PATT PATTList, SHARD, RES)
@@ -1919,6 +1948,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Crosslink ::= maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendingAttestationList,
                                                        result: CrosslinkList, maxBalance: Int, maxRoot: Hash) [function]
@@ -2020,6 +2050,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "process_justification_and_finalization" "(" ")" [klabel(process_justification_and_finalization), symbol]
 
      // too early to proceed with processing
@@ -2036,6 +2067,7 @@ Python reference:
 
 
 K semantics:
+
 
      rule <k> process_justification_and_finalization()
               => updateJustificationPrev(get_previous_epoch())
@@ -2059,6 +2091,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax KItem ::= "updateJustificationPrev" "(" Int ")"
      rule <k> updateJustificationPrev(PrevEPOCH) => .K ... </k>
@@ -2154,6 +2187,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "process_crosslinks" "(" ")" [klabel(process_crosslinks), symbol]
      rule <k> process_crosslinks()
               => processCrosslinksForEpoch(get_previous_epoch())
@@ -2200,6 +2234,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Int ::= "get_base_reward" "(" Int ")" [function]
      rule get_base_reward(INDEX)
@@ -2269,6 +2304,7 @@ Python reference:
 
 K semantics:
 
+
      syntax MapMapPair ::= "get_attestation_deltas" "(" ")" [function]
      rule get_attestation_deltas()
           => #fun(MicroIncentives
@@ -2296,6 +2332,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax MapMapPair ::= microIncentives() [function]
      rule microIncentives() =>
@@ -2374,25 +2411,16 @@ K semantics:
                computeProposerReward(I))
 
      // rewards[attestation.proposer_index] += proposer_reward
-     syntax Map ::= updateAttProposerReward(Map /*Rewards*/, PendingAttestation /*attestation*/, Int /*proposer_reward
-
-K semantics:
-
+     syntax Map ::= updateAttProposerReward(Map /*Rewards*/, PendingAttestation /*attestation*/, Int /*proposer_reward*/ ) [function]
      rule updateAttProposerReward(Rewards, Attestation, PropReward)
           => Rewards[Attestation.proposerIndex <- {Rewards[Attestation.proposerIndex]}:>Int +Int PropReward]
 
      // max_attester_reward = get_base_reward(state, index) - proposer_reward
-     syntax Int ::= computeMaxAttReward(Int /*Proposer index*/ , Int /*proposer reward
-
-K semantics:
-
+     syntax Int ::= computeMaxAttReward(Int /*Proposer index*/ , Int /*proposer reward*/) [function]
      rule computeMaxAttReward(INDEX, REWARD) => get_base_reward(INDEX) -Int REWARD
 
      // proposer_reward = Gwei(get_base_reward(state, index) // PROPOSER_REWARD_QUOTIENT)
-     syntax Int ::= computeProposerReward(Int /*proposer index
-
-K semantics:
-
+     syntax Int ::= computeProposerReward(Int /*proposer index*/) [function]
      rule computeProposerReward(INDEX) => get_base_reward(INDEX) /Int PROPOSER_REWARD_QUOTIENT
 
 
@@ -2408,6 +2436,7 @@ Python reference:
 
 K semantics:
 
+
      syntax PendingAttestationList ::= filterAttForIndex(PendingAttestationList, Int) [function]
      rule filterAttForIndex(PA PAL, INDEX)
           => #if contains(INDEX, get_attesting_indices(PA.data, PA.aggregationBits))
@@ -2419,10 +2448,7 @@ K semantics:
      syntax PendingAttestation ::= findMinDelayAttestation(PendingAttestationList) [function]
      rule findMinDelayAttestation(PA PAL) => findMinDelayAttestationAux(PAL, PA)
 
-     syntax PendingAttestation ::= findMinDelayAttestationAux(PendingAttestationList, PendingAttestation /*min delay attestation
-
-K semantics:
-
+     syntax PendingAttestation ::= findMinDelayAttestationAux(PendingAttestationList, PendingAttestation /*min delay attestation*/) [function]
      rule findMinDelayAttestationAux(
             PA PAL => PAL,
             MinDelayPA => #if PA.inclusionDelay <Int MinDelayPA.inclusionDelay
@@ -2518,6 +2544,7 @@ Python reference:
 
 K semantics:
 
+
      syntax MapMapPair ::= "get_crosslink_deltas" "(" ")" [function]
      rule get_crosslink_deltas() => getCrosslinkDeltasOffsetLoop(
                                     0,                                             // Offset counter
@@ -2594,6 +2621,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "process_rewards_and_penalties" "(" ")" [klabel(process_rewards_and_penalties), symbol]
      rule <k> process_rewards_and_penalties()
           => #if get_current_epoch() ==K GENESIS_EPOCH
@@ -2655,6 +2683,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax KItem ::= "process_registry_updates" "(" ")" [klabel(process_registry_updates), symbol]
      rule <k> process_registry_updates()
@@ -2721,16 +2750,14 @@ Python reference:
 
 K semantics:
 
+
      syntax IntList ::= getActivationQueueUnsorted(i: Int, validators: Map, result: IntList ) [function]
      rule [[ getActivationQueueUnsorted(INDEX => INDEX +Int 1, _:Map (INDEX |-> VAL => .Map),  IL => IL +append INDEX) ]]
           <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
        requires VAL.activationEligibilityEpoch =/=K FAR_FUTURE_EPOCH
             andBool VAL.activationEpoch >=Int compute_activation_exit_epoch(FinalizedEpoch)
 
-     rule [[ getActivationQueueUnsorted(INDEX => INDEX +Int 1, _:Map (INDEX |-> VAL => .Map),  IL /*unchanged
-
-K semantics:
-
+     rule [[ getActivationQueueUnsorted(INDEX => INDEX +Int 1, _:Map (INDEX |-> VAL => .Map),  IL /*unchanged*/ ) ]]
           <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
        requires notBool ( VAL.activationEligibilityEpoch =/=K FAR_FUTURE_EPOCH
                       andBool VAL.activationEpoch >=Int compute_activation_exit_epoch(FinalizedEpoch) )
@@ -2745,6 +2772,7 @@ Python reference:
        ], key=lambda index: state.validator_registry[index].activation_eligibility_epoch)
 
 K semantics:
+
 
      syntax IntList ::= sortActivationQueue( IntList ) [function]
      rule sortActivationQueue(IL) => indexForMinEligEpoch(IL) listExcept(IL, indexForMinEligEpoch(IL))
@@ -2780,6 +2808,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax KItem ::= "process_slashings" "(" ")" [klabel(process_slashings), symbol]
      rule <k> process_slashings() =>
@@ -2853,6 +2882,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax KItem ::= "process_final_updates" "(" ")" [klabel(process_final_updates), symbol]
      rule <k> process_final_updates()
@@ -2932,6 +2962,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= setHistoricalRootAccumulator()
      rule <k> setHistoricalRootAccumulator() => .K ... </k>
        <historical-roots>
@@ -2970,6 +3001,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "process_block" "(" BeaconBlock ")"
      rule process_block(BLOCK)
           => process_block_header(BLOCK)
@@ -3007,6 +3039,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "process_block_header" "(" BeaconBlock ")"           [klabel(process_block_header), symbol]
      rule <k> process_block_header(BLOCK) => .K ... </k>
           <latest-block-header>
@@ -3042,6 +3075,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "process_randao" "(" BeaconBlockBody ")"
      rule <k> process_randao(BlockBODY) => .K ... </k>
           <randao-mixes>
@@ -3064,6 +3098,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax KItem ::= "process_eth1_data" "(" BeaconBlockBody ")"
      rule <k> process_eth1_data(BlockBODY) => .K ... </k>
@@ -3111,6 +3146,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax KItem ::= "process_operations" "(" BeaconBlockBody ")"
      rule <k> process_operations(BlockBODY)
@@ -3169,6 +3205,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "process_proposer_slashing" "(" ProposerSlashing ")" [klabel(process_proposer_slashing), symbol]
      rule process_proposer_slashing(#ProposerSlashing(ProposerIndex, HEAD1, HEAD2)) => slash_validator(ProposerIndex, .ValidatorIndex)
        requires compute_epoch_of_slot(HEAD1._slot) ==Int compute_epoch_of_slot(HEAD2._slot)
@@ -3202,6 +3239,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "process_attester_slashing" "(" AttesterSlashing ")" [klabel(process_attester_slashing), symbol]
      rule process_attester_slashing(#AttesterSlashing( IAtt1, IAtt2 ))
        => processAttesterSlashingLoop(
@@ -3215,10 +3253,8 @@ K semantics:
 
 K semantics:
 
-                                                    "," Bool /*slashed_any
 
-K semantics:
-
+                                                    "," Bool /*slashed_any*/ ")"
      rule (. => slash_validator(INDEX, .ValidatorIndex))
           ~> processAttesterSlashingLoop(INDEX ILIST => ILIST, _ => true)
        requires is_slashable_validator(getValidator(INDEX), get_current_epoch())
@@ -3275,6 +3311,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax KItem ::= "process_attestation" "(" Attestation ")" [klabel(process_attestation), symbol]
      rule <k> process_attestation( ATT )
@@ -3373,6 +3410,7 @@ Python reference:
 
 K semantics:
 
+
      syntax KItem ::= "process_deposit" "(" Deposit ")" [klabel(process_deposit), symbol]
 
      //case pubkey in validator_pubkeys
@@ -3413,10 +3451,7 @@ K semantics:
                     E1DATA.deposit_root)
 
      syntax ValidatorIndex ::= getValidatorIndexByPubkey( BLSPubkey )                      [function]
-                             | getValidatorIndexByPubkey( BLSPubkey, Map /*Validators
-
-K semantics:
-
+                             | getValidatorIndexByPubkey( BLSPubkey, Map /*Validators*/ )  [function]
      rule [[ getValidatorIndexByPubkey(PUBKEY) =>  getValidatorIndexByPubkey(PUBKEY, VALIDATORS) ]]
        <validators> VALIDATORS </validators>
      rule getValidatorIndexByPubkey(PUBKEY, _:Map (I |-> VAL:Validator => .Map))
@@ -3452,6 +3487,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax KItem ::= "process_voluntary_exit" "(" VoluntaryExit ")" [klabel(process_voluntary_exit), symbol]
 
@@ -3497,6 +3533,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax KItem ::= "process_transfer" "(" Transfer ")" [klabel(process_transfer), symbol]
 

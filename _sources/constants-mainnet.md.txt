@@ -1,7 +1,8 @@
 Constants (Mainnet)
 ============
 
-```kmodule CONSTANTS
+```k
+module CONSTANTS
   imports DOMAINS
 
   // (Non-configurable) constants

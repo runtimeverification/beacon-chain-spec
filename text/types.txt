@@ -100,6 +100,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Fork ::= #Fork( Version, Version, Int ) [klabel(#Fork), symbol]
 
      syntax Version ::= Fork "." "previousVersion"                       [function]
@@ -123,6 +124,7 @@ Python reference:
      
 
 K semantics:
+
 
      syntax Checkpoint ::= #Checkpoint( Int, Hash ) [klabel(#Checkpoint), symbol]
 
@@ -155,6 +157,7 @@ Python reference:
      
 
 K semantics:
+
 
      syntax Validator ::= #Validator( pubkey: BLSPubkey,
                                       withdrawalCredentials: Hash,
@@ -202,6 +205,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Crosslink ::= #Crosslink( Int, Hash, Int, Int, Hash ) [klabel(#Crosslink), symbol]
 
      syntax Int ::= Crosslink "." "shard"                                [function]
@@ -238,6 +242,7 @@ Python reference:
 
 K semantics:
 
+
      syntax AttestationData ::= #AttestationData( Hash, Checkpoint, Checkpoint, Crosslink ) [klabel(#AttestationData), symbol]
 
      syntax Hash ::= AttestationData "." "beaconBlockRoot"               [function]
@@ -264,6 +269,7 @@ Python reference:
 
 K semantics:
 
+
      syntax AttestationDataAndCustodyBit ::= #AttestationDataAndCustodyBit( AttestationData, Bit ) [klabel(#AttestationDataAndCustodyBit), symbol]
 
      
@@ -282,6 +288,7 @@ Python reference:
      
 
 K semantics:
+
 
      syntax IndexedAttestation ::= #IndexedAttestation( IntList, IntList, AttestationData, BLSSignature ) [klabel(#IndexedAttestation), symbol]
 
@@ -309,6 +316,7 @@ Python reference:
 
 K semantics:
 
+
      syntax PendingAttestation ::= #PendingAttestation( BitList, AttestationData, Int, ValidatorIndex ) [klabel(#PendingAttestation), symbol]
 
      syntax BitList ::= PendingAttestation "." "aggregationBits"         [function]
@@ -332,6 +340,7 @@ Python reference:
      
 
 K semantics:
+
 
      syntax Eth1Data ::= #Eth1Data( Hash, Int, Hash ) [klabel(#Eth1Data), symbol]
 
@@ -357,6 +366,7 @@ Python reference:
 
 K semantics:
 
+
      syntax HistoricalBatch ::= #HistoricalBatch( BytesList, BytesList ) [klabel(#HistoricalBatch), symbol]
 
      
@@ -375,6 +385,7 @@ Python reference:
      
 
 K semantics:
+
 
      syntax DepositData ::= #DepositData( BLSPubkey, Hash, Int, BLSSignature ) [klabel(#DepositData), symbol]
 
@@ -400,6 +411,7 @@ Python reference:
 
 K semantics:
 
+
      syntax CompactCommittee ::= #CompactCommittee( BytesList, IntList ) [klabel(#CompactCommittee), symbol]
 
      syntax BytesList ::= CompactCommittee "." "pubkeys"             [function]
@@ -424,6 +436,7 @@ Python reference:
      
 
 K semantics:
+
 
      syntax BeaconBlockHeader ::= #BeaconBlockHeader( Int, Hash, Hash, Hash, BLSSignature ) [klabel(#BeaconBlockHeader), symbol]
 
@@ -453,6 +466,7 @@ Python reference:
 
 K semantics:
 
+
    syntax ProposerSlashing ::= #ProposerSlashing( proposerIndex: ValidatorIndex,
                                                   header1: BeaconBlockHeader, header2: BeaconBlockHeader ) [klabel(#ProposerSlashing), symbol]
 
@@ -470,6 +484,7 @@ Python reference:
      
 
 K semantics:
+
 
      syntax AttesterSlashing ::= #AttesterSlashing( IndexedAttestation, IndexedAttestation ) [klabel(#AttesterSlashing), symbol]
 
@@ -489,6 +504,7 @@ Python reference:
      
 
 K semantics:
+
 
      syntax Attestation ::= #Attestation( BitList, AttestationData, BitList, BLSSignature ) [klabel(#Attestation), symbol]
 
@@ -515,6 +531,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Deposit ::= #Deposit( BytesList, DepositData ) [klabel(#Deposit), symbol]
 
      syntax BytesList ::= Deposit "." "proof"                           [function]
@@ -539,6 +556,7 @@ Python reference:
 
 K semantics:
 
+
      syntax VoluntaryExit ::= #VoluntaryExit( Int, ValidatorIndex, BLSSignature ) [klabel(#VoluntaryExit), symbol]
 
      
@@ -560,6 +578,7 @@ Python reference:
      
 
 K semantics:
+
 
      syntax Transfer ::= #Transfer( ValidatorIndex, ValidatorIndex, Int, Int, Int, BLSPubkey, BLSSignature ) [klabel(#Transfer), symbol]
 
@@ -592,6 +611,7 @@ Python reference:
        transfers: List[Transfer, MAX_TRANSFERS]
 
 K semantics:
+
 
      syntax BeaconBlockBody ::= #BeaconBlockBody(
                                    randaoReveal: BLSSignature,
@@ -644,6 +664,7 @@ Python reference:
        signature: BLSSignature
 
 K semantics:
+
 
      syntax BeaconBlock ::= #BeaconBlock(
                                blockSlot: Int,
@@ -714,6 +735,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Bytes ::= "as_bytes" "(" BitList ")"                         [function]
                     | "as_bytes" "(" bits: BitList "," asBytearray: List "," i: Int ")" [function]
      rule as_bytes(BL) => as_bytes(BL, initBuiltinListOfInt((len(BL) +Int 7) /Int 8), 0)
@@ -743,6 +765,7 @@ Python reference:
 
 K semantics:
 
+
      syntax Bytes ::= "to_bytes" "(" n: Int "," length: Int ")"          [function]
      rule to_bytes(N, LEN) => chrChar(N %Int 256) +Bytes to_bytes(N /Int 256, LEN -Int 1)
        requires LEN >Int 0
@@ -764,6 +787,7 @@ Python reference:
 
 
 K semantics:
+
 
      syntax Int ::= "bytes_to_int" "(" Bytes ")" [function]
      rule bytes_to_int(BYTES) => bytes_to_int(substrString(BYTES, 1, lengthString(BYTES))) *Int 256
@@ -811,10 +835,7 @@ K semantics:
      rule contains(_, .IntList) => false
 
      syntax IntList ::= intersection( IntList, IntList )                 [function, klabel(intersection)]
-                      | intersection( IntList, IntList, IntList /*result
-
-K semantics:
-
+                      | intersection( IntList, IntList, IntList /*result*/) [function, klabel(intersection3)]
      rule intersection(L1, L2) => intersection(L1, L2, .IntList)
      rule intersection(A L1 => L1, L2, _)
        requires notBool contains(A, L2)
@@ -824,17 +845,11 @@ K semantics:
 
      //returns the list with the first occurrence of the 2nd argument removed. Used in sorting.
      syntax IntList ::= listExcept( IntList , Int )                      [function, klabel(listExcept)]
-                      | listExcept( IntList , Int , IntList /*result
-
-K semantics:
-
+                      | listExcept( IntList , Int , IntList /*result*/ ) [function, klabel(listExcept3)]
      rule listExcept(IL, EXCEPT) => listExcept(IL, EXCEPT, .IntList)
      rule listExcept( (I:Int IL) => IL, EXCEPT, REZ => REZ +append I )
        requires I =/=Int EXCEPT
-     rule listExcept((EXCEPT IL) => .IntList /*terminate*/, EXCEPT, REZ => REZ +IntList IL /*dump the rest of the list without EXCEPT
-
-K semantics:
-
+     rule listExcept((EXCEPT IL) => .IntList /*terminate*/, EXCEPT, REZ => REZ +IntList IL /*dump the rest of the list without EXCEPT*/)
      rule listExcept(.IntList, _, REZ) => REZ
 
      syntax Int ::= sumMapIntValues( Map )                               [function]

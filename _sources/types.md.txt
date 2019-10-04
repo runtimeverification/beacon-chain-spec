@@ -101,6 +101,7 @@ class Fork(Container):
 
 K semantics:
 ```k
+
   syntax Fork ::= #Fork( Version, Version, Int ) [klabel(#Fork), symbol]
 
   syntax Version ::= Fork "." "previousVersion"                       [function]
@@ -125,6 +126,7 @@ class Checkpoint(Container):
 
 K semantics:
 ```k
+
   syntax Checkpoint ::= #Checkpoint( Int, Hash ) [klabel(#Checkpoint), symbol]
 
   syntax Int ::= Checkpoint "." "epoch"                               [function]
@@ -157,6 +159,7 @@ class Validator(Container):
 
 K semantics:
 ```k
+
   syntax Validator ::= #Validator( pubkey: BLSPubkey,
                                    withdrawalCredentials: Hash,
                                    effectiveBalance: Int,
@@ -203,6 +206,7 @@ class Crosslink(Container):
 
 K semantics:
 ```k
+
   syntax Crosslink ::= #Crosslink( Int, Hash, Int, Int, Hash ) [klabel(#Crosslink), symbol]
 
   syntax Int ::= Crosslink "." "shard"                                [function]
@@ -239,6 +243,7 @@ class AttestationData(Container):
 
 K semantics:
 ```k
+
   syntax AttestationData ::= #AttestationData( Hash, Checkpoint, Checkpoint, Crosslink ) [klabel(#AttestationData), symbol]
 
   syntax Hash ::= AttestationData "." "beaconBlockRoot"               [function]
@@ -265,6 +270,7 @@ class AttestationDataAndCustodyBit(Container):
 
 K semantics:
 ```k
+
   syntax AttestationDataAndCustodyBit ::= #AttestationDataAndCustodyBit( AttestationData, Bit ) [klabel(#AttestationDataAndCustodyBit), symbol]
 
   
@@ -284,6 +290,7 @@ class IndexedAttestation(Container):
 
 K semantics:
 ```k
+
   syntax IndexedAttestation ::= #IndexedAttestation( IntList, IntList, AttestationData, BLSSignature ) [klabel(#IndexedAttestation), symbol]
 
   syntax IntList ::= IndexedAttestation "." "custodyBit0Indices"      [function]
@@ -310,6 +317,7 @@ class PendingAttestation(Container):
 
 K semantics:
 ```k
+
   syntax PendingAttestation ::= #PendingAttestation( BitList, AttestationData, Int, ValidatorIndex ) [klabel(#PendingAttestation), symbol]
 
   syntax BitList ::= PendingAttestation "." "aggregationBits"         [function]
@@ -336,6 +344,7 @@ class Eth1Data(Container):
 
 K semantics:
 ```k
+
   syntax Eth1Data ::= #Eth1Data( Hash, Int, Hash ) [klabel(#Eth1Data), symbol]
 
   syntax Hash ::= Eth1Data "." "deposit_root" [function]
@@ -360,6 +369,7 @@ class HistoricalBatch(Container):
 
 K semantics:
 ```k
+
   syntax HistoricalBatch ::= #HistoricalBatch( BytesList, BytesList ) [klabel(#HistoricalBatch), symbol]
 
   
@@ -379,6 +389,7 @@ class DepositData(Container):
 
 K semantics:
 ```k
+
   syntax DepositData ::= #DepositData( BLSPubkey, Hash, Int, BLSSignature ) [klabel(#DepositData), symbol]
 
   syntax BLSPubkey  ::= DepositData "." "pubkey"                      [function]
@@ -403,6 +414,7 @@ class CompactCommittee(Container):
 
 K semantics:
 ```k
+
   syntax CompactCommittee ::= #CompactCommittee( BytesList, IntList ) [klabel(#CompactCommittee), symbol]
 
   syntax BytesList ::= CompactCommittee "." "pubkeys"             [function]
@@ -428,6 +440,7 @@ class BeaconBlockHeader(Container):
 
 K semantics:
 ```k
+
   syntax BeaconBlockHeader ::= #BeaconBlockHeader( Int, Hash, Hash, Hash, BLSSignature ) [klabel(#BeaconBlockHeader), symbol]
 
   //Cannot use "slot", conflicts with cell <slot>
@@ -456,6 +469,7 @@ class ProposerSlashing(Container):
 
 K semantics:
 ```k
+
 syntax ProposerSlashing ::= #ProposerSlashing( proposerIndex: ValidatorIndex,
                                                header1: BeaconBlockHeader, header2: BeaconBlockHeader ) [klabel(#ProposerSlashing), symbol]
 
@@ -474,6 +488,7 @@ class AttesterSlashing(Container):
 
 K semantics:
 ```k
+
   syntax AttesterSlashing ::= #AttesterSlashing( IndexedAttestation, IndexedAttestation ) [klabel(#AttesterSlashing), symbol]
 
   
@@ -493,6 +508,7 @@ class Attestation(Container):
 
 K semantics:
 ```k
+
   syntax Attestation ::= #Attestation( BitList, AttestationData, BitList, BLSSignature ) [klabel(#Attestation), symbol]
 
   syntax BitList ::= Attestation "." "aggregation_bits"               [function]
@@ -518,6 +534,7 @@ class Deposit(Container):
 
 K semantics:
 ```k
+
   syntax Deposit ::= #Deposit( BytesList, DepositData ) [klabel(#Deposit), symbol]
 
   syntax BytesList ::= Deposit "." "proof"                           [function]
@@ -542,6 +559,7 @@ class VoluntaryExit(Container):
 
 K semantics:
 ```k
+
   syntax VoluntaryExit ::= #VoluntaryExit( Int, ValidatorIndex, BLSSignature ) [klabel(#VoluntaryExit), symbol]
 
   
@@ -564,6 +582,7 @@ class Transfer(Container):
 
 K semantics:
 ```k
+
   syntax Transfer ::= #Transfer( ValidatorIndex, ValidatorIndex, Int, Int, Int, BLSPubkey, BLSSignature ) [klabel(#Transfer), symbol]
 
   // The return type of get_winning_crosslink_and_attesting_indices
@@ -596,6 +615,7 @@ class BeaconBlockBody(Container):
 
 K semantics:
 ```k
+
   syntax BeaconBlockBody ::= #BeaconBlockBody(
                                 randaoReveal: BLSSignature,
                                 eth1Data: Eth1Data,
@@ -648,6 +668,7 @@ class BeaconBlock(Container):
 
 K semantics:
 ```k
+
   syntax BeaconBlock ::= #BeaconBlock(
                             blockSlot: Int,
                             parentRoot: Hash,
@@ -717,6 +738,7 @@ def as_bytes(Bits):
 
 K semantics:
 ```k
+
   syntax Bytes ::= "as_bytes" "(" BitList ")"                         [function]
                  | "as_bytes" "(" bits: BitList "," asBytearray: List "," i: Int ")" [function]
   rule as_bytes(BL) => as_bytes(BL, initBuiltinListOfInt((len(BL) +Int 7) /Int 8), 0)
@@ -748,6 +770,7 @@ Equivalent of python n.to_bytes(len, 'little')
 
 K semantics:
 ```k
+
   syntax Bytes ::= "to_bytes" "(" n: Int "," length: Int ")"          [function]
   rule to_bytes(N, LEN) => chrChar(N %Int 256) +Bytes to_bytes(N /Int 256, LEN -Int 1)
     requires LEN >Int 0
@@ -770,6 +793,7 @@ def bytes_to_int(data: bytes) -> uint64:
 
 K semantics:
 ```k
+
   syntax Int ::= "bytes_to_int" "(" Bytes ")" [function]
   rule bytes_to_int(BYTES) => bytes_to_int(substrString(BYTES, 1, lengthString(BYTES))) *Int 256
                               +Int ordChar(substrString(BYTES, 0, 1))
@@ -816,11 +840,7 @@ K semantics:
   rule contains(_, .IntList) => false
 
   syntax IntList ::= intersection( IntList, IntList )                 [function, klabel(intersection)]
-                   | intersection( IntList, IntList, IntList /*result
-```
-
-K semantics:
-```k) [function, klabel(intersection3)]
+                   | intersection( IntList, IntList, IntList /*result*/) [function, klabel(intersection3)]
   rule intersection(L1, L2) => intersection(L1, L2, .IntList)
   rule intersection(A L1 => L1, L2, _)
     requires notBool contains(A, L2)
@@ -830,19 +850,11 @@ K semantics:
 
   //returns the list with the first occurrence of the 2nd argument removed. Used in sorting.
   syntax IntList ::= listExcept( IntList , Int )                      [function, klabel(listExcept)]
-                   | listExcept( IntList , Int , IntList /*result
-```
-
-K semantics:
-```k) [function, klabel(listExcept3)]
+                   | listExcept( IntList , Int , IntList /*result*/ ) [function, klabel(listExcept3)]
   rule listExcept(IL, EXCEPT) => listExcept(IL, EXCEPT, .IntList)
   rule listExcept( (I:Int IL) => IL, EXCEPT, REZ => REZ +append I )
     requires I =/=Int EXCEPT
-  rule listExcept((EXCEPT IL) => .IntList /*terminate*/, EXCEPT, REZ => REZ +IntList IL /*dump the rest of the list without EXCEPT
-```
-
-K semantics:
-```k)
+  rule listExcept((EXCEPT IL) => .IntList /*terminate*/, EXCEPT, REZ => REZ +IntList IL /*dump the rest of the list without EXCEPT*/)
   rule listExcept(.IntList, _, REZ) => REZ
 
   syntax Int ::= sumMapIntValues( Map )                               [function]

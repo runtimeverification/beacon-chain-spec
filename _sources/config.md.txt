@@ -53,6 +53,7 @@ class BeaconState(Container):
 
 K semantics:
 ```k
+
   configuration
     <beacon-chain>
       <k> $PGM:KItem </k>

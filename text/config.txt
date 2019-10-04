@@ -52,6 +52,7 @@ Python reference:
 
 K semantics:
 
+
      configuration
        <beacon-chain>
          <k> $PGM:KItem </k>

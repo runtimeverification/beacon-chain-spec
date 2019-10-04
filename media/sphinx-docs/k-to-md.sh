@@ -16,7 +16,7 @@ extract_python() {
         s/\/\*\s*\n\s*def \([a-zA-Z_]*\)(\(.*\)/\n```\n\n#### `\1`\n\nPython reference:\n```python\ndef \1(\2/g
   }' $1
 
-  # Matches multi-line comment beginning with def ...(
+  # Matches multi-line comment beginning with class ...(
   sed -i 's/^\/\*\s*class \([a-zA-Z_]*\)(\(.*\)/\n```\n\n#### `\1`\n\nPython reference:\n```python\nclass \1(\2/g' $FILE
   sed -i '/\/\*\s*$/{
         N
@@ -27,7 +27,7 @@ extract_python() {
   sed -i 's/^\s*\/\*\(.*\)/\n```\n\nPython reference:\n```python\n\1/g' $1
 
   # End multi-line comment by switching to K mode
-  sed -i 's/^\(.*\)\*\/\s*/\1\n```\n\nK semantics:\n```k\n/g' $1
+  sed -i 's/^\(.*\)\*\/\s*$/\1\n```\n\nK semantics:\n```k\n/g' $1
 
 }
 

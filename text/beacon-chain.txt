@@ -1018,7 +1018,7 @@ K semantics:
                                                               getValidator(I).pubkey,
                                                               computeCompactValidatorIndex(
                                                                 I,
-                                                                #if getValidator(I).slashed #then 1 #else 0 #fi,
+                                                                toInt(getValidator(I).slashed),
                                                                 getValidator(I).effectiveBalance /Int EFFECTIVE_BALANCE_INCREMENT))))
 
      rule computeCompactCommitteesIndLoop(_, .IntList, CommitteeList) => CommitteeList

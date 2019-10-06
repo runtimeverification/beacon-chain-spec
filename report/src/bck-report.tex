@@ -74,6 +74,19 @@
 %  \texttt{acmart.pdf} document}
 
 %%%
+\author{Musab A. Alturki}
+%\author{ }
+%\authornote{Dr.~Trovato insisted his name be first.}
+\orcid{0001-7957-1081}
+\affiliation{%
+  \institution{Runtime Verification Inc.}
+%  \streetaddress{P.O. Box 840}
+%  \city{Dhahran, Saudi Arabia}
+%  \state{Ohio}
+}
+\email{musab.alturki@runtimeverification.com}
+
+%%%
 \author{Denis Bogdanas}
 %\author{ }
 %\authornote{Dr.~Trovato insisted his name be first.}
@@ -84,18 +97,6 @@
 %  \state{Ohio}
 }
 \email{denis.bogdanas@runtimeverification.com}
-
-%%%
-\author{Daejun Park}
-%\author{ }
-%\authornote{Dr.~Trovato insisted his name be first.}
-\affiliation{%
-  \institution{Runtime Verification Inc.}
-%  \streetaddress{P.O. Box 840}
-%  \city{Dhahran, Saudi Arabia}
-%  \state{Ohio}
-}
-\email{daejun.park@runtimeverification.com}
 
 %%%
 \author{Chris Hathhorn}
@@ -109,17 +110,17 @@
 }
 \email{chris.hathhorn@runtimeverification.com}
 
-\author{Musab A. Alturki}
+%%%
+\author{Daejun Park}
 %\author{ }
 %\authornote{Dr.~Trovato insisted his name be first.}
-\orcid{0001-7957-1081}
 \affiliation{%
   \institution{Runtime Verification Inc.}
 %  \streetaddress{P.O. Box 840}
 %  \city{Dhahran, Saudi Arabia}
 %  \state{Ohio}
 }
-\email{musab.alturki@runtimeverification.com}
+\email{daejun.park@runtimeverification.com}
 
 \author{Grigore Ro\c su}
 %\author{ }
@@ -148,7 +149,7 @@
 \begin{abstract}
 The beacon chain is the main proof-of-stake block chain in Ethereum 2.0 maintaining information
 about validators, attestations, crosslinks, and other components of the protocol. The
-structure and operation of the beacon chain is defined by its reference implementation in Python
+structure and operation of the beacon chain are defined by its reference implementation in Python
 developed by the Ethereum Foundation. This report describes an executable formal model in the K
 framework of Ethereum's Beacon Chain Phase 0 specification. We highlight the structure of the model,
 explain how the beacon chain state transition and the supporting functions are specified and then

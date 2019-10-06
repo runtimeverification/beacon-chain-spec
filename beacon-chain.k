@@ -689,7 +689,7 @@ def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
                                                            getValidator(I).pubkey,
                                                            computeCompactValidatorIndex(
                                                              I,
-                                                             #if getValidator(I).slashed #then 1 #else 0 #fi,
+                                                             toInt(getValidator(I).slashed),
                                                              getValidator(I).effectiveBalance /Int EFFECTIVE_BALANCE_INCREMENT))))
 
   rule computeCompactCommitteesIndLoop(_, .IntList, CommitteeList) => CommitteeList

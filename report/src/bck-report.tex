@@ -862,6 +862,11 @@ between the then and else cases. However, K beacon chain is more fine-grained th
 implementation in other aspects, as we show below. Next we enumerate useful findings resulting from
 K's code coverage analysis tool.
 
+To fix this granularity issue, we implemented a custom version of Beacon Chain spec that has 
+a separate version of \verb+#if+ for every invocation, strictly for the purpose of coverage.
+This is equivalent to context-sensitive coverage for \verb+#if+.
+
+Next we present interesting findings and our test contributions.
 First, we identified a line of code that is only covered by tests with \verb+bls_setting+ enabled
 (while not necessarily related o BLS verification). This has been reported to the beacon chain
 developers and they confirmed that any non-BLS functionality must be covered by non-BLS tests, and
@@ -874,10 +879,14 @@ iteration. Normally coverage tools do not distinguish the numbers of iterations 
 this particular case, it would be useful to have tests that exhibit behaviors taking multiple
 iterations of the loop, at least to demonstrate that it is possible.
 
-Furthermore, and most interestingly, we identified twelve other rules not covered by tests, in
-addition to what Python's coverage tool reports, on valid execution paths. All of these rules relate
-to Python's set/list comprehension statements, which is perhaps the most elegant language feature
-specific to Python. A list comprehension construct is very semantically rich involving quite a lot
+Furthermore, and most interestingly, we identified four
+other rules not covered by tests, in
+addition to what Python's coverage tool reports, on valid execution paths.
+One was detected without context-sensitive \verb+#if+, and three others required context-sensitivity.
+One detection was implementing Python's tertiary conditional expression.
+Three others relate to Python's set/list comprehension statement,
+which is perhaps the most elegant language feature specific to Python.
+A list comprehension construct is very semantically rich involving quite a lot
 of logic, including enumerating elements of a list, filtering them and constructing a new list out
 of the results. Yet it is treated as just one line of code by Python coverage tool. As a result, as
 long as the comprehension statement is reached, Python considers it completely covered, without
@@ -920,15 +929,9 @@ list comprehension returns an empty result.
 
 For example, for the code above, the second rule for \verb+filterOutNonMatchingTargets+ is not
 covered, meaning that filtering is never performed. All other eleven detections for loop coverage
-are on execution paths of \verb+process_rewards_and_penalties+. New tests for this function are
-being developed by the beacon chain developers at the time of this writing and we plan to re-run
-coverage when they are added to the test suite, to see if there are still missing cases remaining.
-For the other two detections described above, we contributed tests that cover them to beacon chain
-project.
+are on execution paths of \verb+process_rewards_and_penalties+.
 
-We also plan to implement an ad-hoc context sensitive code coverage for \verb+#if+ construct, to
-eliminate granularity issue we described above. Initial experiments show that this leads to more
-functionality not being covered.
+We contributed to Beacon Chain 5 new tests, for all the rules missing coverage that we described above.
 
 
 

@@ -30,7 +30,7 @@ pipeline {
     stage('Test') {
       steps {
         sh '''
-          make test -j8
+          make test-haskell -j8
         '''
       }
     }

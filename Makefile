@@ -196,8 +196,8 @@ TEST_CONCRETE_BACKEND:=llvm
 
 test: test-python-config test-processing test-ssz
 
-test-python-config: buildConfig.py $(llvm_kompiled)
-	python3 $<
+test-python-config: $(llvm_kompiled)
+	python3 buildConfig.py -b llvm
 
 operations_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/*/*/*/pre.yaml)
 epoch_processing_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/*/*/*/pre.yaml)
@@ -214,14 +214,14 @@ ssz_tests = $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*
 test-ssz: $(ssz_tests:=.test)
 
 %.yaml.test: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse --test $*.yaml
+	python3 runTest.py parse -b llvm --test $*.yaml
 
 %.yaml.test-allow-diff: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse --test $*.yaml --allow-diff
+	python3 runTest.py parse -b llvm --test $*.yaml --allow-diff
 
 # Same as above, but invokes krun with --debug and does not halt when diff vs expected state is detected
 %.yaml.test-debug: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse --test $*.yaml --debug --allow-diff
+	python3 runTest.py parse -b llvm --test $*.yaml --debug --allow-diff
 
 # Sphinx HTML Documentation
 

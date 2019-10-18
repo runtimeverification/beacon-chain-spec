@@ -3,6 +3,7 @@
 import json
 import sys
 import tempfile
+import argparse
 
 from functools import reduce
 
@@ -65,32 +66,37 @@ def labelWithKeyPairs(label, keyConverters):
         return KApply(label, args)
     return _labelWithKeyPairs
 
-BEACON_CHAIN_definition_llvm = pyk.readKastTerm('.build/defn/llvm/beacon-chain-kompiled/compiled.json')
-BEACON_CHAIN_symbols = pyk.buildSymbolTable(BEACON_CHAIN_definition_llvm)
+def beacon_chain_symbols(backend):
+    BEACON_CHAIN_definition = pyk.readKastTerm('.build/defn/%s/beacon-chain-kompiled/compiled.json' % backend)
+    return pyk.buildSymbolTable(BEACON_CHAIN_definition)
 
-def kast(inputFile, *kastArgs):
-    return pyk.kast('.build/defn/llvm', inputFile, kastArgs = list(kastArgs), kRelease = 'deps/k/k-distribution/target/release/k')
+def kast(inputFile, backend, *kastArgs):
+    return pyk.kast('.build/defn/%s' % backend, inputFile, kastArgs = list(kastArgs), kRelease = 'deps/k/k-distribution/target/release/k')
 
-def krun(inputFile, *krunArgs):
-    return pyk.krun('.build/defn/llvm', inputFile, krunArgs = list(krunArgs), kRelease = 'deps/k/k-distribution/target/release/k')
+def krun(inputFile, backend, *krunArgs):
+    return pyk.krun('.build/defn/%s' % backend, inputFile, krunArgs = list(krunArgs), kRelease = 'deps/k/k-distribution/target/release/k')
 
-def krunJson(inputJson, *krunArgs):
-    return pyk.krunJSON('.build/defn/llvm', inputJson, krunArgs = list(krunArgs), kRelease = 'deps/k/k-distribution/target/release/k')
+def krunJson(inputJson, backend, *krunArgs):
+    return pyk.krunJSON('.build/defn/%s' % backend, inputJson, krunArgs = list(krunArgs), kRelease = 'deps/k/k-distribution/target/release/k')
 
-def get_init_config():
+def get_init_config(backend):
     init_term = { 'format': 'KAST', 'version': 1, 'term': KConstant('noop') }
-    (_, simple_config, _) = krunJson(init_term)
+    (_, simple_config, _) = krunJson(init_term, backend)
     return pyk.splitConfigFrom(simple_config)
 
-(generated_top_config, init_subst) = get_init_config()
-initial_configuration = substitute(generated_top_config, init_subst)
 
 if __name__ == '__main__':
+    arguments = argparse.ArgumentParser(prog = sys.argv[0])
+    arguments.add_argument('-b', '--backend')
+    args = arguments.parse_args()
+
+    (generated_top_config, init_subst) = get_init_config(args.backend)
+    initial_configuration = substitute(generated_top_config, init_subst)
     kast_json = { 'format': 'KAST', 'version': 1, 'term': initial_configuration }
     with tempfile.NamedTemporaryFile(mode = 'w') as tempf:
         json.dump(kast_json, tempf)
         tempf.flush()
-        (returnCode, _, _) = kast(tempf.name, '--input', 'json', '--output', 'pretty')
+        (returnCode, _, _) = kast(tempf.name, args.backend, '--input', 'json', '--output', 'pretty')
         if returnCode != 0:
             printerr('[FATAL] kast returned non-zero exit code reading/printing the initial configuration')
             sys.exit(returnCode)

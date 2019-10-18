@@ -517,7 +517,7 @@ def main():
         kastPrinted = kastPrinted.strip()
         kast_diff(kastPrinted, fastPrinted, 'kastPrinted', 'fastPrinted')
 
-        krun_args = [pre_json_file.name, 'llvm', '--term', '--parser', 'cat']
+        krun_args = [pre_json_file.name, args.backend, '--term', '--parser', 'cat']
         if args.debug:
             krun_args.append('--debug')
         (returnCode, krunPrinted, _) = krun(*krun_args)

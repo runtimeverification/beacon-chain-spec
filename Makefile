@@ -192,36 +192,55 @@ test-split:
 	    && git lfs fetch       \
 	    && git lfs checkout
 
-TEST_CONCRETE_BACKEND:=llvm
-
-test: test-python-config test-processing test-ssz
-
-test-python-config: buildConfig.py $(llvm_kompiled)
-	python3 $<
-
 operations_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operations/*/*/*/pre.yaml)
 epoch_processing_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/*/*/*/pre.yaml)
 sanity_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/sanity/*/*/*/pre.yaml)
 genesis_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/genesis/initialization/*/*/state.yaml) \
 			   $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/genesis/validity/*/*/genesis.yaml)
 
+ssz_tests = $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*/*/case_0/value.yaml)
 all_process_tests:= $(operations_tests) $(epoch_processing_tests) $(sanity_tests) $(genesis_tests)
+all_tests = $(all_process_tests) $(ssz_tests)
+
+# Testing on LLVM Backend
+
+test: test-llvm
+
+test-llvm: test-python-config-llvm test-all-llvm
+
+test-python-config-llvm: $(llvm_kompiled)
+	python3 buildConfig.py -b llvm
 
 test-processing: $(all_process_tests:=.test)
 
-ssz_tests = $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*/*/case_0/value.yaml)
-
 test-ssz: $(ssz_tests:=.test)
 
+test-all-llvm: $(all_tests:=.test)
+
 %.yaml.test: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse --test $*.yaml
+	python3 runTest.py parse -b llvm --test $*.yaml
 
 %.yaml.test-allow-diff: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse --test $*.yaml --allow-diff
+	python3 runTest.py parse -b llvm --test $*.yaml --allow-diff
 
 # Same as above, but invokes krun with --debug and does not halt when diff vs expected state is detected
 %.yaml.test-debug: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse --test $*.yaml --debug --allow-diff
+	python3 runTest.py parse -b llvm --test $*.yaml --debug --allow-diff
+
+# Testing on Haskell Backend
+
+test-haskell: test-python-config-haskell test-all-haskell
+
+test-python-config-haskell: $(haskell_kompiled)
+	python3 buildConfig.py -b haskell
+
+test-all-haskell: $(all_tests:=.test-haskell)
+
+%.yaml.test-haskell: %.yaml $(haskell_kompiled)
+	python3 runTest.py parse -b haskell --test $*.yaml
+
+%.yaml.test-haskell-debug: %.yaml $(haskell_kompiled)
+	python3 runTest.py parse -b haskell --test $*.yaml --debug --allow-diff
 
 # Sphinx HTML Documentation
 

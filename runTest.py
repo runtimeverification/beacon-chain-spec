@@ -481,12 +481,15 @@ def main():
     arguments.add_argument('--test'         , type = argparse.FileType('r'), default = '-')
     arguments.add_argument('--allow-diff'   , dest='allow_diff', action='store_true')
     arguments.add_argument('-d', '--debug'  , dest='debug', action='store_true')
+    arguments.add_argument('-b', '--backend')
 
     args = arguments.parse_args()
 
     test_dir = Path(args.test.name).parent
     test_title = str(test_dir)
     _notif(test_title)
+
+    (generated_top_config, init_subst) = get_init_config(args.backend)
 
     init_config_subst = copy.deepcopy(init_subst)
     all_keys = list(init_subst.keys())
@@ -501,7 +504,7 @@ def main():
         json.dump(kast_json, pre_json_file)
         pre_json_file.flush()
 
-        fastPrinted = prettyPrintKast(init_config['args'][0], BEACON_CHAIN_symbols).strip()
+        fastPrinted = prettyPrintKast(init_config['args'][0], beacon_chain_symbols(args.backend)).strip()
         _notif('kast content')
         print(fastPrinted, file = sys.stderr, flush = True)
 
@@ -514,7 +517,7 @@ def main():
         kastPrinted = kastPrinted.strip()
         kast_diff(kastPrinted, fastPrinted, 'kastPrinted', 'fastPrinted')
 
-        krun_args = [pre_json_file.name, '--term', '--parser', 'cat']
+        krun_args = [pre_json_file.name, args.backend, '--term', '--parser', 'cat']
         if args.debug:
             krun_args.append('--debug')
         (returnCode, krunPrinted, _) = krun(*krun_args)
@@ -546,7 +549,7 @@ def main():
 
             # (returnCode, postKastPrinted, _) = kast(post_json_file.name, '--input', 'json', '--output', 'pretty', '--debug')
             # Using krun to get same string encoding as for main krun
-            (returnCode, postKastPrinted, _) = krun(post_json_file.name, '--term', '--parser', 'cat')
+            (returnCode, postKastPrinted, _) = krun(post_json_file.name, args.backend, '--term', '--parser', 'cat')
             postKastPrinted = postKastPrinted.strip()
             if returnCode != 0:
                 _fatal('kast returned non-zero exit code: ' + test_title, code = returnCode)

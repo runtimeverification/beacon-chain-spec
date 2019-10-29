@@ -569,9 +569,9 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
        => #fun(CommitteesPerSlot
        => #fun(OFFSET
        => #fun(SHARD
-       => #fun(FirstCommittee
+       => #fun(FirstCommittee:IntList
        => #fun(MaxRandomByte
-       => #fun(SEED
+       => #fun(SEED:Hash
        => #fun(I
        => getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD,
                                      FirstCommittee, MaxRandomByte, SEED, I)
@@ -597,8 +597,8 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
   syntax ValidatorIndex ::= getBeaconProposerIndexLoop(
                               Int, Int, Int, Int, IntList, Int, Hash, Int) [function]
   rule getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I)
-       => #fun(CandidateIndex
-       => #fun(RandomByte
+       => #fun(CandidateIndex:Int
+       => #fun(RandomByte:Int
        => #fun(EffectiveBalance
        => getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
                                         CandidateIndex, RandomByte, EffectiveBalance )
@@ -767,7 +767,7 @@ def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> Ind
 */
   syntax IndexedAttestation ::= "get_indexed_attestation" "(" Attestation ")" [function]
   rule get_indexed_attestation(#Attestation(AggregationBits, DATA, CustodyBits, SIG)) =>
-    #fun(AttestingIndices =>
+    #fun(AttestingIndices:IntList =>
     #fun(CustodyBit1Indices =>
     #fun(CustodyBit0Indices => #IndexedAttestation(
                                   sortIntList(CustodyBit0Indices),
@@ -1352,7 +1352,7 @@ def get_winning_crosslink_and_attesting_indices(state: BeaconState,
   syntax Crosslink ::= maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendingAttestationList,
                                                     result: CrosslinkList, maxBalance: Int, maxRoot: Hash) [function]
   rule maxCrosslinkOnBalanceAndRoot( CROSSLINK CrosslinkList, PendAttList, RES, MaxBalance, MaxRoot )
-        => #fun(BALANCE
+        => #fun(BALANCE:Int
         => #fun(ROOT
         => maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendAttList,
                                         #if        BALANCE >Int MaxBalance
@@ -1564,8 +1564,8 @@ def process_crosslinks(state: BeaconState) -> None:
        <current-crosslinks>
          CROSSLINKS
          => #fun(SHARD
-         => #fun(CrosslinkCommittee
-         => #fun(WinCrossAndIndices
+         => #fun(CrosslinkCommittee:IntList
+         => #fun(WinCrossAndIndices:CrosslinkIntListPair
          => #if ( 3 *Int get_total_balance(WinCrossAndIndices.intList) >=Int 2 *Int get_total_balance(CrosslinkCommittee) )
               #then CROSSLINKS[SHARD <- WinCrossAndIndices.crosslink]
               #else CROSSLINKS
@@ -1873,9 +1873,9 @@ def get_crosslink_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence[G
          Offset => Offset +Int 1, N, EP,
          RewardsAndPenalties
                 => #fun(SHARD
-                => #fun(CrosslinkCommittee
+                => #fun(CrosslinkCommittee:IntList
                 => #fun(AttestingIndices
-                => #fun(AttestingBalance
+                => #fun(AttestingBalance:Int
                 => #fun(CommitteeBalance
                 => getCrosslinkDeltasIndexLoop(CrosslinkCommittee, AttestingIndices, AttestingBalance,
                                                CommitteeBalance, RewardsAndPenalties)

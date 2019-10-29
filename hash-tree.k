@@ -160,7 +160,7 @@ def chunkify(bytez):
 
   rule merkleize_chunks(CHUNKS, LIMIT)
        => #fun(COUNT
-       => #fun(DEPTH
+       => #fun(DEPTH:Int
        => #fun(MaxDepth
        => merkleizeChunksLoop1(COUNT, DEPTH, MaxDepth, CHUNKS, 0, .Map)
           )(bit_length(LIMIT -Int 1))

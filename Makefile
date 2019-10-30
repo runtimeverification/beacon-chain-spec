@@ -181,6 +181,7 @@ $(haskell_kompiled): $(haskell_files)
 	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend haskell              \
 	                 --syntax-module $(SYNTAX_MODULE) $(haskell_dir)/$(MAIN_DEFN_FILE).k \
 	                 --directory $(haskell_dir) -I $(haskell_dir)                        \
+	                 --hook-namespaces KRYPTO                                            \
 	                 --emit-json
 
 # Testing

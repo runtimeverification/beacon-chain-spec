@@ -6,7 +6,7 @@ module CONSTANTS
   syntax Int ::= "FAR_FUTURE_EPOCH"
   rule FAR_FUTURE_EPOCH => 2 ^Int 64 -Int 1                   [macro]
   syntax Int ::= "BASE_REWARDS_PER_EPOCH"
-  rule BASE_REWARDS_PER_EPOCH => 5                            [macro]
+  rule BASE_REWARDS_PER_EPOCH => 4                            [macro]
   syntax Int ::= "DEPOSIT_CONTRACT_TREE_DEPTH"
   rule DEPOSIT_CONTRACT_TREE_DEPTH => 2 ^Int 5                [macro]
   syntax Int ::= "SECONDS_PER_DAY"
@@ -18,12 +18,12 @@ module CONSTANTS
 
   // Configuration -- Misc
   //====================================================
-  syntax Int ::= "SHARD_COUNT"
-  rule SHARD_COUNT => 2 ^Int 10                               [macro]
+  syntax Int ::= "MAX_COMMITTEES_PER_SLOT"
+  rule MAX_COMMITTEES_PER_SLOT => 2 ^Int 6                    [macro]
   syntax Int ::= "TARGET_COMMITTEE_SIZE"
   rule TARGET_COMMITTEE_SIZE => 2 ^Int 7                      [macro]
   syntax Int ::= "MAX_VALIDATORS_PER_COMMITTEE"
-  rule MAX_VALIDATORS_PER_COMMITTEE => 2 ^Int 12              [macro]
+  rule MAX_VALIDATORS_PER_COMMITTEE => 2 ^Int 11              [macro]
   syntax Int ::= "MIN_PER_EPOCH_CHURN_LIMIT"
   rule MIN_PER_EPOCH_CHURN_LIMIT => 2 ^Int 2                  [macro]
   syntax Int ::= "CHURN_LIMIT_QUOTIENT"
@@ -58,15 +58,15 @@ module CONSTANTS
   // Configuration -- Time parameters
   //====================================================
   syntax Int ::= "SECONDS_PER_SLOT"
-  rule SECONDS_PER_SLOT => 6                                  [macro]
+  rule SECONDS_PER_SLOT => 12                                 [macro]
   syntax Int ::= "MIN_ATTESTATION_INCLUSION_DELAY"
   rule MIN_ATTESTATION_INCLUSION_DELAY => 2 ^Int 0            [macro]
   syntax Int ::= "SLOTS_PER_EPOCH"
-  rule SLOTS_PER_EPOCH => 2 ^Int 6                            [macro]
+  rule SLOTS_PER_EPOCH => 2 ^Int 5                            [macro]
   syntax Int ::= "MIN_SEED_LOOKAHEAD"
   rule MIN_SEED_LOOKAHEAD => 2 ^Int 0                         [macro]
-  syntax Int ::= "ACTIVATION_EXIT_DELAY"
-  rule ACTIVATION_EXIT_DELAY => 2 ^Int 2                      [macro]
+  syntax Int ::= "MAX_SEED_LOOKAHEAD"
+  rule MAX_SEED_LOOKAHEAD => 2 ^Int 2                         [macro]
   syntax Int ::= "SLOTS_PER_ETH1_VOTING_PERIOD"
   rule SLOTS_PER_ETH1_VOTING_PERIOD => 2 ^Int 10              [macro]
   syntax Int ::= "SLOTS_PER_HISTORICAL_ROOT"
@@ -79,6 +79,8 @@ module CONSTANTS
   rule MAX_EPOCHS_PER_CROSSLINK => 2 ^Int 6                   [macro]
   syntax Int ::= "MIN_EPOCHS_TO_INACTIVITY_PENALTY"
   rule MIN_EPOCHS_TO_INACTIVITY_PENALTY => 2 ^Int 2           [macro]
+  syntax Int ::= "EARLY_DERIVED_SECRET_PENALTY_MAX_FUTURE_EPOCHS"
+  rule EARLY_DERIVED_SECRET_PENALTY_MAX_FUTURE_EPOCHS => 2 ^Int 14 [macro]
 
   // Configuration -- State list lengths
   //====================================================
@@ -116,22 +118,26 @@ module CONSTANTS
   rule MAX_DEPOSITS => 2 ^Int 4                               [macro]
   syntax Int ::= "MAX_VOLUNTARY_EXITS"
   rule MAX_VOLUNTARY_EXITS => 2 ^Int 4                        [macro]
-  syntax Int ::= "MAX_TRANSFERS"
-  rule MAX_TRANSFERS => 0                                     [macro]
 
   // Configuration -- Signature domain types
   //====================================================
   syntax Int ::= "DOMAIN_BEACON_PROPOSER"
   rule DOMAIN_BEACON_PROPOSER => 0                            [macro]
+  syntax Int ::= "DOMAIN_BEACON_ATTESTER"
+  rule DOMAIN_BEACON_ATTESTER => 1                            [macro]
   syntax Int ::= "DOMAIN_RANDAO"
-  rule DOMAIN_RANDAO => 1                                     [macro]
-  syntax Int ::= "DOMAIN_ATTESTATION"
-  rule DOMAIN_ATTESTATION => 2                                [macro]
+  rule DOMAIN_RANDAO => 2                                     [macro]
   syntax Int ::= "DOMAIN_DEPOSIT"
   rule DOMAIN_DEPOSIT => 3                                    [macro]
   syntax Int ::= "DOMAIN_VOLUNTARY_EXIT"
   rule DOMAIN_VOLUNTARY_EXIT => 4                             [macro]
-  syntax Int ::= "DOMAIN_TRANSFER"
-  rule DOMAIN_TRANSFER => 5                                   [macro]
+  // syntax Int ::= "DOMAIN_TRANSFER"
+  // rule DOMAIN_TRANSFER => 5                                   [macro]
+  // syntax Int ::= "DOMAIN_CUSTODY_BIT_CHALLENGE"
+  // rule DOMAIN_CUSTODY_BIT_CHALLENGE => 6                      [macro]
+  // syntax Int ::= "DOMAIN_SHARD_PROPOSER"
+  // rule DOMAIN_SHARD_PROPOSER => 8                             [macro]
+  // syntax Int ::= "DOMAIN_SHARD_ATTESTER"
+  // rule DOMAIN_SHARD_PROPOSER => 81                            [macro]
 
 endmodule

@@ -27,10 +27,17 @@ pipeline {
         '''
       }
     }
-    stage('Test') {
+    stage('Test - LLVM') {
       steps {
         sh '''
-          make test -j8
+          make test-llvm -j8
+        '''
+      }
+    }
+    stage('Test - Haskell') {
+      steps {
+        sh '''
+          make test-haskell -j8
         '''
       }
     }

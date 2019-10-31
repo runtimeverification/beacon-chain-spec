@@ -278,6 +278,47 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
       => bytes_to_int(substrString({hash({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1))}:>String, 0, 8)) %Int Count
 
 /*
+def compute_proposer_index(state: BeaconState, indices: Sequence[ValidatorIndex], seed: Hash) -> ValidatorIndex:
+    """
+    Return from ``indices`` a random index sampled by effective balance.
+    """
+    assert len(indices) > 0
+    MAX_RANDOM_BYTE = 2**8 - 1
+    i = 0
+    while True:
+        candidate_index = indices[compute_shuffled_index(ValidatorIndex(i % len(indices)), len(indices), seed)]
+        random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
+        effective_balance = state.validators[candidate_index].effective_balance
+        if effective_balance * MAX_RANDOM_BYTE >= MAX_EFFECTIVE_BALANCE * random_byte:
+            return ValidatorIndex(candidate_index)
+        i += 1
+*/
+  syntax ValidatorIndex ::= "compute_proposer_index" "(" IntList "," Hash ")" [function]
+  rule compute_proposer_index(INDICES, SEED) => computeProposerIndexLoop(INDICES, SEED, 0)
+  requires INDICES =/= .IntList
+
+  syntax ValidatorIndex ::= computeProposerIndexLoop(IntList, Hash, Int, Int, Int, Int) [function]
+  rule computeProposerIndexLoop(INDICES, SEED, I)
+         => #fun(CandidateIndex
+         => #fun(RandomByte
+         => #fun(EffectiveBalance
+       computeProposerIndexLoopAux(INDICES, SEED, I, EffectiveBalance, RandomByte, CandidateIndex)
+            )(getValidator(CandidateIndex).effectiveBalance)
+            //random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
+            )(getByte( hashConcat(SEED, to_bytes(I /Int 32, 8) ), I %Int 32))
+            )INDICES[compute_shuffled_index(I modInt len(INDICES), len(INDICES), SEED)]
+
+  rule computeProposerIndexLoopAux(INDICES, SEED, I, EffectiveBalance, RandomByte, CandidateIndex) =>
+       computeProposerIndexLoop(INDICES, SEED, I +Int 1)
+    requires EffectiveBalance *Int 2 ^Int 8 -Int 1  <Int MAX_EFFECTIVE_BALANCE *Int RandomByte
+                              //MAX_RANDOM_BYTE
+
+  rule computeProposerIndexLoopAux(INDICES, SEED, I, EffectiveBalance, RandomByte, CandidateIndex) =>
+       CandidateIndex
+    requires EffectiveBalance *Int 2 ^Int 8 -Int 1 >=Int MAX_EFFECTIVE_BALANCE *Int RandomByte
+                              //MAX_RANDOM_BYTE
+
+/*
 def compute_committee(indices: Sequence[ValidatorIndex],
                       seed: Hash,
                       index: uint64,
@@ -548,77 +589,21 @@ def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
     Return the beacon proposer index at the current slot.
     """
     epoch = get_current_epoch(state)
-    committees_per_slot = get_committee_count(state, epoch) // SLOTS_PER_EPOCH
-    offset = committees_per_slot * (state.slot % SLOTS_PER_EPOCH)
-    shard = Shard((get_start_shard(state, epoch) + offset) % SHARD_COUNT)
-    first_committee = get_crosslink_committee(state, epoch, shard)
-    MAX_RANDOM_BYTE = 2**8 - 1
-    seed = get_seed(state, epoch)
-    i = 0
-    while True:
-        candidate_index = first_committee[(epoch + i) % len(first_committee)]
-        random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
-        effective_balance = state.validators[candidate_index].effective_balance
-        if effective_balance * MAX_RANDOM_BYTE >= MAX_EFFECTIVE_BALANCE * random_byte:
-            return ValidatorIndex(candidate_index)
-        i += 1
+    seed = hash(get_seed(state, epoch, DOMAIN_BEACON_PROPOSER) + int_to_bytes(state.slot, length=8))
+    indices = get_active_validator_indices(state, epoch)
+    return compute_proposer_index(state, indices, seed)
 */
   syntax ValidatorIndex ::= "get_beacon_proposer_index" "(" ")" [function]
   rule [[ get_beacon_proposer_index()
        => #fun(EPOCH
-       => #fun(CommitteesPerSlot
-       => #fun(OFFSET
-       => #fun(SHARD
-       => #fun(FirstCommittee
-       => #fun(MaxRandomByte
        => #fun(SEED
-       => #fun(I
-       => getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD,
-                                     FirstCommittee, MaxRandomByte, SEED, I)
-          )(0)
-          )(get_seed(EPOCH))
-          )(2 ^Int 8 -Int 1)
-          )(get_crosslink_committee(EPOCH, SHARD))
-          )((get_start_shard(EPOCH) +Int OFFSET) %Int SHARD_COUNT)
-          )(CommitteesPerSlot *Int (SLOT %Int SLOTS_PER_EPOCH))
-          )(get_committee_count(EPOCH) /Int SLOTS_PER_EPOCH)
+       => #fun(INDICES
+       => compute_proposer_index(INDICES, SEED)
+          )(get_active_validator_indices(EPOCH))
+          )(hashConcat(get_seed(EPOCH, DOMAIN_BEACON_PROPOSER), to_bytes(SLOT, 8)))
           )(get_current_epoch())
        ]]
-    <slot> SLOT </slot>
-
-/*  i = 0
-    while True:
-        candidate_index = first_committee[(epoch + i) % len(first_committee)]
-        random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
-        effective_balance = state.validators[candidate_index].effective_balance
-        if effective_balance * MAX_RANDOM_BYTE >= MAX_EFFECTIVE_BALANCE * random_byte:
-            return ValidatorIndex(candidate_index)
-        i += 1  */
-  syntax ValidatorIndex ::= getBeaconProposerIndexLoop(
-                              Int, Int, Int, Int, IntList, Int, Hash, Int) [function]
-  rule getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I)
-       => #fun(CandidateIndex
-       => #fun(RandomByte
-       => #fun(EffectiveBalance
-       => getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
-                                        CandidateIndex, RandomByte, EffectiveBalance )
-          )(getValidator(CandidateIndex).effectiveBalance)
-          //random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
-          )(getByte( hashConcat(SEED, to_bytes(I /Int 32, 8) ), I %Int 32))
-          )(FirstCommittee[(EPOCH +Int I) %Int len(FirstCommittee)])
-
-  syntax ValidatorIndex ::= getBeaconProposerIndexLoopAux(
-                              Int, Int, Int, Int, IntList, Int, Hash, Int,
-                              Int, Int, Int) [function]
-  rule getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
-                                     CandidateIndex, RandomByte, EffectiveBalance)
-    => getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I +Int 1)
-    requires EffectiveBalance *Int MaxRandomByte <Int MAX_EFFECTIVE_BALANCE *Int RandomByte
-
-  rule getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
-                                     CandidateIndex, RandomByte, EffectiveBalance)
-    => CandidateIndex
-    requires EffectiveBalance *Int MaxRandomByte >=Int MAX_EFFECTIVE_BALANCE *Int RandomByte
+       <slot> SLOT </slot>
 
 /*
 def get_attestation_data_slot(state: BeaconState, data: AttestationData) -> Slot:

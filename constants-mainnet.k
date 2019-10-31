@@ -119,18 +119,18 @@ module CONSTANTS
   syntax Int ::= "MAX_VOLUNTARY_EXITS"
   rule MAX_VOLUNTARY_EXITS => 2 ^Int 4                        [macro]
 
-  // Configuration -- Signature domain types
+  // Configuration -- domain types
   //====================================================
-  syntax Int ::= "DOMAIN_BEACON_PROPOSER"
-  rule DOMAIN_BEACON_PROPOSER => 0                            [macro]
-  syntax Int ::= "DOMAIN_BEACON_ATTESTER"
-  rule DOMAIN_BEACON_ATTESTER => 1                            [macro]
-  syntax Int ::= "DOMAIN_RANDAO"
-  rule DOMAIN_RANDAO => 2                                     [macro]
-  syntax Int ::= "DOMAIN_DEPOSIT"
-  rule DOMAIN_DEPOSIT => 3                                    [macro]
-  syntax Int ::= "DOMAIN_VOLUNTARY_EXIT"
-  rule DOMAIN_VOLUNTARY_EXIT => 4                             [macro]
+  syntax DomainType ::= "DOMAIN_BEACON_PROPOSER"
+  rule DOMAIN_BEACON_PROPOSER => "\x00" +Bytes "\x00" *Bytes 3 [macro]
+  syntax DomainType ::= "DOMAIN_BEACON_ATTESTER"
+  rule DOMAIN_BEACON_ATTESTER => "\x01" +Bytes "\x00" *Bytes 3 [macro]
+  syntax DomainType ::= "DOMAIN_RANDAO"
+  rule DOMAIN_RANDAO => "\x02" +Bytes "\x00" *Bytes 3          [macro]
+  syntax DomainType ::= "DOMAIN_DEPOSIT"
+  rule DOMAIN_DEPOSIT => "\x03" +Bytes "\x00" *Bytes 3         [macro]
+  syntax DomainType ::= "DOMAIN_VOLUNTARY_EXIT"
+  rule DOMAIN_VOLUNTARY_EXIT => "\x04" +Bytes "\x00" *Bytes 3  [macro]
   // syntax Int ::= "DOMAIN_TRANSFER"
   // rule DOMAIN_TRANSFER => 5                                   [macro]
   // syntax Int ::= "DOMAIN_CUSTODY_BIT_CHALLENGE"

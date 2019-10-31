@@ -306,7 +306,7 @@ def compute_proposer_index(state: BeaconState, indices: Sequence[ValidatorIndex]
             )(getValidator(CandidateIndex).effectiveBalance)
             //random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
             )(getByte( hashConcat(SEED, to_bytes(I /Int 32, 8) ), I %Int 32))
-            )INDICES[compute_shuffled_index(I modInt len(INDICES), len(INDICES), SEED)]
+            )INDICES[compute_shuffled_index(I %Int len(INDICES), len(INDICES), SEED)]
 
   rule computeProposerIndexLoopAux(INDICES, SEED, I, EffectiveBalance, RandomByte, CandidateIndex) =>
        computeProposerIndexLoop(INDICES, SEED, I +Int 1)
@@ -348,24 +348,24 @@ def compute_committee(indices: Sequence[ValidatorIndex],
     requires I >=Int END
 
 /*
-def compute_epoch_of_slot(slot: Slot) -> Epoch:
+def compute_epoch_at_slot(slot: Slot) -> Epoch:
     """
     Return the epoch number of ``slot``.
     """
     return Epoch(slot // SLOTS_PER_EPOCH)
 */
-  syntax Int ::= "compute_epoch_of_slot" "(" Int ")" [function]
-  rule compute_epoch_of_slot(SLOT) => SLOT /Int SLOTS_PER_EPOCH
+  syntax Int ::= "compute_epoch_at_slot" "(" Int ")" [function]
+  rule compute_epoch_at_slot(SLOT) => SLOT /Int SLOTS_PER_EPOCH
 
 /*
-def compute_start_slot_of_epoch(epoch: Epoch) -> Slot:
+def compute_start_slot_at_epoch(epoch: Epoch) -> Slot:
     """
     Return the start slot of ``epoch``.
     """
     return Slot(epoch * SLOTS_PER_EPOCH)
 */
-  syntax Int ::= "compute_start_slot_of_epoch" "(" Int ")" [function]
-  rule compute_start_slot_of_epoch(EPOCH) => EPOCH *Int SLOTS_PER_EPOCH
+  syntax Int ::= "compute_start_slot_at_epoch" "(" Int ")" [function]
+  rule compute_start_slot_at_epoch(EPOCH) => EPOCH *Int SLOTS_PER_EPOCH
 
 /*
 def compute_activation_exit_epoch(epoch: Epoch) -> Epoch:
@@ -375,7 +375,7 @@ def compute_activation_exit_epoch(epoch: Epoch) -> Epoch:
     return Epoch(epoch + 1 + ACTIVATION_EXIT_DELAY)
 */
   syntax Int ::= "compute_activation_exit_epoch" "(" Int ")" [function]
-  rule compute_activation_exit_epoch(EP) => EP +Int 1 +Int ACTIVATION_EXIT_DELAY
+  rule compute_activation_exit_epoch(EP) => EP +Int 1 +Int MAX_SEED_LOOKAHEAD
 
 /*
 def compute_domain(domain_type: DomainType, fork_version: Version=Version()) -> Domain:
@@ -395,10 +395,10 @@ def get_current_epoch(state: BeaconState) -> Epoch:
     """
     Return the current epoch.
     """
-    return compute_epoch_of_slot(state.slot)
+    return compute_epoch_at_slot(state.slot)
 */
   syntax Int ::= "get_current_epoch" "(" ")" [function]
-  rule [[ get_current_epoch() => compute_epoch_of_slot(SLOT) ]]
+  rule [[ get_current_epoch() => compute_epoch_at_slot(SLOT) ]]
     <slot> SLOT </slot>
 
 /*
@@ -420,10 +420,10 @@ def get_block_root(state: BeaconState, epoch: Epoch) -> Hash:
     """
     Return the block root at the start of a recent ``epoch``.
     """
-    return get_block_root_at_slot(state, compute_start_slot_of_epoch(epoch))
+    return get_block_root_at_slot(state, compute_start_slot_at_epoch(epoch))
 */
   syntax Hash ::= "get_block_root" "(" Int ")" [function]
-  rule get_block_root(EP) => get_block_root_at_slot(compute_start_slot_of_epoch(EP))
+  rule get_block_root(EP) => get_block_root_at_slot(compute_start_slot_at_epoch(EP))
 
 /*
 def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
@@ -482,107 +482,63 @@ def get_validator_churn_limit(state: BeaconState) -> uint64:
           len(get_active_validator_indices(get_current_epoch())) /Int CHURN_LIMIT_QUOTIENT )
 
 /*
-def get_seed(state: BeaconState, epoch: Epoch) -> Hash:
+def get_seed(state: BeaconState, epoch: Epoch, domain_type: DomainType) -> Hash:
     """
     Return the seed at ``epoch``.
     """
     mix = get_randao_mix(state, Epoch(epoch + EPOCHS_PER_HISTORICAL_VECTOR - MIN_SEED_LOOKAHEAD - 1))  # Avoid underflow
-    active_index_root = state.active_index_roots[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
-    return hash(mix + active_index_root + int_to_bytes(epoch, length=32))
+    return hash(domain_type + int_to_bytes(epoch, length=8) + mix)
 */
-  syntax Hash ::= "get_seed" "(" Int ")" [function]
-  rule [[ get_seed(Epoch)
-    => hash( get_randao_mix(Epoch +Int EPOCHS_PER_HISTORICAL_VECTOR -Int MIN_SEED_LOOKAHEAD -Int 1)
-             +Bytes (ActiveIndexRoots[Epoch %Int EPOCHS_PER_HISTORICAL_VECTOR]
-             +Bytes to_bytes(Epoch, 32))
+  syntax Hash ::= "get_seed" "(" Int, DomainType ")" [function]
+  rule [[ get_seed(Epoch, DOMAINTYPE)
+    => hash( DOMAINTYPE
+             +Bytes to_bytes(Epoch, 8))
+             +Bytes get_randao_mix(Epoch +Int EPOCHS_PER_HISTORICAL_VECTOR -Int MIN_SEED_LOOKAHEAD -Int 1)
            ) ]]
     <active-index-roots> ActiveIndexRoots </active-index-roots>
 
 /*
-def get_committee_count(state: BeaconState, epoch: Epoch) -> uint64:
+def get_committee_count_at_slot(state: BeaconState, slot: Slot) -> uint64:
     """
-    Return the number of committees at ``epoch``.
+    Return the number of committees at ``slot``.
     """
-    committees_per_slot = max(1, min(
-        SHARD_COUNT // SLOTS_PER_EPOCH,
+    epoch = compute_epoch_at_slot(slot)
+    return max(1, min(
+        MAX_COMMITTEES_PER_SLOT,
         len(get_active_validator_indices(state, epoch)) // SLOTS_PER_EPOCH // TARGET_COMMITTEE_SIZE,
     ))
-    return committees_per_slot * SLOTS_PER_EPOCH
 */
-  syntax Int ::= "get_committee_count" "(" Int ")" [function]
-  rule get_committee_count( EP )
-    => maxInt(1, minInt(SHARD_COUNT /Int SLOTS_PER_EPOCH,
-                        len(get_active_validator_indices(EP)) /Int SLOTS_PER_EPOCH /Int TARGET_COMMITTEE_SIZE
+  syntax Int ::= "get_committee_count_at_slot" "(" Int ")" [function]
+  rule get_committee_count( SLOT )
+    => maxInt(1, minInt(MAX_COMMITTEES_PER_SLOT,
+                        len(get_active_validator_indices(compute_epoch_at_slot())) /Int SLOTS_PER_EPOCH /Int TARGET_COMMITTEE_SIZE
                  )
-             ) *Int SLOTS_PER_EPOCH
+             )
 
 /*
-def get_crosslink_committee(state: BeaconState, epoch: Epoch, shard: Shard) -> Sequence[ValidatorIndex]:
+
+def get_beacon_committee(state: BeaconState, slot: Slot, index: CommitteeIndex) -> Sequence[ValidatorIndex]:
     """
-    Return the crosslink committee at ``epoch`` for ``shard``.
+    Return the beacon committee at ``slot`` for ``index``.
     """
+    epoch = compute_epoch_at_slot(slot)
+    committees_per_slot = get_committee_count_at_slot(state, slot)
     return compute_committee(
         indices=get_active_validator_indices(state, epoch),
-        seed=get_seed(state, epoch),
-        index=(shard + SHARD_COUNT - get_start_shard(state, epoch)) % SHARD_COUNT,
-        count=get_committee_count(state, epoch),
+        seed=get_seed(state, epoch, DOMAIN_BEACON_ATTESTER),
+        index=(slot % SLOTS_PER_EPOCH) * committees_per_slot + index,
+        count=committees_per_slot * SLOTS_PER_EPOCH,
     )
 */
-  syntax IntList ::= "get_crosslink_committee" "(" Int "," Int ")" [function]
-  rule get_crosslink_committee(EPOCH, SHARD)
+  syntax IntList ::= "get_beacon_committee" "(" Int "," Int ")" [function]
+  rule get_beacon_comittee(SLOT, INDEX)
+    => #fun(CommitteesPerSlot
     => compute_committee(
           get_active_validator_indices(EPOCH),
-          get_seed(EPOCH),
-          (SHARD +Int SHARD_COUNT -Int get_start_shard(EPOCH)) %Int SHARD_COUNT,
-          get_committee_count(EPOCH)
-    )
-
-/*
-def get_start_shard(state: BeaconState, epoch: Epoch) -> Shard:
-    """
-    Return the start shard of the 0th committee at ``epoch``.
-    """
-    assert epoch <= get_current_epoch(state) + 1
-    check_epoch = Epoch(get_current_epoch(state) + 1)
-    shard = Shard((state.start_shard + get_shard_delta(state, get_current_epoch(state))) % SHARD_COUNT)
-    while check_epoch > epoch:
-        check_epoch -= Epoch(1)
-        shard = Shard((shard + SHARD_COUNT - get_shard_delta(state, check_epoch)) % SHARD_COUNT)
-    return shard
-*/
-  syntax Int ::= "get_start_shard" "(" Int ")" [function]
-  rule [[ get_start_shard(EPOCH) => getStartShardAux(
-      get_current_epoch() +Int 1,
-      (LSS +Int get_shard_delta(get_current_epoch())) %Int SHARD_COUNT,
-      EPOCH
-    ) ]]
-    <start-shard> LSS </start-shard>
-    requires EPOCH <=Int get_current_epoch() +Int 1
-
-  syntax Int ::= getStartShardAux( Int, Int, Int ) [function]
-  rule getStartShardAux(
-      CheckEP => CheckEP -Int 1,
-      SHARD => (SHARD +Int SHARD_COUNT -Int get_shard_delta(CheckEP -Int 1)) %Int SHARD_COUNT,
-      EPOCH
-    )
-    requires CheckEP >Int EPOCH
-
-  rule getStartShardAux(CheckEP, SHARD, EPOCH) => SHARD
-    requires CheckEP <=Int EPOCH
-
-/*
-def get_shard_delta(state: BeaconState, epoch: Epoch) -> uint64:
-    """
-    Return the number of shards to increment ``state.start_shard`` at ``epoch``.
-    """
-    return min(get_committee_count(state, epoch), SHARD_COUNT - SHARD_COUNT // SLOTS_PER_EPOCH)
-*/
-  syntax Int ::= "get_shard_delta" "(" Int ")" [function]
-  rule get_shard_delta( EPOCH ) => minInt(
-    get_committee_count(EPOCH),
-    SHARD_COUNT -Int SHARD_COUNT /Int SLOTS_PER_EPOCH
-  )
-
+          get_seed(EPOCH, DOMAIN_BEACON_ATTESTER),
+          (SLOT %Int SLOTS_PER_EPOCH) *Int CommittePerSlot +Int INDEX,
+          CommitteePerSlot *Int SLOTS_PER_EPOCH)
+    )(get_committee_count_at_slot(SLOT))
 /*
 def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
     """
@@ -612,11 +568,11 @@ def get_attestation_data_slot(state: BeaconState, data: AttestationData) -> Slot
     """
     committee_count = get_committee_count(state, data.target.epoch)
     offset = (data.crosslink.shard + SHARD_COUNT - get_start_shard(state, data.target.epoch)) % SHARD_COUNT
-    return Slot(compute_start_slot_of_epoch(data.target.epoch) + offset // (committee_count // SLOTS_PER_EPOCH))
+    return Slot(compute_start_slot_at_epoch(data.target.epoch) + offset // (committee_count // SLOTS_PER_EPOCH))
 */
     syntax Int ::= "get_attestation_data_slot" "(" AttestationData ")" [function]
     rule get_attestation_data_slot(#AttestationData(_,_, #Checkpoint(EP,_), #Crosslink(SHARD,_,_,_,_))) =>
-      compute_start_slot_of_epoch(EP) +Int
+      compute_start_slot_at_epoch(EP) +Int
         // offset
         (( SHARD +Int SHARD_COUNT -Int get_start_shard(EP) ) %Int SHARD_COUNT) /Int
         // (committee_count // SLOTS_PER_EPOCH)
@@ -774,12 +730,12 @@ def get_attesting_indices(state: BeaconState,
     """
     Return the set of attesting indices corresponding to ``data`` and ``bits``.
     """
-    committee = get_crosslink_committee(state, data.target.epoch, data.crosslink.shard)
+    committee = get_beacon_committee(state, data.slot, data.index)
     return set(index for i, index in enumerate(committee) if bits[i])
 */
   syntax IntList ::= "get_attesting_indices" "(" AttestationData "," BitList ")" [function]
-  rule get_attesting_indices(#AttestationData(_,_, #Checkpoint(EP,_), #Crosslink(SHARD,_,_,_,_)), BL) =>
-    extractAttestingIndices(get_crosslink_committee(EP, SHARD), BL, .IntList)
+  rule get_attesting_indices(#AttestationData(SLOT,INDEX,_,_,_), BL) =>
+    extractAttestingIndices(get_beacon_comittee(SLOT, INDEX), BL, .IntList)
 
   syntax IntList ::= extractAttestingIndices(IntList, BitList, IntList) [function]
   rule extractAttestingIndices(I IL => IL, true  BL => BL, AL => AL +append I)
@@ -2359,22 +2315,22 @@ def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
 def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSlashing) -> None:
     proposer = state.validators[proposer_slashing.proposer_index]
     # Verify that the epoch is the same
-    assert (compute_epoch_of_slot(proposer_slashing.header_1.slot)
-            == compute_epoch_of_slot(proposer_slashing.header_2.slot))
+    assert (compute_epoch_at_slot(proposer_slashing.header_1.slot)
+            == compute_epoch_at_slot(proposer_slashing.header_2.slot))
     # But the headers are different
     assert proposer_slashing.header_1 != proposer_slashing.header_2
     # Check proposer is slashable
     assert is_slashable_validator(proposer, get_current_epoch(state))
     # Signatures are valid
     for header in (proposer_slashing.header_1, proposer_slashing.header_2):
-        domain = get_domain(state, DOMAIN_BEACON_PROPOSER, compute_epoch_of_slot(header.slot))
+        domain = get_domain(state, DOMAIN_BEACON_PROPOSER, compute_epoch_at_slot(header.slot))
         assert bls_verify(proposer.pubkey, signing_root(header), header.signature, domain)
 
     slash_validator(state, proposer_slashing.proposer_index)
 */
   syntax KItem ::= "process_proposer_slashing" "(" ProposerSlashing ")" [klabel(process_proposer_slashing), symbol]
   rule process_proposer_slashing(#ProposerSlashing(ProposerIndex, HEAD1, HEAD2)) => slash_validator(ProposerIndex, .ValidatorIndex)
-    requires compute_epoch_of_slot(HEAD1._slot) ==Int compute_epoch_of_slot(HEAD2._slot)
+    requires compute_epoch_at_slot(HEAD1._slot) ==Int compute_epoch_at_slot(HEAD2._slot)
      andBool HEAD1 =/=K HEAD2
      andBool is_slashable_validator(getValidator(ProposerIndex), get_current_epoch())
 

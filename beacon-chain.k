@@ -305,19 +305,19 @@ def compute_proposer_index(state: BeaconState, indices: Sequence[ValidatorIndex]
          => computeProposerIndexLoopAux(INDICES, SEED, I, EffectiveBalance, RandomByte, CandidateIndex)
             )(getValidator(CandidateIndex).effectiveBalance)
             //random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
-            )(getByte( hashConcat(SEED, to_bytes(I /Int 32, 8) ), I %Int 32))
+            )(getByte( hashConcat(SEED, to_bytes(I /Int 32, 8)), I %Int 32))
             )(INDICES[compute_shuffled_index(I %Int len(INDICES), len(INDICES), SEED)])
 
-  syntax ValidatorIndex ::= computeProposerIndexLoopAux(IntList, Hash, Int, Int, Int, ValidatorIndex)
+  syntax ValidatorIndex ::= computeProposerIndexLoopAux(IntList, Hash, Int, Int, Int, ValidatorIndex) [function]
 
   rule computeProposerIndexLoopAux(INDICES, SEED, I, EffectiveBalance, RandomByte, CandidateIndex) =>
        computeProposerIndexLoop(INDICES, SEED, I +Int 1)
-    requires EffectiveBalance *Int 2 ^Int 8 -Int 1  <Int MAX_EFFECTIVE_BALANCE *Int RandomByte
+    requires EffectiveBalance *Int (2 ^Int 8 -Int 1)  <Int MAX_EFFECTIVE_BALANCE *Int RandomByte
                               //MAX_RANDOM_BYTE
 
   rule computeProposerIndexLoopAux(INDICES, SEED, I, EffectiveBalance, RandomByte, CandidateIndex) =>
        CandidateIndex
-    requires EffectiveBalance *Int 2 ^Int 8 -Int 1 >=Int MAX_EFFECTIVE_BALANCE *Int RandomByte
+    requires EffectiveBalance *Int (2 ^Int 8 -Int 1) >=Int MAX_EFFECTIVE_BALANCE *Int RandomByte
                               //MAX_RANDOM_BYTE
 
 /*

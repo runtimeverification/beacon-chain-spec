@@ -861,7 +861,6 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
        <fork> _ => #Fork({defaultBytes4()}:>Version, {defaultBytes4()}:>Version, 0) </fork>
        <block-roots>  _ => fillInMap(defaultHash(), SLOTS_PER_HISTORICAL_ROOT) </block-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
        <state-roots>  _ => fillInMap(defaultHash(), SLOTS_PER_HISTORICAL_ROOT) </state-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-       <randao-mixes> _ => fillInVector(defaultHash(), EPOCHS_PER_HISTORICAL_VECTOR) </randao-mixes> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
        <slashings>    _ => fillInMap(0, EPOCHS_PER_SLASHINGS_VECTOR) </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
        <justification-bits> _ => false  false  false  false  .BitList </justification-bits> //Bitvector[JUSTIFICATION_BITS_LENGTH]
        <previous-justified-checkpoint> _ => defaultCheckpoint() </previous-justified-checkpoint>

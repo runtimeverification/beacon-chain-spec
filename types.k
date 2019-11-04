@@ -117,6 +117,7 @@ class Validator(Container):
     activation_eligibility_epoch: Epoch  # When criteria for activation were met
     activation_epoch: Epoch
     exit_epoch: Epoch
+    withdrawable_epoch: Epoch  # When validator can withdraw funds
   */
   syntax Validator ::= #Validator( pubkey: BLSPubkey,
                                    withdrawalCredentials: Hash,
@@ -124,23 +125,26 @@ class Validator(Container):
                                    slashed: Bool,
                                    activationEligibilityEpoch: Int,
                                    activationEpoch: Int,
-                                   exitEpoch: Int
+                                   exitEpoch: Int,
+                                   withdrawableEpoch: Int
                                  ) [klabel(#Validator), symbol]
 
   syntax BLSPubkey ::= Validator "." "pubkey"                         [function]
-  rule #Validator(PK, _,_,_,_,_,_).pubkey => PK
+  rule #Validator(PK, _,_,_,_,_,_,_).pubkey => PK
   syntax Hash      ::= Validator "." "withdrawalCredentials"          [function]
-  rule #Validator(_, HASH, _,_,_,_,_).withdrawalCredentials => HASH
+  rule #Validator(_, HASH, _,_,_,_,_,_).withdrawalCredentials => HASH
   syntax Int      ::= Validator "." "effectiveBalance"                [function]
-  rule #Validator(_,_, EffBal, _,_,_,_).effectiveBalance => EffBal
+  rule #Validator(_,_, EffBal, _,_,_,_,_).effectiveBalance => EffBal
   syntax Bool      ::= Validator "." "slashed"                        [function]
-  rule #Validator(_,_,_, SLASHED, _,_,_).slashed => SLASHED
+  rule #Validator(_,_,_, SLASHED, _,_,_,_).slashed => SLASHED
   syntax Int       ::= Validator "." "activationEligibilityEpoch"     [function]
-  rule #Validator(_,_,_,_, ActEligEpoch, _,_).activationEligibilityEpoch => ActEligEpoch
+  rule #Validator(_,_,_,_, ActEligEpoch, _,_,_).activationEligibilityEpoch => ActEligEpoch
   syntax Int       ::= Validator "." "activationEpoch"                [function]
-  rule #Validator(_,_,_,_,_, ActivationEpoch, _).activationEpoch => ActivationEpoch
+  rule #Validator(_,_,_,_,_, ActivationEpoch, _,_).activationEpoch => ActivationEpoch
   syntax Int       ::= Validator "." "exitEpoch"                      [function]
-  rule #Validator(_,_,_,_,_,_, ExitEpoch).exitEpoch => ExitEpoch
+  rule #Validator(_,_,_,_,_,_, ExitEpoch,_).exitEpoch => ExitEpoch
+  syntax Int       ::= Validator "." "withdrawableEpoch"              [function]
+  rule #Validator(_,_,_,_,_,_,_, WithdrawEpoch).withdrawableEpoch => WithdrawEpoch
 
   /*
 class AttestationData(Container):
@@ -152,14 +156,14 @@ class AttestationData(Container):
     source: Checkpoint
     target: Checkpoint
   */
-  syntax AttestationData ::= #AttestationData(Int, Int, Hash, Checkpoint, Checkpoint, Crosslink ) [klabel(#AttestationData), symbol]
+  syntax AttestationData ::= #AttestationData(Int, Int, Hash, Checkpoint, Checkpoint ) [klabel(#AttestationData), symbol]
 
-  syntax Int ::= AttestationData "." "slot"                           [function]
-  rule #AttestationData(SLOT,_,_,_,_).beaconBlockRoot => SLOT
+  syntax Int ::= AttestationData "." "_slot"                          [function]
+  rule #AttestationData(SLOT,_,_,_,_)._slot => SLOT
   syntax Int ::= AttestationData "." "index"                          [function]
-  rule #AttestationData(_,INDEX,_,_,_).beaconBlockRoot => INDEX
+  rule #AttestationData(_,INDEX,_,_,_).index => INDEX
   syntax Hash ::= AttestationData "." "beaconBlockRoot"               [function]
-  rule #AttestationData(_,_,ROOT,_).beaconBlockRoot => ROOT
+  rule #AttestationData(_,_,ROOT,_,_).beaconBlockRoot => ROOT
   syntax Checkpoint ::= AttestationData "." "source"                  [function]
   rule #AttestationData(_,_,_,CP,_).source => CP
   syntax Checkpoint ::= AttestationData "." "target"                  [function]
@@ -317,14 +321,6 @@ class VoluntaryExit(Container):
   */
   syntax VoluntaryExit ::= #VoluntaryExit( Int, ValidatorIndex, BLSSignature ) [klabel(#VoluntaryExit), symbol]
 
-  // The return type of get_winning_crosslink_and_attesting_indices
-  syntax CrosslinkIntListPair ::= #crosslinkIntListPair(Crosslink, IntList)
-
-  syntax Crosslink ::= CrosslinkIntListPair "." "crosslink" [function]
-  rule  #crosslinkIntListPair(CL,_).crosslink => CL
-  syntax IntList ::= CrosslinkIntListPair "." "intList" [function]
-  rule  #crosslinkIntListPair(_,IL).intList => IL
-
 /*class BeaconBlockBody(Container):
     randao_reveal: BLSSignature
     eth1_data: Eth1Data  # Eth1 data vote
@@ -351,7 +347,7 @@ class VoluntaryExit(Container):
   syntax Eth1Data             ::= BeaconBlockBody "." "eth1Data"          [function]
   rule  #BeaconBlockBody(_,E1D,_,_,_,_,_,_).eth1Data => E1D
   syntax ProposerSlashingList ::= BeaconBlockBody "." "proposerSlashings" [function]
-  rule  #BeaconBlockBody(_,_,PS, _,_,_,_,_).proposerSlashings => PS
+  rule  #BeaconBlockBody(_,_,_,PS,_,_,_,_).proposerSlashings => PS
   syntax AttesterSlashingList ::= BeaconBlockBody "." "attesterSlashings" [function]
   rule  #BeaconBlockBody(_,_,_,_, AS,_,_,_).attesterSlashings => AS
   syntax AttestationList      ::= BeaconBlockBody "." "attestations"      [function]
@@ -392,7 +388,7 @@ class VoluntaryExit(Container):
   syntax BLSSignature     ::= BeaconBlock "." "signature"                 [function]
   rule  #BeaconBlock(_,_,_,_, SIG).signature => SIG
 
-  // The return type of get_attestation_deltas and get_crosslink_deltas
+  // The return type of get_attestation_deltas
   syntax MapMapPair ::= #mapMapPair(Map, Map)
 
   syntax Map ::= MapMapPair "." "map1" [function]
@@ -556,10 +552,6 @@ def bytes_to_int(data: bytes) -> uint64:
   syntax PendingAttestationList ::= PendingAttestationList "+append" PendingAttestation [function]
   rule (EL1:PendingAttestation LIST) +append EL2 => EL1 (LIST +append EL2)
   rule .PendingAttestationList +append EL => EL .PendingAttestationList
-
-  syntax CrosslinkList ::= CrosslinkList "+append" Crosslink          [function]
-  rule (EL1:Crosslink LIST) +append EL2 => EL1 (LIST +append EL2)
-  rule .CrosslinkList +append EL => EL .CrosslinkList
 
   syntax Eth1DataList ::= Eth1DataList "+append" Eth1Data             [function]
   rule (EL1:Eth1Data LIST) +append EL2 => EL1 (LIST +append EL2)

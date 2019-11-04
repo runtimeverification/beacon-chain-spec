@@ -122,22 +122,14 @@ module CONSTANTS
   // Configuration -- domain types
   //====================================================
   syntax DomainType ::= "DOMAIN_BEACON_PROPOSER"
-  rule DOMAIN_BEACON_PROPOSER => "\x00" +Bytes "\x00" *Bytes 3 [macro]
+  rule DOMAIN_BEACON_PROPOSER => "\x00\x00\x00\x00"           [macro]
   syntax DomainType ::= "DOMAIN_BEACON_ATTESTER"
-  rule DOMAIN_BEACON_ATTESTER => "\x01" +Bytes "\x00" *Bytes 3 [macro]
+  rule DOMAIN_BEACON_ATTESTER => "\x01\x00\x00\x00"           [macro]
   syntax DomainType ::= "DOMAIN_RANDAO"
-  rule DOMAIN_RANDAO => "\x02" +Bytes "\x00" *Bytes 3          [macro]
+  rule DOMAIN_RANDAO => "\x02\x00\x00\x00"                    [macro]
   syntax DomainType ::= "DOMAIN_DEPOSIT"
-  rule DOMAIN_DEPOSIT => "\x03" +Bytes "\x00" *Bytes 3         [macro]
+  rule DOMAIN_DEPOSIT => "\x03\x00\x00\x00"                   [macro]
   syntax DomainType ::= "DOMAIN_VOLUNTARY_EXIT"
-  rule DOMAIN_VOLUNTARY_EXIT => "\x04" +Bytes "\x00" *Bytes 3  [macro]
-  // syntax Int ::= "DOMAIN_TRANSFER"
-  // rule DOMAIN_TRANSFER => 5                                   [macro]
-  // syntax Int ::= "DOMAIN_CUSTODY_BIT_CHALLENGE"
-  // rule DOMAIN_CUSTODY_BIT_CHALLENGE => 6                      [macro]
-  // syntax Int ::= "DOMAIN_SHARD_PROPOSER"
-  // rule DOMAIN_SHARD_PROPOSER => 8                             [macro]
-  // syntax Int ::= "DOMAIN_SHARD_ATTESTER"
-  // rule DOMAIN_SHARD_PROPOSER => 81                            [macro]
+  rule DOMAIN_VOLUNTARY_EXIT => "\x04\x00\x00\x00"            [macro]
 
 endmodule

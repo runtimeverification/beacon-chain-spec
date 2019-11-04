@@ -125,28 +125,18 @@ module CONSTANTS
   // syntax Int ::= "MAX_TRANSFERS"
   // rule MAX_TRANSFERS => 0                                     [macro]
 
-  // Configuration -- Signature domain types
+  // Configuration -- domain types
   //====================================================
-  //todo should be used, but apparently are not. Check values in config.yaml
-  syntax Int ::= "DOMAIN_BEACON_PROPOSER"
-  rule DOMAIN_BEACON_PROPOSER => 0                            [macro]
-  syntax Int ::= "DOMAIN_BEACON_ATTESTER"
-  rule DOMAIN_BEACON_ATTESTER => 1                            [macro]
-  syntax Int ::= "DOMAIN_RANDAO"
-  rule DOMAIN_RANDAO => 2                                     [macro]
-  syntax Int ::= "DOMAIN_DEPOSIT"
-  rule DOMAIN_DEPOSIT => 3                                    [macro]
-  syntax Int ::= "DOMAIN_VOLUNTARY_EXIT"
-  rule DOMAIN_VOLUNTARY_EXIT => 4                             [macro]
-  // syntax Int ::= "DOMAIN_TRANSFER"
-  // rule DOMAIN_TRANSFER => 5                                   [macro]
-  // syntax Int ::= "DOMAIN_CUSTODY_BIT_CHALLENGE"
-  // rule DOMAIN_CUSTODY_BIT_CHALLENGE => 6                      [macro]
-  // syntax Int ::= "DOMAIN_SHARD_PROPOSER"
-  // rule DOMAIN_SHARD_PROPOSER => 8                             [macro]
-  // syntax Int ::= "DOMAIN_SHARD_ATTESTER"
-  // rule DOMAIN_SHARD_PROPOSER => 81                            [macro]
-
+  syntax DomainType ::= "DOMAIN_BEACON_PROPOSER"
+  rule DOMAIN_BEACON_PROPOSER => "\x00\x00\x00\x00"           [macro]
+  syntax DomainType ::= "DOMAIN_BEACON_ATTESTER"
+  rule DOMAIN_BEACON_ATTESTER => "\x01\x00\x00\x00"           [macro]
+  syntax DomainType ::= "DOMAIN_RANDAO"
+  rule DOMAIN_RANDAO => "\x02\x00\x00\x00"                    [macro]
+  syntax DomainType ::= "DOMAIN_DEPOSIT"
+  rule DOMAIN_DEPOSIT => "\x03\x00\x00\x00"                   [macro]
+  syntax DomainType ::= "DOMAIN_VOLUNTARY_EXIT"
+  rule DOMAIN_VOLUNTARY_EXIT => "\x04\x00\x00\x00"            [macro]
 
   //TODO: Some phase 1 stuff here
 endmodule

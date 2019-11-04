@@ -62,9 +62,6 @@ class BeaconState(Container):
                                                        //List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
         <current-epoch-attestations> .PendingAttestationList </current-epoch-attestations>
                                                        //List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
-        // Crosslinks
-        <previous-crosslinks> .Map </previous-crosslinks> //Vector[Crosslink, SHARD_COUNT]
-        <current-crosslinks> .Map </current-crosslinks> //Vector[Crosslink, SHARD_COUNT]
         // Finality
         <justification-bits> .BitList </justification-bits> //Bitvector[JUSTIFICATION_BITS_LENGTH]
         <previous-justified-checkpoint> .Checkpoint </previous-justified-checkpoint>

@@ -165,6 +165,11 @@ beaconBlockTerm = labelWithKeyPairs('#BeaconBlock' , [ ('slot'          , intTok
                                                      , ('signature'     , hashToken)
                                                      ]
                                    )
+aggregateAndProofTerm = labelWithKeyPairs('#AggregateAndProof' , [ ('index'           , intToken)
+                                                                 , ('selection_proof' , hashToken)
+                                                                 , ('aggregate'       , attestationTerm)
+                                                                 ]
+                                         )
 
 test_type_to_term = {
     # operations
@@ -210,6 +215,7 @@ data_class_to_converter = {
     'ProposerSlashing': proposerSlashingTerm,
     'Validator': validatorTerm,
     'VoluntaryExit': voluntaryExitTerm,
+    'AggregateAndProof' : aggregateAndProofTerm,
 }
 
 init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']                       , intToken)

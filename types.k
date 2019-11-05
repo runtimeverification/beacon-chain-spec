@@ -388,6 +388,24 @@ class VoluntaryExit(Container):
   syntax BLSSignature     ::= BeaconBlock "." "signature"                 [function]
   rule  #BeaconBlock(_,_,_,_, SIG).signature => SIG
 
+/*class AggregateAndProof(Container):
+    index: ValidatorIndex
+    selection_proof: BLSSignature
+    aggregate: Attestation*/
+  syntax AggregateAndProof ::= #AggregateAndProof(
+                               index: ValidatorIndex,
+                               selectionProof: BLSSignature,
+                               aggregate: Attestation
+                               )                              [klabel(#AggregateAndProof), symbol]
+
+  syntax ValidatorIndex ::= AggregateAndProof "." "index"                 [function]
+  rule #AggregateAndProof(INDEX,_,_) => INDEX
+  syntax BLSSignature ::= AggregateAndProof "." "selectionProof"          [function]
+  rule #AggregateAndProof(_,SP,_) => SP
+  syntax Attestation ::= AggregateAndProof "." "aggregate"                [function]
+  rule #AggregateAndProof(_,_,AG) => AG
+
+
   // The return type of get_attestation_deltas
   syntax MapMapPair ::= #mapMapPair(Map, Map)
 
@@ -410,7 +428,7 @@ class VoluntaryExit(Container):
   syntax Container ::= Fork | Checkpoint | Validator | AttestationData | AttestationDataAndCustodyBit
                      | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
                      | BeaconBlockHeader | ProposerSlashing | AttesterSlashing | Attestation | Deposit
-                     | VoluntaryExit | BeaconBlockBody | BeaconBlock
+                     | VoluntaryExit | BeaconBlockBody | BeaconBlock | AggregateAndProof
 
   //ValueList are not Value, because it needs separate implementation for hash_tree_root
   //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.

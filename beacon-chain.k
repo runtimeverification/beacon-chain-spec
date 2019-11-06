@@ -332,7 +332,7 @@ def compute_committee(indices: Sequence[ValidatorIndex],
     end = (len(indices) * (index + 1)) // count
     return [indices[compute_shuffled_index(ValidatorIndex(i), len(indices), seed)] for i in range(start, end)]
 */
-  syntax IntList ::= "compute_committee" "(" IntList "," Hash "," Int "," ValidatorIndex ")" [function]
+  syntax IntList ::= "compute_committee" "(" IntList "," Hash "," Int "," Int ")" [function]
   rule compute_committee(INDICES, SEED, INDEX, COUNT)
     => computeCommitteeLoop(
         (len(INDICES) *Int INDEX) /Int COUNT,
@@ -374,7 +374,7 @@ def compute_activation_exit_epoch(epoch: Epoch) -> Epoch:
     """
     Return the epoch during which validator activations and exits initiated in ``epoch`` take effect.
     """
-    return Epoch(epoch + 1 + ACTIVATION_EXIT_DELAY)
+    return Epoch(epoch + 1 + MAX_SEED_LOOKAHEAD)
 */
   syntax Int ::= "compute_activation_exit_epoch" "(" Int ")" [function]
   rule compute_activation_exit_epoch(EP) => EP +Int 1 +Int MAX_SEED_LOOKAHEAD
@@ -1534,8 +1534,7 @@ def process_rewards_and_penalties(state: BeaconState) -> None:
           #else processRewardsAndPenaltiesLoop(
                   0,
                   numOfValidators(),
-                  get_attestation_deltas()
-                  )
+                  get_attestation_deltas())
           #fi
        ... </k>
 

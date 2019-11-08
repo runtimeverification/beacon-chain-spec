@@ -55,18 +55,11 @@ validatorTerm = labelWithKeyPairs('#Validator' , [ ('pubkey'                    
                                                  ]
                                  )
 
-crosslinkTerm = labelWithKeyPairs('#Crosslink' , [ ('shard'       , intToken)
-                                                 , ('parent_root' , hashToken)
-                                                 , ('start_epoch' , intToken)
-                                                 , ('end_epoch'   , intToken)
-                                                 , ('data_root'   , hashToken)
-                                                 ]
-                                 )
-
-attestationDataTerm = labelWithKeyPairs('#AttestationData' , [ ('beacon_block_root' , hashToken)
+attestationDataTerm = labelWithKeyPairs('#AttestationData' , [ ('slot' , intToken)
+                                                             , ('index' , intToken)
+                                                             , ('beacon_block_root' , hashToken)
                                                              , ('source'            , checkpointTerm)
                                                              , ('target'            , checkpointTerm)
-                                                             , ('crosslink'         , crosslinkTerm)
                                                              ]
                                        )
 
@@ -88,12 +81,6 @@ depositDataTerm = labelWithKeyPairs('#DepositData' , [ ('pubkey'                
                                                      , ('signature'              , hashToken)
                                                      ]
                                    )
-
-compactCommitteeTerm = labelWithKeyPairs('#CompactCommittee' , [ ('pubkeys'            , bytesListTerm)
-                                                               , ('compact_validators' , listOf('Int', converter = intToken))
-                                                               ]
-                                        )
-
 
 beaconBlockHeaderTerm = labelWithKeyPairs('#BeaconBlockHeader', [ ('slot'        , intToken)
                                                                 , ('parent_root' , hashToken)
@@ -160,16 +147,6 @@ pendingAttestationTerm = labelWithKeyPairs('#PendingAttestation' , [ ('aggregati
                                                                    ]
                                           )
 
-transferTerm = labelWithKeyPairs('#Transfer' , [ ('sender'    , intToken)
-                                               , ('recipient' , intToken)
-                                               , ('amount'    , intToken)
-                                               , ('fee'       , intToken)
-                                               , ('slot'      , intToken)
-                                               , ('pubkey'    , hashToken)
-                                               , ('signature' , hashToken)
-                                               ]
-                                )
-
 beaconBlockBodyTerm = labelWithKeyPairs('#BeaconBlockBody' , [ ('randao_reveal'         , hashToken)
                                                              , ('eth1_data'             , eth1DataTerm)
                                                              , ('graffiti'              , hashToken)
@@ -178,7 +155,6 @@ beaconBlockBodyTerm = labelWithKeyPairs('#BeaconBlockBody' , [ ('randao_reveal' 
                                                              , ('attestations'          , listOf('Attestation', converter = attestationTerm))
                                                              , ('deposits'              , listOf('Deposit', converter = depositTerm))
                                                              , ('voluntary_exits'       , listOf('VoluntaryExit', converter = voluntaryExitTerm))
-                                                             , ('transfers'             , listOf('Transfer', converter = transferTerm))
                                                              ]
                                        )
 
@@ -189,6 +165,11 @@ beaconBlockTerm = labelWithKeyPairs('#BeaconBlock' , [ ('slot'          , intTok
                                                      , ('signature'     , hashToken)
                                                      ]
                                    )
+aggregateAndProofTerm = labelWithKeyPairs('#AggregateAndProof' , [ ('index'           , intToken)
+                                                                 , ('selection_proof' , hashToken)
+                                                                 , ('aggregate'       , attestationTerm)
+                                                                 ]
+                                         )
 
 test_type_to_term = {
     # operations
@@ -197,12 +178,10 @@ test_type_to_term = {
     'attestation'      : attestationTerm,
     'deposit'          : depositTerm,
     'voluntary_exit'   : voluntaryExitTerm,
-    'transfer'         : transferTerm,
 
     'block_header'     : beaconBlockTerm,
 
     # epoch_processing
-    'crosslinks'                        : None,
     'final_updates'                     : None,
     'justification_and_finalization'    : None,
     'registry_updates'                  : None,
@@ -226,8 +205,6 @@ data_class_to_converter = {
     'BeaconBlockHeader': beaconBlockHeaderTerm,
     'BeaconState': None,
     'Checkpoint': checkpointTerm,
-    'CompactCommittee': compactCommitteeTerm,
-    'Crosslink': crosslinkTerm,
     'Deposit': depositTerm,
     'DepositData': depositDataTerm,
     'Eth1Data': eth1DataTerm,
@@ -236,9 +213,9 @@ data_class_to_converter = {
     'IndexedAttestation': indexedAttestationTerm,
     'PendingAttestation': pendingAttestationTerm,
     'ProposerSlashing': proposerSlashingTerm,
-    'Transfer': transferTerm,
     'Validator': validatorTerm,
     'VoluntaryExit': voluntaryExitTerm,
+    'AggregateAndProof' : aggregateAndProofTerm,
 }
 
 init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']                       , intToken)
@@ -253,15 +230,10 @@ init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']  
                     , 'ETH1_DEPOSIT_INDEX_CELL'            : (['eth1_deposit_index']                 , intToken)
                     , 'VALIDATORS_CELL'                    : (['validators']                         , indexedMapOf(converter = validatorTerm))
                     , 'BALANCES_CELL'                      : (['balances']                           , indexedMapOf(converter = intToken))
-                    , 'START_SHARD_CELL'                   : (['start_shard']                        , intToken)
                     , 'RANDAO_MIXES_CELL'                  : (['randao_mixes']                       , bytesListTerm)
-                    , 'ACTIVE_INDEX_ROOTS_CELL'            : (['active_index_roots']                 , bytesListTerm)
-                    , 'COMPACT_COMMITTEES_ROOTS_CELL'      : (['compact_committees_roots']           , bytesListTerm)
                     , 'SLASHINGS_CELL'                     : (['slashings']                          , indexedMapOf(converter = intToken))
                     , 'PREVIOUS_EPOCH_ATTESTATIONS_CELL'    : (['previous_epoch_attestations']       , listOf('PendingAttestation', converter = pendingAttestationTerm))
                     , 'CURRENT_EPOCH_ATTESTATIONS_CELL'    : (['current_epoch_attestations']         , listOf('PendingAttestation', converter = pendingAttestationTerm))
-                    , 'PREVIOUS_CROSSLINKS_CELL'           : (['previous_crosslinks']                , indexedMapOf(converter = crosslinkTerm))
-                    , 'CURRENT_CROSSLINKS_CELL'            : (['current_crosslinks']                 , indexedMapOf(converter = crosslinkTerm))
                       # justification_bits: Bitvector[JUSTIFICATION_BITS_LENGTH]
                     , 'JUSTIFICATION_BITS_CELL'            : (['justification_bits']                 , bitVectorTerm(JUSTIFICATION_BITS_LENGTH))
                     , 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL' : (['previous_justified_checkpoint']      , checkpointTerm)
@@ -284,13 +256,9 @@ skip_keys = [
             # , 'BALANCES_CELL'
             # , 'START_SHARD_CELL'
             # , 'RANDAO_MIXES_CELL'
-            # , 'ACTIVE_INDEX_ROOTS_CELL'
-            # , 'COMPACT_COMMITTEES_ROOTS_CELL'
             # , 'SLASHINGS_CELL'
             # , 'PREVIOUS_EPOCH_ATTESTATIONS_CELL'
             # , 'CURRENT_EPOCH_ATTESTATIONS_CELL'
-            # , 'PREVIOUS_CROSSLINKS_CELL'
-            # , 'CURRENT_CROSSLINKS_CELL'
             # , 'JUSTIFICATION_BITS_CELL'
             # , 'PREVIOUS_JUSTIFIED_CHECKPOINT_CELL'
             # , 'CURRENT_JUSTIFIED_CHECKPOINT_CELL'
@@ -299,7 +267,6 @@ skip_keys = [
             # , 'PARENT_ROOT_CELL'
             # , 'STATE_ROOT_CELL'
             # , 'SIGNATURE_CELL'
-            # , 'TRANSFERS_CELL'
 ]
 
 debug_keys = []

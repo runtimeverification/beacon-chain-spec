@@ -124,14 +124,14 @@ def is_slashable_attestation_data(data_1: AttestationData, data_2: AttestationDa
 */
   syntax Bool ::= "is_slashable_attestation_data" "(" AttestationData "," AttestationData ")" [function]
   rule is_slashable_attestation_data(
-    #AttestationData(H1, #Checkpoint(S1EP,S1H),#Checkpoint(T1EP,T1H), CL1),
-    #AttestationData(H2, #Checkpoint(S2EP,S2H),#Checkpoint(T2EP,T2H), CL2)
+    #AttestationData(S1, I1, H1, #Checkpoint(S1EP,S1H),#Checkpoint(T1EP,T1H)),
+    #AttestationData(S2, I2, H2, #Checkpoint(S2EP,S2H),#Checkpoint(T2EP,T2H))
     ) =>
       // Double vote
       //((H1 =/=K H2 orBool S1EP =/=K S2EP orBool S1H =/=K S2H orBool T1H =/=K T2H orBool CL1 =/=K CL2) andBool
       //  T1EP ==K T2EP) orBool
-      (#AttestationData(H1, #Checkpoint(S1EP,S1H),#Checkpoint(T1EP,T1H), CL1)
-      =/=K #AttestationData(H2, #Checkpoint(S2EP,S2H),#Checkpoint(T2EP,T2H), CL2)
+      (#AttestationData(S1, I1, H1, #Checkpoint(S1EP,S1H),#Checkpoint(T1EP,T1H))
+      =/=K #AttestationData(S2, I2, H2, #Checkpoint(S2EP,S2H),#Checkpoint(T2EP,T2H))
       andBool T1EP ==K T2EP) orBool
       // Surround vote
       (S1EP <Int S2EP andBool T2EP <Int T1EP)
@@ -278,6 +278,49 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
       => bytes_to_int(substrString({hash({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1))}:>String, 0, 8)) %Int Count
 
 /*
+def compute_proposer_index(state: BeaconState, indices: Sequence[ValidatorIndex], seed: Hash) -> ValidatorIndex:
+    """
+    Return from ``indices`` a random index sampled by effective balance.
+    """
+    assert len(indices) > 0
+    MAX_RANDOM_BYTE = 2**8 - 1
+    i = 0
+    while True:
+        candidate_index = indices[compute_shuffled_index(ValidatorIndex(i % len(indices)), len(indices), seed)]
+        random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
+        effective_balance = state.validators[candidate_index].effective_balance
+        if effective_balance * MAX_RANDOM_BYTE >= MAX_EFFECTIVE_BALANCE * random_byte:
+            return ValidatorIndex(candidate_index)
+        i += 1
+*/
+  syntax ValidatorIndex ::= "compute_proposer_index" "(" IntList "," Hash ")" [function]
+  rule compute_proposer_index(INDICES, SEED) => computeProposerIndexLoop(INDICES, SEED, 0)
+  requires INDICES =/=K .IntList
+
+  syntax ValidatorIndex ::= computeProposerIndexLoop(IntList, Hash, Int) [function]
+  rule computeProposerIndexLoop(INDICES, SEED, I)
+         => #fun(CandidateIndex
+         => #fun(RandomByte
+         => #fun(EffectiveBalance
+         => computeProposerIndexLoopAux(INDICES, SEED, I, EffectiveBalance, RandomByte, CandidateIndex)
+            )(getValidator(CandidateIndex).effectiveBalance)
+            //random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
+            )(getByte( hashConcat(SEED, to_bytes(I /Int 32, 8)), I %Int 32))
+            )(INDICES[compute_shuffled_index(I %Int len(INDICES), len(INDICES), SEED)])
+
+  syntax ValidatorIndex ::= computeProposerIndexLoopAux(IntList, Hash, Int, Int, Int, ValidatorIndex) [function]
+
+  rule computeProposerIndexLoopAux(INDICES, SEED, I, EffectiveBalance, RandomByte, CandidateIndex) =>
+       computeProposerIndexLoop(INDICES, SEED, I +Int 1)
+    requires EffectiveBalance *Int (2 ^Int 8 -Int 1)  <Int MAX_EFFECTIVE_BALANCE *Int RandomByte
+                              //MAX_RANDOM_BYTE
+
+  rule computeProposerIndexLoopAux(INDICES, SEED, I, EffectiveBalance, RandomByte, CandidateIndex) =>
+       CandidateIndex
+    requires EffectiveBalance *Int (2 ^Int 8 -Int 1) >=Int MAX_EFFECTIVE_BALANCE *Int RandomByte
+                              //MAX_RANDOM_BYTE
+
+/*
 def compute_committee(indices: Sequence[ValidatorIndex],
                       seed: Hash,
                       index: uint64,
@@ -307,34 +350,34 @@ def compute_committee(indices: Sequence[ValidatorIndex],
     requires I >=Int END
 
 /*
-def compute_epoch_of_slot(slot: Slot) -> Epoch:
+def compute_epoch_at_slot(slot: Slot) -> Epoch:
     """
     Return the epoch number of ``slot``.
     """
     return Epoch(slot // SLOTS_PER_EPOCH)
 */
-  syntax Int ::= "compute_epoch_of_slot" "(" Int ")" [function]
-  rule compute_epoch_of_slot(SLOT) => SLOT /Int SLOTS_PER_EPOCH
+  syntax Int ::= "compute_epoch_at_slot" "(" Int ")" [function]
+  rule compute_epoch_at_slot(SLOT) => SLOT /Int SLOTS_PER_EPOCH
 
 /*
-def compute_start_slot_of_epoch(epoch: Epoch) -> Slot:
+def compute_start_slot_at_epoch(epoch: Epoch) -> Slot:
     """
     Return the start slot of ``epoch``.
     """
     return Slot(epoch * SLOTS_PER_EPOCH)
 */
-  syntax Int ::= "compute_start_slot_of_epoch" "(" Int ")" [function]
-  rule compute_start_slot_of_epoch(EPOCH) => EPOCH *Int SLOTS_PER_EPOCH
+  syntax Int ::= "compute_start_slot_at_epoch" "(" Int ")" [function]
+  rule compute_start_slot_at_epoch(EPOCH) => EPOCH *Int SLOTS_PER_EPOCH
 
 /*
 def compute_activation_exit_epoch(epoch: Epoch) -> Epoch:
     """
     Return the epoch during which validator activations and exits initiated in ``epoch`` take effect.
     """
-    return Epoch(epoch + 1 + ACTIVATION_EXIT_DELAY)
+    return Epoch(epoch + 1 + MAX_SEED_LOOKAHEAD)
 */
   syntax Int ::= "compute_activation_exit_epoch" "(" Int ")" [function]
-  rule compute_activation_exit_epoch(EP) => EP +Int 1 +Int ACTIVATION_EXIT_DELAY
+  rule compute_activation_exit_epoch(EP) => EP +Int 1 +Int MAX_SEED_LOOKAHEAD
 
 /*
 def compute_domain(domain_type: DomainType, fork_version: Version=Version()) -> Domain:
@@ -354,10 +397,10 @@ def get_current_epoch(state: BeaconState) -> Epoch:
     """
     Return the current epoch.
     """
-    return compute_epoch_of_slot(state.slot)
+    return compute_epoch_at_slot(state.slot)
 */
   syntax Int ::= "get_current_epoch" "(" ")" [function]
-  rule [[ get_current_epoch() => compute_epoch_of_slot(SLOT) ]]
+  rule [[ get_current_epoch() => compute_epoch_at_slot(SLOT) ]]
     <slot> SLOT </slot>
 
 /*
@@ -379,10 +422,10 @@ def get_block_root(state: BeaconState, epoch: Epoch) -> Hash:
     """
     Return the block root at the start of a recent ``epoch``.
     """
-    return get_block_root_at_slot(state, compute_start_slot_of_epoch(epoch))
+    return get_block_root_at_slot(state, compute_start_slot_at_epoch(epoch))
 */
   syntax Hash ::= "get_block_root" "(" Int ")" [function]
-  rule get_block_root(EP) => get_block_root_at_slot(compute_start_slot_of_epoch(EP))
+  rule get_block_root(EP) => get_block_root_at_slot(compute_start_slot_at_epoch(EP))
 
 /*
 def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
@@ -441,270 +484,85 @@ def get_validator_churn_limit(state: BeaconState) -> uint64:
           len(get_active_validator_indices(get_current_epoch())) /Int CHURN_LIMIT_QUOTIENT )
 
 /*
-def get_seed(state: BeaconState, epoch: Epoch) -> Hash:
+def get_seed(state: BeaconState, epoch: Epoch, domain_type: DomainType) -> Hash:
     """
     Return the seed at ``epoch``.
     """
     mix = get_randao_mix(state, Epoch(epoch + EPOCHS_PER_HISTORICAL_VECTOR - MIN_SEED_LOOKAHEAD - 1))  # Avoid underflow
-    active_index_root = state.active_index_roots[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
-    return hash(mix + active_index_root + int_to_bytes(epoch, length=32))
+    return hash(domain_type + int_to_bytes(epoch, length=8) + mix)
 */
-  syntax Hash ::= "get_seed" "(" Int ")" [function]
-  rule [[ get_seed(Epoch)
-    => hash( get_randao_mix(Epoch +Int EPOCHS_PER_HISTORICAL_VECTOR -Int MIN_SEED_LOOKAHEAD -Int 1)
-             +Bytes (ActiveIndexRoots[Epoch %Int EPOCHS_PER_HISTORICAL_VECTOR]
-             +Bytes to_bytes(Epoch, 32))
-           ) ]]
-    <active-index-roots> ActiveIndexRoots </active-index-roots>
+  syntax Hash ::= "get_seed" "(" Int "," DomainType ")" [function]
+  rule get_seed(Epoch, DOMAINTYPE)
+    => hash( (DOMAINTYPE
+             +Bytes to_bytes(Epoch, 8))
+             +Bytes get_randao_mix(Epoch +Int EPOCHS_PER_HISTORICAL_VECTOR -Int MIN_SEED_LOOKAHEAD -Int 1)
+           )
 
 /*
-def get_committee_count(state: BeaconState, epoch: Epoch) -> uint64:
+def get_committee_count_at_slot(state: BeaconState, slot: Slot) -> uint64:
     """
-    Return the number of committees at ``epoch``.
+    Return the number of committees at ``slot``.
     """
-    committees_per_slot = max(1, min(
-        SHARD_COUNT // SLOTS_PER_EPOCH,
+    epoch = compute_epoch_at_slot(slot)
+    return max(1, min(
+        MAX_COMMITTEES_PER_SLOT,
         len(get_active_validator_indices(state, epoch)) // SLOTS_PER_EPOCH // TARGET_COMMITTEE_SIZE,
     ))
-    return committees_per_slot * SLOTS_PER_EPOCH
 */
-  syntax Int ::= "get_committee_count" "(" Int ")" [function]
-  rule get_committee_count( EP )
-    => maxInt(1, minInt(SHARD_COUNT /Int SLOTS_PER_EPOCH,
-                        len(get_active_validator_indices(EP)) /Int SLOTS_PER_EPOCH /Int TARGET_COMMITTEE_SIZE
+  syntax Int ::= "get_committee_count_at_slot" "(" Int ")" [function]
+  rule get_committee_count_at_slot( SLOT )
+    => maxInt(1, minInt(MAX_COMMITTEES_PER_SLOT,
+                        len(get_active_validator_indices(compute_epoch_at_slot( SLOT ))) /Int SLOTS_PER_EPOCH /Int TARGET_COMMITTEE_SIZE
                  )
-             ) *Int SLOTS_PER_EPOCH
+             )
 
 /*
-def get_crosslink_committee(state: BeaconState, epoch: Epoch, shard: Shard) -> Sequence[ValidatorIndex]:
+
+def get_beacon_committee(state: BeaconState, slot: Slot, index: CommitteeIndex) -> Sequence[ValidatorIndex]:
     """
-    Return the crosslink committee at ``epoch`` for ``shard``.
+    Return the beacon committee at ``slot`` for ``index``.
     """
+    epoch = compute_epoch_at_slot(slot)
+    committees_per_slot = get_committee_count_at_slot(state, slot)
     return compute_committee(
         indices=get_active_validator_indices(state, epoch),
-        seed=get_seed(state, epoch),
-        index=(shard + SHARD_COUNT - get_start_shard(state, epoch)) % SHARD_COUNT,
-        count=get_committee_count(state, epoch),
+        seed=get_seed(state, epoch, DOMAIN_BEACON_ATTESTER),
+        index=(slot % SLOTS_PER_EPOCH) * committees_per_slot + index,
+        count=committees_per_slot * SLOTS_PER_EPOCH,
     )
 */
-  syntax IntList ::= "get_crosslink_committee" "(" Int "," Int ")" [function]
-  rule get_crosslink_committee(EPOCH, SHARD)
+  syntax IntList ::= "get_beacon_committee" "(" Int "," Int ")" [function]
+  rule get_beacon_committee(SLOT, INDEX)
+    => #fun(CommitteesPerSlot
+    => #fun(EPOCH
     => compute_committee(
           get_active_validator_indices(EPOCH),
-          get_seed(EPOCH),
-          (SHARD +Int SHARD_COUNT -Int get_start_shard(EPOCH)) %Int SHARD_COUNT,
-          get_committee_count(EPOCH)
-    )
-
-/*
-def get_start_shard(state: BeaconState, epoch: Epoch) -> Shard:
-    """
-    Return the start shard of the 0th committee at ``epoch``.
-    """
-    assert epoch <= get_current_epoch(state) + 1
-    check_epoch = Epoch(get_current_epoch(state) + 1)
-    shard = Shard((state.start_shard + get_shard_delta(state, get_current_epoch(state))) % SHARD_COUNT)
-    while check_epoch > epoch:
-        check_epoch -= Epoch(1)
-        shard = Shard((shard + SHARD_COUNT - get_shard_delta(state, check_epoch)) % SHARD_COUNT)
-    return shard
-*/
-  syntax Int ::= "get_start_shard" "(" Int ")" [function]
-  rule [[ get_start_shard(EPOCH) => getStartShardAux(
-      get_current_epoch() +Int 1,
-      (LSS +Int get_shard_delta(get_current_epoch())) %Int SHARD_COUNT,
-      EPOCH
-    ) ]]
-    <start-shard> LSS </start-shard>
-    requires EPOCH <=Int get_current_epoch() +Int 1
-
-  syntax Int ::= getStartShardAux( Int, Int, Int ) [function]
-  rule getStartShardAux(
-      CheckEP => CheckEP -Int 1,
-      SHARD => (SHARD +Int SHARD_COUNT -Int get_shard_delta(CheckEP -Int 1)) %Int SHARD_COUNT,
-      EPOCH
-    )
-    requires CheckEP >Int EPOCH
-
-  rule getStartShardAux(CheckEP, SHARD, EPOCH) => SHARD
-    requires CheckEP <=Int EPOCH
-
-/*
-def get_shard_delta(state: BeaconState, epoch: Epoch) -> uint64:
-    """
-    Return the number of shards to increment ``state.start_shard`` at ``epoch``.
-    """
-    return min(get_committee_count(state, epoch), SHARD_COUNT - SHARD_COUNT // SLOTS_PER_EPOCH)
-*/
-  syntax Int ::= "get_shard_delta" "(" Int ")" [function]
-  rule get_shard_delta( EPOCH ) => minInt(
-    get_committee_count(EPOCH),
-    SHARD_COUNT -Int SHARD_COUNT /Int SLOTS_PER_EPOCH
-  )
-
+          get_seed(EPOCH, DOMAIN_BEACON_ATTESTER),
+          (SLOT %Int SLOTS_PER_EPOCH) *Int CommitteesPerSlot +Int INDEX,
+          CommitteesPerSlot *Int SLOTS_PER_EPOCH)
+    )(compute_epoch_at_slot(SLOT))
+    )(get_committee_count_at_slot(SLOT))
 /*
 def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
     """
     Return the beacon proposer index at the current slot.
     """
     epoch = get_current_epoch(state)
-    committees_per_slot = get_committee_count(state, epoch) // SLOTS_PER_EPOCH
-    offset = committees_per_slot * (state.slot % SLOTS_PER_EPOCH)
-    shard = Shard((get_start_shard(state, epoch) + offset) % SHARD_COUNT)
-    first_committee = get_crosslink_committee(state, epoch, shard)
-    MAX_RANDOM_BYTE = 2**8 - 1
-    seed = get_seed(state, epoch)
-    i = 0
-    while True:
-        candidate_index = first_committee[(epoch + i) % len(first_committee)]
-        random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
-        effective_balance = state.validators[candidate_index].effective_balance
-        if effective_balance * MAX_RANDOM_BYTE >= MAX_EFFECTIVE_BALANCE * random_byte:
-            return ValidatorIndex(candidate_index)
-        i += 1
+    seed = hash(get_seed(state, epoch, DOMAIN_BEACON_PROPOSER) + int_to_bytes(state.slot, length=8))
+    indices = get_active_validator_indices(state, epoch)
+    return compute_proposer_index(state, indices, seed)
 */
   syntax ValidatorIndex ::= "get_beacon_proposer_index" "(" ")" [function]
   rule [[ get_beacon_proposer_index()
        => #fun(EPOCH
-       => #fun(CommitteesPerSlot
-       => #fun(OFFSET
-       => #fun(SHARD
-       => #fun(FirstCommittee
-       => #fun(MaxRandomByte
        => #fun(SEED
-       => #fun(I
-       => getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD,
-                                     FirstCommittee, MaxRandomByte, SEED, I)
-          )(0)
-          )(get_seed(EPOCH))
-          )(2 ^Int 8 -Int 1)
-          )(get_crosslink_committee(EPOCH, SHARD))
-          )((get_start_shard(EPOCH) +Int OFFSET) %Int SHARD_COUNT)
-          )(CommitteesPerSlot *Int (SLOT %Int SLOTS_PER_EPOCH))
-          )(get_committee_count(EPOCH) /Int SLOTS_PER_EPOCH)
+       => #fun(INDICES
+       => compute_proposer_index(INDICES, SEED)
+          )(get_active_validator_indices(EPOCH))
+          )(hashConcat(get_seed(EPOCH, DOMAIN_BEACON_PROPOSER), to_bytes(SLOT, 8)))
           )(get_current_epoch())
        ]]
-    <slot> SLOT </slot>
-
-/*  i = 0
-    while True:
-        candidate_index = first_committee[(epoch + i) % len(first_committee)]
-        random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
-        effective_balance = state.validators[candidate_index].effective_balance
-        if effective_balance * MAX_RANDOM_BYTE >= MAX_EFFECTIVE_BALANCE * random_byte:
-            return ValidatorIndex(candidate_index)
-        i += 1  */
-  syntax ValidatorIndex ::= getBeaconProposerIndexLoop(
-                              Int, Int, Int, Int, IntList, Int, Hash, Int) [function]
-  rule getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I)
-       => #fun(CandidateIndex
-       => #fun(RandomByte
-       => #fun(EffectiveBalance
-       => getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
-                                        CandidateIndex, RandomByte, EffectiveBalance )
-          )(getValidator(CandidateIndex).effectiveBalance)
-          //random_byte = hash(seed + int_to_bytes(i // 32, length=8))[i % 32]
-          )(getByte( hashConcat(SEED, to_bytes(I /Int 32, 8) ), I %Int 32))
-          )(FirstCommittee[(EPOCH +Int I) %Int len(FirstCommittee)])
-
-  syntax ValidatorIndex ::= getBeaconProposerIndexLoopAux(
-                              Int, Int, Int, Int, IntList, Int, Hash, Int,
-                              Int, Int, Int) [function]
-  rule getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
-                                     CandidateIndex, RandomByte, EffectiveBalance)
-    => getBeaconProposerIndexLoop(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I +Int 1)
-    requires EffectiveBalance *Int MaxRandomByte <Int MAX_EFFECTIVE_BALANCE *Int RandomByte
-
-  rule getBeaconProposerIndexLoopAux(EPOCH, CommitteesPerSlot, OFFSET, SHARD, FirstCommittee, MaxRandomByte, SEED, I,
-                                     CandidateIndex, RandomByte, EffectiveBalance)
-    => CandidateIndex
-    requires EffectiveBalance *Int MaxRandomByte >=Int MAX_EFFECTIVE_BALANCE *Int RandomByte
-
-/*
-def get_attestation_data_slot(state: BeaconState, data: AttestationData) -> Slot:
-    """
-    Return the slot corresponding to the attestation ``data``.
-    """
-    committee_count = get_committee_count(state, data.target.epoch)
-    offset = (data.crosslink.shard + SHARD_COUNT - get_start_shard(state, data.target.epoch)) % SHARD_COUNT
-    return Slot(compute_start_slot_of_epoch(data.target.epoch) + offset // (committee_count // SLOTS_PER_EPOCH))
-*/
-    syntax Int ::= "get_attestation_data_slot" "(" AttestationData ")" [function]
-    rule get_attestation_data_slot(#AttestationData(_,_, #Checkpoint(EP,_), #Crosslink(SHARD,_,_,_,_))) =>
-      compute_start_slot_of_epoch(EP) +Int
-        // offset
-        (( SHARD +Int SHARD_COUNT -Int get_start_shard(EP) ) %Int SHARD_COUNT) /Int
-        // (committee_count // SLOTS_PER_EPOCH)
-        (get_committee_count(EP) /Int SLOTS_PER_EPOCH)
-
-/*
-def get_compact_committees_root(state: BeaconState, epoch: Epoch) -> Hash:
-    """
-    Return the compact committee root at ``epoch``.
-    """
-    committees = [CompactCommittee() for _ in range(SHARD_COUNT)]
-    start_shard = get_start_shard(state, epoch)
-    for committee_number in range(get_committee_count(state, epoch)):
-        shard = Shard((start_shard + committee_number) % SHARD_COUNT)
-        for index in get_crosslink_committee(state, epoch, shard):
-            validator = state.validators[index]
-            committees[shard].pubkeys.append(validator.pubkey)
-            compact_balance = validator.effective_balance // EFFECTIVE_BALANCE_INCREMENT
-            # `index` (top 6 bytes) + `slashed` (16th bit) + `compact_balance` (bottom 15 bits)
-            compact_validator = uint64((index << 16) + (validator.slashed << 15) + compact_balance)
-            committees[shard].compact_validators.append(compact_validator)
-    return hash_tree_root(Vector[CompactCommittee, SHARD_COUNT](committees))
-*/
-  syntax Hash ::= "get_compact_committees_root" "(" Int ")" [function]
-  rule get_compact_committees_root(EPOCH)
-      //Vector[CompactCommittee, SHARD_COUNT]
-    => hash_tree_root_list(
-         computeCompactCommitteesComLoop(
-           EPOCH, get_start_shard(EPOCH), 0, get_committee_count(EPOCH), initCompCommListOfSize(SHARD_COUNT)),
-           SHARD_COUNT,
-           %container,
-           true)
-
-  syntax CompactCommitteeList ::= computeCompactCommitteesComLoop(Int, Int, Int, Int, CompactCommitteeList) [function]
-  rule computeCompactCommitteesComLoop(
-         Epoch, StartShard,
-         CommNum => CommNum +Int 1,
-         CommCount,
-         CommitteeList => computeCompactCommitteesIndLoop(
-                            (StartShard +Int CommNum) %Int SHARD_COUNT,
-                            get_crosslink_committee(Epoch, (StartShard +Int CommNum) %Int SHARD_COUNT),
-                            CommitteeList))
-    requires CommNum <Int CommCount
-
-  rule computeCompactCommitteesComLoop(_,_, CommNum, CommCount, CommitteeList) => CommitteeList
-    requires CommNum >=Int CommCount
-
-  syntax CompactCommitteeList ::=computeCompactCommitteesIndLoop(Int, IntList, CompactCommitteeList) [function]
-  rule computeCompactCommitteesIndLoop(
-            Shard,
-            I IL => IL,
-            CommitteeList => setCommAtShard(CommitteeList,
-                                            Shard,
-                                            updateCompComm(CommitteeList[Shard],
-                                                           getValidator(I).pubkey,
-                                                           computeCompactValidatorIndex(
-                                                             I,
-                                                             toInt(getValidator(I).slashed),
-                                                             getValidator(I).effectiveBalance /Int EFFECTIVE_BALANCE_INCREMENT))))
-
-  rule computeCompactCommitteesIndLoop(_, .IntList, CommitteeList) => CommitteeList
-
-  syntax Int ::= computeCompactValidatorIndex(Int, Int, Int)  [function]
-  rule computeCompactValidatorIndex(I, Slashed, CompBal)
-    => (I *Int (2 ^Int 16)) +Int (Slashed *Int (2 ^Int 15)) +Int CompBal
-
-  syntax CompactCommittee ::= updateCompComm(CompactCommittee, BLSPubkey, Int) [function]
-  rule updateCompComm(#CompactCommittee(PKS, IL), PK, I) => #CompactCommittee(PKS +append PK, IL +append I)
-
-  syntax CompactCommitteeList ::= setCommAtShard(CompactCommitteeList, Int, CompactCommittee) [function]
-  rule setCommAtShard(C CL, SHARD, C') => C setCommAtShard(CL, SHARD -Int 1, C')
-    requires SHARD >Int 0
-  rule setCommAtShard(C CL, 0, C') => C' CL
+       <slot> SLOT </slot>
 
 /*
 def get_total_balance(state: BeaconState, indices: Set[ValidatorIndex]) -> Gwei:
@@ -789,12 +647,12 @@ def get_attesting_indices(state: BeaconState,
     """
     Return the set of attesting indices corresponding to ``data`` and ``bits``.
     """
-    committee = get_crosslink_committee(state, data.target.epoch, data.crosslink.shard)
+    committee = get_beacon_committee(state, data.slot, data.index)
     return set(index for i, index in enumerate(committee) if bits[i])
 */
   syntax IntList ::= "get_attesting_indices" "(" AttestationData "," BitList ")" [function]
-  rule get_attesting_indices(#AttestationData(_,_, #Checkpoint(EP,_), #Crosslink(SHARD,_,_,_,_)), BL) =>
-    extractAttestingIndices(get_crosslink_committee(EP, SHARD), BL, .IntList)
+  rule get_attesting_indices(#AttestationData(SLOT,INDEX,_,_,_), BL) =>
+    extractAttestingIndices(get_beacon_committee(SLOT, INDEX), BL, .IntList)
 
   syntax IntList ::= extractAttestingIndices(IntList, BitList, IntList) [function]
   rule extractAttestingIndices(I IL => IL, true  BL => BL, AL => AL +append I)
@@ -962,6 +820,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
         genesis_time=eth1_timestamp - eth1_timestamp % SECONDS_PER_DAY + 2 * SECONDS_PER_DAY,
         eth1_data=Eth1Data(block_hash=eth1_block_hash, deposit_count=len(deposits)),
         latest_block_header=BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody())),
+        randao_mixes=[eth1_block_hash] * EPOCHS_PER_HISTORICAL_VECTOR,  # Seed RANDAO with Eth1 entropy
     )
 
     # Process deposits
@@ -979,13 +838,6 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
             validator.activation_eligibility_epoch = GENESIS_EPOCH
             validator.activation_epoch = GENESIS_EPOCH
 
-    # Populate active_index_roots and compact_committees_roots
-    indices_list = List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT](get_active_validator_indices(state, GENESIS_EPOCH))
-    active_index_root = hash_tree_root(indices_list)
-    committee_root = get_compact_committees_root(state, GENESIS_EPOCH)
-    for index in range(EPOCHS_PER_HISTORICAL_VECTOR):
-        state.active_index_roots[index] = active_index_root
-        state.compact_committees_roots[index] = committee_root
     return state
 */
   syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Hash "," Int "," DepositList ")" [klabel(initialize_beacon_state_from_eth1), symbol]
@@ -993,10 +845,10 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
            => stateInit
            ~> processEth1Deposits(Deposits, getDataList(Deposits), 0)
            ~> processEth1Activations
-           ~> populateEth1Roots
        ... </k>
        <genesis-time> _ => E1TS -Int E1TS %Int SECONDS_PER_DAY +Int 2 *Int SECONDS_PER_DAY </genesis-time>
        <eth1-data> _ => #Eth1Data(defaultHash(), len(Deposits), E1BH) </eth1-data>
+       <randao-mixes> _ => fillInVector(E1BH, EPOCHS_PER_HISTORICAL_VECTOR) </randao-mixes>
        <latest-block-header>
               //BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody()))
          _ => #BeaconBlockHeader(0, defaultHash(), defaultHash(), hash_tree_root(defaultBeaconBlockBody()), defaultBLSSignature())
@@ -1009,10 +861,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
        <fork> _ => #Fork({defaultBytes4()}:>Version, {defaultBytes4()}:>Version, 0) </fork>
        <block-roots>  _ => fillInMap(defaultHash(), SLOTS_PER_HISTORICAL_ROOT) </block-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
        <state-roots>  _ => fillInMap(defaultHash(), SLOTS_PER_HISTORICAL_ROOT) </state-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-       <randao-mixes> _ => fillInVector(defaultHash(), EPOCHS_PER_HISTORICAL_VECTOR) </randao-mixes> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
        <slashings>    _ => fillInMap(0, EPOCHS_PER_SLASHINGS_VECTOR) </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
-       <previous-crosslinks> _ => fillInMap(defaultCrosslink(), SHARD_COUNT) </previous-crosslinks> //Vector[Crosslink, SHARD_COUNT]
-       <current-crosslinks>  _ => fillInMap(defaultCrosslink(), SHARD_COUNT) </current-crosslinks> //Vector[Crosslink, SHARD_COUNT]
        <justification-bits> _ => false  false  false  false  .BitList </justification-bits> //Bitvector[JUSTIFICATION_BITS_LENGTH]
        <previous-justified-checkpoint> _ => defaultCheckpoint() </previous-justified-checkpoint>
        <current-justified-checkpoint> _ => defaultCheckpoint() </current-justified-checkpoint>
@@ -1069,21 +918,6 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
     requires INDEX <Int COUNT
 
   rule processEth1Activations(COUNT, COUNT) => .K
-
-/*  # Populate active_index_roots and compact_committees_roots
-    indices_list = List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT](get_active_validator_indices(state, GENESIS_EPOCH))
-    active_index_root = hash_tree_root(indices_list)
-    committee_root = get_compact_committees_root(state, GENESIS_EPOCH)
-    for index in range(EPOCHS_PER_HISTORICAL_VECTOR):
-        state.active_index_roots[index] = active_index_root
-        state.compact_committees_roots[index] = committee_root */
-  syntax KItem ::= "populateEth1Roots"
-  rule <k> populateEth1Roots => .K ...</k>
-       <active-index-roots>
-          _ => fillInVector(hash_tree_root_list(get_active_validator_indices(GENESIS_EPOCH), VALIDATOR_REGISTRY_LIMIT, %uint64, false),
-                            EPOCHS_PER_HISTORICAL_VECTOR)
-       </active-index-roots>
-       <compact-committees-roots> _ => fillInVector(get_compact_committees_root(GENESIS_EPOCH), EPOCHS_PER_HISTORICAL_VECTOR) </compact-committees-roots>
 
 /*
 def is_valid_genesis_state(state: BeaconState) -> bool:
@@ -1195,7 +1029,6 @@ def process_slot(state: BeaconState) -> None:
 /*
 def process_epoch(state: BeaconState) -> None:
     process_justification_and_finalization(state)
-    process_crosslinks(state)
     process_rewards_and_penalties(state)
     process_registry_updates(state)
     # @process_reveal_deadlines
@@ -1207,7 +1040,6 @@ def process_epoch(state: BeaconState) -> None:
   syntax KItem ::= "process_epoch" "(" ")"
   rule <k> process_epoch() =>
                 process_justification_and_finalization()
-             ~> process_crosslinks()
              ~> process_rewards_and_penalties()
              ~> process_registry_updates()
              ~> process_slashings()
@@ -1248,7 +1080,7 @@ def get_matching_target_attestations(state: BeaconState, epoch: Epoch) -> Sequen
 def get_matching_head_attestations(state: BeaconState, epoch: Epoch) -> Sequence[PendingAttestation]:
     return [
         a for a in get_matching_source_attestations(state, epoch)
-        if a.data.beacon_block_root == get_block_root_at_slot(state, get_attestation_data_slot(state, a.data))
+        if a.data.beacon_block_root == get_block_root_at_slot(state, a.data.slot)
     ]
 */
   syntax PendingAttestationList ::= "get_matching_head_attestations" "(" Int ")" [function]
@@ -1257,9 +1089,9 @@ def get_matching_head_attestations(state: BeaconState, epoch: Epoch) -> Sequence
 
   syntax PendingAttestationList ::= filterOutNonMatchingHeads(PendingAttestationList, PendingAttestationList) [function]
   rule filterOutNonMatchingHeads(PA PAL => PAL, PAL' => PAL' +append PA)
-    requires PA.data.beaconBlockRoot ==K get_block_root_at_slot(get_attestation_data_slot(PA.data))
+    requires PA.data.beaconBlockRoot ==K get_block_root_at_slot(PA.data._slot)
   rule filterOutNonMatchingHeads(PA PAL => PAL, PAL')
-    requires PA.data.beaconBlockRoot =/=K get_block_root_at_slot(get_attestation_data_slot(PA.data))
+    requires PA.data.beaconBlockRoot =/=K get_block_root_at_slot(PA.data._slot)
   rule filterOutNonMatchingHeads(.PendingAttestationList, PAL') => PAL'
 
 /*
@@ -1291,113 +1123,6 @@ def get_attesting_balance(state: BeaconState, attestations: Sequence[PendingAtte
 */
   syntax Int ::= "get_attesting_balance" "(" PendingAttestationList ")" [function]
   rule get_attesting_balance(PAL) => get_total_balance(get_unslashed_attesting_indices(PAL))
-
-/*
-def get_winning_crosslink_and_attesting_indices(state: BeaconState,
-                                                epoch: Epoch,
-                                                shard: Shard) -> Tuple[Crosslink, Set[ValidatorIndex]]:
-    attestations = [a for a in get_matching_source_attestations(state, epoch) if a.data.crosslink.shard == shard]
-    crosslinks = filter(
-        lambda c: hash_tree_root(state.current_crosslinks[shard]) in (c.parent_root, hash_tree_root(c)),
-        [a.data.crosslink for a in attestations]
-    )
-    # Winning crosslink has the crosslink data root with the most balance voting for it (ties broken lexicographically)
-    winning_crosslink = max(crosslinks, key=lambda c: (
-        get_attesting_balance(state, [a for a in attestations if a.data.crosslink == c]), c.data_root
-    ), default=Crosslink())
-    winning_attestations = [a for a in attestations if a.data.crosslink == winning_crosslink]
-    return winning_crosslink, get_unslashed_attesting_indices(state, winning_attestations)
-*/
-  syntax CrosslinkIntListPair ::= "get_winning_crosslink_and_attesting_indices" "(" Int "," Int ")" [function]
-  rule get_winning_crosslink_and_attesting_indices(EPOCH, SHARD)
-       => #fun(ATTESTATIONS
-       => #fun(CROSSLINKS
-       => #fun(WinningCrosslink
-       => #fun(WinningAttestations
-       => #crosslinkIntListPair( WinningCrosslink, get_unslashed_attesting_indices(WinningAttestations) )
-          )(pendingAttestationsMatchingCrosslink(ATTESTATIONS, WinningCrosslink, .PendingAttestationList))
-          )(maxCrosslinkOnBalanceAndRoot(CROSSLINKS, ATTESTATIONS, .CrosslinkList, -1, ""))
-          )(getCrosslinksOfAttestationsMatchingShardCrosslink(ATTESTATIONS, SHARD, .CrosslinkList))
-          )(getMatchingShardSourceAttestations(EPOCH, SHARD))
-
-//attestations = [a for a in get_matching_source_attestations(state, epoch) if a.data.crosslink.shard == shard]
-  syntax PendingAttestationList ::= getMatchingShardSourceAttestations(epoch: Int, shard: Int)      [function]
-  rule getMatchingShardSourceAttestations(EPOCH, SHARD)
-       => pendingAttestationsMatchingShard(get_matching_source_attestations(EPOCH), SHARD, .PendingAttestationList)
-
-/*  crosslinks = filter(
-        lambda c: hash_tree_root(state.current_crosslinks[shard]) in (c.parent_root, hash_tree_root(c)),
-        [a.data.crosslink for a in attestations]
-    )
-*/
-  syntax CrosslinkList ::= getCrosslinksOfAttestationsMatchingShardCrosslink(PendingAttestationList,
-                                                                             shard: Int, result: CrosslinkList) [function]
-  rule getCrosslinksOfAttestationsMatchingShardCrosslink(PATT PATTList, SHARD, RES)
-       => #fun(CROSSLINK
-       => getCrosslinksOfAttestationsMatchingShardCrosslink( PATTList, SHARD,
-            #if hash_tree_root(getCurrentCrosslink(SHARD))
-                in ( SetItem(CROSSLINK.parentRoot) SetItem(hash_tree_root(CROSSLINK)) )
-              #then RES +append CROSSLINK
-              #else RES
-            #fi
-          )
-          )(PATT.data.crosslink)
-
-  rule getCrosslinksOfAttestationsMatchingShardCrosslink(.PendingAttestationList, _, RES) => RES
-
-/*  winning_crosslink = max(crosslinks, key=lambda c: (
-        get_attesting_balance(state, [a for a in attestations if a.data.crosslink == c]), c.data_root
-    ), default=Crosslink())
-*/
-  syntax Crosslink ::= maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendingAttestationList,
-                                                    result: CrosslinkList, maxBalance: Int, maxRoot: Hash) [function]
-  rule maxCrosslinkOnBalanceAndRoot( CROSSLINK CrosslinkList, PendAttList, RES, MaxBalance, MaxRoot )
-        => #fun(BALANCE
-        => #fun(ROOT
-        => maxCrosslinkOnBalanceAndRoot(CrosslinkList, PendAttList,
-                                        #if        BALANCE >Int MaxBalance
-                                           orBool (BALANCE ==Int MaxBalance andBool ROOT >String MaxRoot)
-                                          #then CROSSLINK .CrosslinkList
-                                          #else RES
-                                        #fi,
-                                        #if        BALANCE >Int MaxBalance
-                                           orBool (BALANCE ==Int MaxBalance andBool ROOT >String MaxRoot)
-                                          #then BALANCE
-                                          #else MaxBalance
-                                        #fi,
-                                        #if        BALANCE >Int MaxBalance
-                                           orBool (BALANCE ==Int MaxBalance andBool ROOT >String MaxRoot)
-                                          #then ROOT
-                                          #else MaxRoot
-                                        #fi
-           )
-           )(CROSSLINK.dataRoot)
-           )( get_attesting_balance(pendingAttestationsMatchingCrosslink(PendAttList, CROSSLINK, .PendingAttestationList)) )
-
-  rule maxCrosslinkOnBalanceAndRoot(.CrosslinkList, _, CROSSLINK:Crosslink, _,_ ) => CROSSLINK
-  rule maxCrosslinkOnBalanceAndRoot(.CrosslinkList, _, .CrosslinkList, _,_ ) => defaultCrosslink()
-
-  // extracts the list of attestations for the given shard
-  syntax PendingAttestationList ::= pendingAttestationsMatchingShard(PendingAttestationList, Int,
-                                                                     PendingAttestationList) [function]
-  rule pendingAttestationsMatchingShard( PA PAList => PAList,
-                                         SHARD,
-                                         RES => #if PA.data.crosslink.shard ==Int SHARD
-                                                  #then RES +append PA
-                                                  #else RES
-                                                #fi)
-  rule pendingAttestationsMatchingShard(.PendingAttestationList, _, RES) => RES
-
-//winning_attestations = [a for a in attestations if a.data.crosslink == CROSSLINK]
-  syntax PendingAttestationList ::= pendingAttestationsMatchingCrosslink(PendingAttestationList, Crosslink,
-                                                                         PendingAttestationList) [function]
-  rule pendingAttestationsMatchingCrosslink( PA PAL => PAL,
-                                             CROSSLINK,
-                                             RES => #if PA.data.crosslink ==K CROSSLINK
-                                                      #then RES +append PA
-                                                      #else RES
-                                                    #fi)
-  rule pendingAttestationsMatchingCrosslink(.PendingAttestationList, _, RES) => RES
 
 /*
 def process_justification_and_finalization(state: BeaconState) -> None:
@@ -1539,48 +1264,6 @@ def process_justification_and_finalization(state: BeaconState) -> None:
        </finalized-checkpoint>
 
 /*
-def process_crosslinks(state: BeaconState) -> None:
-    state.previous_crosslinks = [c for c in state.current_crosslinks]
-    for epoch in (get_previous_epoch(state), get_current_epoch(state)):
-        for offset in range(get_committee_count(state, epoch)):
-            shard = Shard((get_start_shard(state, epoch) + offset) % SHARD_COUNT)
-            crosslink_committee = set(get_crosslink_committee(state, epoch, shard))
-            winning_crosslink, attesting_indices = get_winning_crosslink_and_attesting_indices(state, epoch, shard)
-            if 3 * get_total_balance(state, attesting_indices) >= 2 * get_total_balance(state, crosslink_committee):
-                state.current_crosslinks[shard] = winning_crosslink
-*/
-  syntax KItem ::= "process_crosslinks" "(" ")" [klabel(process_crosslinks), symbol]
-  rule <k> process_crosslinks()
-           => processCrosslinksForEpoch(get_previous_epoch())
-           ~> processCrosslinksForEpoch(get_current_epoch()) ... </k>
-       <previous-crosslinks> PCL => CCL </previous-crosslinks>
-       <current-crosslinks> CCL  </current-crosslinks>
-
-  syntax KItem ::= "processCrosslinksForEpoch" "(" Int ")"
-  rule <k> processCrosslinksForEpoch(EP) => processCrosslinksForEpochLoop(0, get_committee_count(EP), EP) ... </k>
-
-  syntax KItem ::= "processCrosslinksForEpochLoop" "(" Int "," Int "," Int ")"
-  rule <k> processCrosslinksForEpochLoop(OFFSET => OFFSET +Int 1, COUNT, EP) ... </k>
-       <current-crosslinks>
-         CROSSLINKS
-         => #fun(SHARD
-         => #fun(CrosslinkCommittee
-         => #fun(WinCrossAndIndices
-         => #if ( 3 *Int get_total_balance(WinCrossAndIndices.intList) >=Int 2 *Int get_total_balance(CrosslinkCommittee) )
-              #then CROSSLINKS[SHARD <- WinCrossAndIndices.crosslink]
-              #else CROSSLINKS
-            #fi
-            )(get_winning_crosslink_and_attesting_indices(EP, SHARD))
-            )(get_crosslink_committee(EP, SHARD))
-            )((get_start_shard(EP) +Int OFFSET) %Int SHARD_COUNT)
-       </current-crosslinks>
-    requires OFFSET <Int COUNT
-
-  rule <k> processCrosslinksForEpochLoop(OFFSET, COUNT, EP) => .K ... </k>
-    requires OFFSET >=Int COUNT
-
-
-/*
 def get_base_reward(state: BeaconState, index: ValidatorIndex) -> Gwei:
     total_balance = get_total_active_balance(state)
     effective_balance = state.validators[index].effective_balance
@@ -1626,9 +1309,7 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
         rewards[attestation.proposer_index] += proposer_reward
         max_attester_reward = get_base_reward(state, index) - proposer_reward
         rewards[index] += Gwei(
-            max_attester_reward
-            * (SLOTS_PER_EPOCH + MIN_ATTESTATION_INCLUSION_DELAY - attestation.inclusion_delay)
-            // SLOTS_PER_EPOCH
+            max_attester_reward // attestation.inclusion_delay
         )
 
     # Inactivity penalty
@@ -1725,12 +1406,10 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
          I IL => IL,
          Rewards => (updateMinDelayAttReward(Rewards, I))[I <- ({(updateMinDelayAttReward(Rewards, I))[I]}:>Int
                                   +Int (computeMaxAttReward(I, computeProposerReward(I))
-                                        *Int (SLOTS_PER_EPOCH
-                                              +Int MIN_ATTESTATION_INCLUSION_DELAY
-                                              -Int findMinDelayAttestation(
+                                              /Int findMinDelayAttestation(
                                                      filterAttForIndex(get_matching_source_attestations(get_previous_epoch()), I)
-                                                   ).inclusionDelay )
-                                        /Int SLOTS_PER_EPOCH)) ]
+                                                   ).inclusionDelay
+                                        )) ]
        )
   rule loopOverUnslashedAttestingIndices(.IntList, Rewards) => Rewards
 
@@ -1839,89 +1518,14 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
     requires I >=Int N
 
 /*
-def get_crosslink_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence[Gwei]]:
-    rewards = [Gwei(0) for _ in range(len(state.validators))]
-    penalties = [Gwei(0) for _ in range(len(state.validators))]
-    epoch = get_previous_epoch(state)
-    for offset in range(get_committee_count(state, epoch)):
-        shard = Shard((get_start_shard(state, epoch) + offset) % SHARD_COUNT)
-        crosslink_committee = set(get_crosslink_committee(state, epoch, shard))
-        winning_crosslink, attesting_indices = get_winning_crosslink_and_attesting_indices(state, epoch, shard)
-        attesting_balance = get_total_balance(state, attesting_indices)
-        committee_balance = get_total_balance(state, crosslink_committee)
-        for index in crosslink_committee:
-            base_reward = get_base_reward(state, index)
-            if index in attesting_indices:
-                rewards[index] += base_reward * attesting_balance // committee_balance
-            else:
-                penalties[index] += base_reward
-    return rewards, penalties
-*/
-  syntax MapMapPair ::= "get_crosslink_deltas" "(" ")" [function]
-  rule get_crosslink_deltas() => getCrosslinkDeltasOffsetLoop(
-                                 0,                                             // Offset counter
-                                 get_committee_count(get_previous_epoch()),         // Offset upper bound
-                                 get_previous_epoch(),                            // Previous epoch
-                                 #mapMapPair(
-                                   initMapOfSize(numOfValidators()),               // Rewards
-                                   initMapOfSize(numOfValidators()))               // Penalties
-                                 )
-
-  // outer offset loop
-  syntax MapMapPair ::= getCrosslinkDeltasOffsetLoop(Int, Int, Int, MapMapPair) [function]
-  rule getCrosslinkDeltasOffsetLoop(
-         Offset => Offset +Int 1, N, EP,
-         RewardsAndPenalties
-                => #fun(SHARD
-                => #fun(CrosslinkCommittee
-                => #fun(AttestingIndices
-                => #fun(AttestingBalance
-                => #fun(CommitteeBalance
-                => getCrosslinkDeltasIndexLoop(CrosslinkCommittee, AttestingIndices, AttestingBalance,
-                                               CommitteeBalance, RewardsAndPenalties)
-                   )(get_total_balance(CrosslinkCommittee))
-                   )(get_total_balance(AttestingIndices))
-                   )(get_winning_crosslink_and_attesting_indices(EP, SHARD).intList)
-                   )(get_crosslink_committee(EP, SHARD))
-                   )(getOffsetShard(Offset))
-       )
-    requires Offset <Int N
-
-  rule getCrosslinkDeltasOffsetLoop(Offset, N, _, RewPen) => RewPen
-    requires Offset >=Int N
-
-  // inner index loop
-  syntax MapMapPair ::= getCrosslinkDeltasIndexLoop(IntList, IntList, Int, Int, MapMapPair) [function]
-  rule getCrosslinkDeltasIndexLoop(
-         INDEX IL => IL,
-         AttestingIndices,
-         AttestingBalance,
-         CommitteeBalance,
-         #mapMapPair(Rewards, Penalties)
-           => #if contains(INDEX, AttestingIndices)
-              #then #mapMapPair(
-                      Rewards[INDEX <- ({Rewards[INDEX]}:>Int +Int get_base_reward(INDEX) *Int AttestingBalance /Int CommitteeBalance)],
-                      Penalties)
-              #else #mapMapPair(
-                      Rewards,
-                      Penalties[INDEX <- ({Penalties[INDEX]}:>Int +Int get_base_reward(INDEX))])
-              #fi
-       )
-  rule getCrosslinkDeltasIndexLoop(.IntList, _, _, _, RewPen) => RewPen
-
-  syntax Int ::= getOffsetShard(Int) [function]
-  rule getOffsetShard(Offset) => (get_start_shard(get_previous_epoch()) +Int Offset) %Int SHARD_COUNT
-
-/*
 def process_rewards_and_penalties(state: BeaconState) -> None:
     if get_current_epoch(state) == GENESIS_EPOCH:
         return
 
-    rewards1, penalties1 = get_attestation_deltas(state)
-    rewards2, penalties2 = get_crosslink_deltas(state)
+    rewards, penalties = get_attestation_deltas(state)
     for index in range(len(state.validators)):
-        increase_balance(state, ValidatorIndex(index), rewards1[index] + rewards2[index])
-        decrease_balance(state, ValidatorIndex(index), penalties1[index] + penalties2[index])
+        increase_balance(state, ValidatorIndex(index), rewards[index])
+        decrease_balance(state, ValidatorIndex(index), penalties[index])
 */
   syntax KItem ::= "process_rewards_and_penalties" "(" ")" [klabel(process_rewards_and_penalties), symbol]
   rule <k> process_rewards_and_penalties()
@@ -1930,24 +1534,21 @@ def process_rewards_and_penalties(state: BeaconState) -> None:
           #else processRewardsAndPenaltiesLoop(
                   0,
                   numOfValidators(),
-                  get_attestation_deltas(),
-                  get_crosslink_deltas())
+                  get_attestation_deltas())
           #fi
        ... </k>
 
-  syntax KItem ::= "processRewardsAndPenaltiesLoop" "(" i: Int "," n: Int "," attestationDeltas: MapMapPair ","
-                                                                              crosslinkDeltas: MapMapPair ")"
-  rule <k> (. => increase_balance(INDEX, {Rewards1[INDEX]}:>Int +Int {Rewards2[INDEX]}:>Int)
-              ~> decrease_balance(INDEX, {Penalties1[INDEX]}:>Int +Int {Penalties2[INDEX]}:>Int)
+  syntax KItem ::= "processRewardsAndPenaltiesLoop" "(" i: Int "," n: Int "," attestationDeltas: MapMapPair ")"
+  rule <k> (. => increase_balance(INDEX, {Rewards[INDEX]}:>Int)
+              ~> decrease_balance(INDEX, {Penalties[INDEX]}:>Int)
            ) ~> processRewardsAndPenaltiesLoop(
                    INDEX => INDEX +Int 1,
                    N,
-                   #mapMapPair(Rewards1, Penalties1),
-                   #mapMapPair(Rewards2, Penalties2)
+                   #mapMapPair(Rewards, Penalties)
                  )
        ... </k>
     requires INDEX <Int N
-  rule processRewardsAndPenaltiesLoop(INDEX, N, _, _) => .K
+  rule processRewardsAndPenaltiesLoop(INDEX, N, _) => .K
     requires INDEX >=Int N
 
 /*
@@ -2114,14 +1715,6 @@ def process_final_updates(state: BeaconState) -> None:
         HALF_INCREMENT = EFFECTIVE_BALANCE_INCREMENT // 2
         if balance < validator.effective_balance or validator.effective_balance + 3 * HALF_INCREMENT < balance:
             validator.effective_balance = min(balance - balance % EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE)
-    # Set active index root
-    index_epoch = Epoch(next_epoch + ACTIVATION_EXIT_DELAY)
-    index_root_position = index_epoch % EPOCHS_PER_HISTORICAL_VECTOR
-    indices_list = List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT](get_active_validator_indices(state, index_epoch))
-    state.active_index_roots[index_root_position] = hash_tree_root(indices_list)
-    # Set committees root
-    committee_root_position = next_epoch % EPOCHS_PER_HISTORICAL_VECTOR
-    state.compact_committees_roots[committee_root_position] = get_compact_committees_root(state, next_epoch)
     # Reset slashings
     state.slashings[next_epoch % EPOCHS_PER_SLASHINGS_VECTOR] = Gwei(0)
     # Set randao mix
@@ -2130,8 +1723,6 @@ def process_final_updates(state: BeaconState) -> None:
     if next_epoch % (SLOTS_PER_HISTORICAL_ROOT // SLOTS_PER_EPOCH) == 0:
         historical_batch = HistoricalBatch(block_roots=state.block_roots, state_roots=state.state_roots)
         state.historical_roots.append(hash_tree_root(historical_batch))
-    # Update start shard
-    state.start_shard = Shard((state.start_shard + get_shard_delta(state, current_epoch)) % SHARD_COUNT)
     # Rotate current/previous epoch attestations
     state.previous_epoch_attestations = state.current_epoch_attestations
     state.current_epoch_attestations = []
@@ -2139,12 +1730,9 @@ def process_final_updates(state: BeaconState) -> None:
   syntax KItem ::= "process_final_updates" "(" ")" [klabel(process_final_updates), symbol]
   rule <k> process_final_updates()
            => updateEffectiveBalances(0, numOfValidators(), EFFECTIVE_BALANCE_INCREMENT /Int 2)  // param: HALF_INCREMENT
-           ~> setActiveIndexRoots(get_current_epoch() +Int 1 +Int ACTIVATION_EXIT_DELAY)        // param: index_epoch
-           ~> setCommitteesRoot((get_current_epoch() +Int 1) %Int EPOCHS_PER_HISTORICAL_VECTOR) // param: committee_root_position
            ~> resetSlashings((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)     // param: (slashings index)
            ~> setRandaoMix((get_current_epoch() +Int 1) %Int EPOCHS_PER_SLASHINGS_VECTOR)       // param: (rnd mixes index)
            ~> setHistoricalRootAccumulator()
-           ~> updateStartShard(get_current_epoch())                                             // param: current_epoch
            ~> rotateEpochAttestations()
        ... </k>
        <slot> SLOT </slot>
@@ -2171,25 +1759,6 @@ def process_final_updates(state: BeaconState) -> None:
      andBool notBool(BAL <Int EffBal orBool EffBal +Int 3 *Int HALF_INCREMENT <Int BAL)
 
   rule updateEffectiveBalances(N, N, _) => .K
-
-  syntax KItem ::= "updateStartShard" "(" Int ")"
-  rule <k> updateStartShard(EP) => .K ... </k>
-       <start-shard> SHARD => (SHARD +Int get_shard_delta(EP)) %Int SHARD_COUNT </start-shard>
-
-  syntax KItem ::= "setActiveIndexRoots" "(" Int ")"
-  rule <k> setActiveIndexRoots(IndexEpoch) => .K ... </k>
-       <active-index-roots> AIR
-         => setBytesAt(AIR,
-                       IndexEpoch %Int EPOCHS_PER_HISTORICAL_VECTOR,
-                       //List[ValidatorIndex, VALIDATOR_REGISTRY_LIMIT]
-                       hash_tree_root_list(get_active_validator_indices(IndexEpoch), VALIDATOR_REGISTRY_LIMIT, %uint64, false))
-       </active-index-roots>
-
-  syntax KItem ::= "setCommitteesRoot" "(" Int ")"
-  rule <k> setCommitteesRoot(CommRootPos) => .K ... </k>
-       <compact-committees-roots>
-         CRS => setBytesAt(CRS, CommRootPos, get_compact_committees_root(get_current_epoch() +Int 1))
-       </compact-committees-roots>
 
   syntax KItem ::= "resetSlashings" "(" Int ")"
   rule <k> resetSlashings(SlashIndex) => .K ... </k>
@@ -2252,9 +1821,9 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
     state.latest_block_header = BeaconBlockHeader(
         slot=block.slot,
         parent_root=block.parent_root,
-        # state_root: zeroed, overwritten in the next `process_slot` call
+        # `state_root` is zeroed and overwritten in the next `process_slot` call
         body_root=hash_tree_root(block.body),
-        # signature is always zeroed
+        # `signature` is zeroed
     )
     # Verify proposer is not slashed
     proposer = state.validators[get_beacon_proposer_index(state)]
@@ -2326,16 +1895,13 @@ def process_eth1_data(state: BeaconState, body: BeaconBlockBody) -> None:
 def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
     # Verify that outstanding deposits are processed up to the maximum number of deposits
     assert len(body.deposits) == min(MAX_DEPOSITS, state.eth1_data.deposit_count - state.eth1_deposit_index)
-    # Verify that there are no duplicate transfers
-    assert len(body.transfers) == len(set(body.transfers))
 
     for operations, function in (
         (body.proposer_slashings, process_proposer_slashing),
         (body.attester_slashings, process_attester_slashing),
         (body.attestations, process_attestation),
         (body.deposits, process_deposit),
-        (body.voluntary_exits, process_voluntary_exit),
-        (body.transfers, process_transfer),
+        (body.voluntary_exits, process_voluntary_exit)
     ):
         for operation in operations:
             function(state, operation)
@@ -2343,53 +1909,48 @@ def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
   syntax KItem ::= "process_operations" "(" BeaconBlockBody ")"
   rule <k> process_operations(BlockBODY)
        => process_operations_aux(BlockBODY.proposerSlashings, BlockBODY.attesterSlashings,  BlockBODY.attestations,
-                                 BlockBODY.deposits,          BlockBODY.voluntaryExits,     BlockBODY.transfers)
+                                 BlockBODY.deposits,          BlockBODY.voluntaryExits)
        ... </k>
        <eth1-data> ETH1DATA </eth1-data>
        <eth1-deposit-index> ETH1DINDEX </eth1-deposit-index>
     requires len(BlockBODY.deposits) ==Int minInt(MAX_DEPOSITS, ETH1DATA.deposit_count -Int ETH1DINDEX)
-     andBool isDuplicateFree(BlockBODY.transfers)
 
   syntax KItem ::= "process_operations_aux" "(" ProposerSlashingList "," AttesterSlashingList "," AttestationList
-                                            "," DepositList "," VoluntaryExitList "," TransferList ")"
+                                            "," DepositList "," VoluntaryExitList ")"
 
   rule (. => process_proposer_slashing(PropSlashing))
-       ~> process_operations_aux(PropSlashing:ProposerSlashing L => L, _,_,_,_,_ )
+       ~> process_operations_aux(PropSlashing:ProposerSlashing L => L, _,_,_,_)
   rule (. => process_attester_slashing(AttSlashing))
-       ~> process_operations_aux(.ProposerSlashingList, AttSlashing:AttesterSlashing L => L, _,_,_,_ )
+       ~> process_operations_aux(.ProposerSlashingList, AttSlashing:AttesterSlashing L => L, _,_,_)
   rule (. => process_attestation(Att))
-       ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, Att:Attestation L => L, _,_,_ )
+       ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, Att:Attestation L => L, _,_)
   rule (. => process_deposit(DEP))
-       ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, DEP:Deposit L => L, _,_ )
+       ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, DEP:Deposit L => L, _)
   rule (. => process_voluntary_exit(VolEX))
        ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, .DepositList,
-                                 VolEX:VoluntaryExit L => L, _ )
-  rule (. => process_transfer(TR))
-       ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, .DepositList,
-                                 .VoluntaryExitList, TR:Transfer L => L )
+                                 VolEX:VoluntaryExit L => L)
   rule process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, .DepositList,
-                              .VoluntaryExitList, .TransferList ) => .K
+                              .VoluntaryExitList ) => .K
 
 /*
 def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSlashing) -> None:
     proposer = state.validators[proposer_slashing.proposer_index]
-    # Verify that the epoch is the same
-    assert (compute_epoch_of_slot(proposer_slashing.header_1.slot)
-            == compute_epoch_of_slot(proposer_slashing.header_2.slot))
+    # Verify slots match
+    assert proposer_slashing.header_1.slot == proposer_slashing.header_2.slot
     # But the headers are different
     assert proposer_slashing.header_1 != proposer_slashing.header_2
     # Check proposer is slashable
     assert is_slashable_validator(proposer, get_current_epoch(state))
     # Signatures are valid
     for header in (proposer_slashing.header_1, proposer_slashing.header_2):
-        domain = get_domain(state, DOMAIN_BEACON_PROPOSER, compute_epoch_of_slot(header.slot))
+        domain = get_domain(state, DOMAIN_BEACON_PROPOSER, compute_epoch_at_slot(header.slot))
         assert bls_verify(proposer.pubkey, signing_root(header), header.signature, domain)
 
     slash_validator(state, proposer_slashing.proposer_index)
 */
   syntax KItem ::= "process_proposer_slashing" "(" ProposerSlashing ")" [klabel(process_proposer_slashing), symbol]
   rule process_proposer_slashing(#ProposerSlashing(ProposerIndex, HEAD1, HEAD2)) => slash_validator(ProposerIndex, .ValidatorIndex)
-    requires compute_epoch_of_slot(HEAD1._slot) ==Int compute_epoch_of_slot(HEAD2._slot)
+    requires HEAD1._slot ==Int HEAD2._slot
      andBool HEAD1 =/=K HEAD2
      andBool is_slashable_validator(getValidator(ProposerIndex), get_current_epoch())
 
@@ -2434,36 +1995,26 @@ def process_attester_slashing(state: BeaconState, attester_slashing: AttesterSla
 /*
 def process_attestation(state: BeaconState, attestation: Attestation) -> None:
     data = attestation.data
-    assert data.crosslink.shard < SHARD_COUNT
+    assert data.index < get_committee_count_at_slot(state, data.slot)
     assert data.target.epoch in (get_previous_epoch(state), get_current_epoch(state))
+    assert data.slot + MIN_ATTESTATION_INCLUSION_DELAY <= state.slot <= data.slot + SLOTS_PER_EPOCH
 
-    attestation_slot = get_attestation_data_slot(state, data)
-    assert attestation_slot + MIN_ATTESTATION_INCLUSION_DELAY <= state.slot <= attestation_slot + SLOTS_PER_EPOCH
-
-    committee = get_crosslink_committee(state, data.target.epoch, data.crosslink.shard)
+    committee = get_beacon_committee(state, data.slot, data.index)
     assert len(attestation.aggregation_bits) == len(attestation.custody_bits) == len(committee)
 
     pending_attestation = PendingAttestation(
         data=data,
         aggregation_bits=attestation.aggregation_bits,
-        inclusion_delay=state.slot - attestation_slot,
+        inclusion_delay=state.slot - data.slot,
         proposer_index=get_beacon_proposer_index(state),
     )
 
     if data.target.epoch == get_current_epoch(state):
         assert data.source == state.current_justified_checkpoint
-        parent_crosslink = state.current_crosslinks[data.crosslink.shard]
         state.current_epoch_attestations.append(pending_attestation)
     else:
         assert data.source == state.previous_justified_checkpoint
-        parent_crosslink = state.previous_crosslinks[data.crosslink.shard]
         state.previous_epoch_attestations.append(pending_attestation)
-
-    # Check crosslink against expected parent crosslink
-    assert data.crosslink.parent_root == hash_tree_root(parent_crosslink)
-    assert data.crosslink.start_epoch == parent_crosslink.end_epoch
-    assert data.crosslink.end_epoch == min(data.target.epoch, parent_crosslink.end_epoch + MAX_EPOCHS_PER_CROSSLINK)
-    assert data.crosslink.data_root == Bytes32()  # [to be removed in phase 1]
 
     # Check signature
     assert is_valid_indexed_attestation(state, get_indexed_attestation(state, attestation))
@@ -2472,46 +2023,40 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
   rule <k> process_attestation( ATT )
            => process_attestation_if(ATT, #PendingAttestation(ATT.aggregation_bits,
                                                               ATT._data,
-                                                              SLOT -Int get_attestation_data_slot(ATT._data),
+                                                              SLOT -Int ATT._data._slot,
                                                               get_beacon_proposer_index()))
        ...</k>
        <slot> SLOT </slot>
-    requires ATT._data.crosslink.shard <Int SHARD_COUNT
+    requires ATT._data.index <Int get_committee_count_at_slot(ATT._data._slot)
      andBool (ATT._data.target.epoch) in (SetItem(get_previous_epoch()) SetItem(get_current_epoch()))
-     andBool get_attestation_data_slot(ATT._data) +Int MIN_ATTESTATION_INCLUSION_DELAY <=Int SLOT
+     andBool ATT._data._slot +Int MIN_ATTESTATION_INCLUSION_DELAY <=Int SLOT
+     andBool SLOT <=Int ATT._data._slot +Int SLOTS_PER_EPOCH
      andBool len(ATT.aggregation_bits) ==K len(ATT.custody_bits)
-     andBool len(ATT.custody_bits) ==K len(get_crosslink_committee(ATT._data.target.epoch, ATT._data.crosslink.shard))
-     andBool SLOT <=Int get_attestation_data_slot(ATT._data) +Int SLOTS_PER_EPOCH
+     andBool len(ATT.custody_bits) ==K len(get_beacon_committee(ATT._data._slot, ATT._data.index))
 
   //logic starting from if statement inside `process_attestation`
   syntax KItem ::= "process_attestation_if" "(" Attestation "," PendingAttestation ")"
 
   //if case true
   rule <k> process_attestation_if(ATT, PendingATT)
-          => process_attestation_after_if(ATT, CurrentCrosslink) ...</k>
+          => process_attestation_after_if(ATT) ...</k>
     <current-justified-checkpoint> CurrJustCHECKP </current-justified-checkpoint>
-    <current-crosslinks> ATT._data.crosslink.shard |-> CurrentCrosslink ...</current-crosslinks>
     <current-epoch-attestations> CurrEpochATTList => CurrEpochATTList +append PendingATT </current-epoch-attestations>
     requires ATT._data.target.epoch ==Int get_current_epoch() //if condition
      andBool ATT._data.source ==K CurrJustCHECKP
 
   //if case false
   rule <k> process_attestation_if(ATT, PendingATT)
-          => process_attestation_after_if(ATT, PrevCrosslink) ...</k>
+          => process_attestation_after_if(ATT) ...</k>
     <previous-justified-checkpoint> PrevJustCHECKP </previous-justified-checkpoint>
-    <previous-crosslinks> ATT._data.crosslink.shard |-> PrevCrosslink ...</previous-crosslinks>
     <previous-epoch-attestations> PrevEpochATTList => PrevEpochATTList +append PendingATT </previous-epoch-attestations>
     requires ATT._data.target.epoch =/=Int get_current_epoch() //if condition
      andBool ATT._data.source ==K PrevJustCHECKP
 
   //after if inside `process_attestation`
-  syntax KItem ::= "process_attestation_after_if" "(" Attestation "," Crosslink ")"
-  rule process_attestation_after_if(ATT, ParentCrosslink ) => .K
-    requires ATT._data.crosslink.parentRoot ==K hash_tree_root(ParentCrosslink)
-     andBool ATT._data.crosslink.startEpoch ==Int ParentCrosslink.endEpoch
-     andBool ATT._data.crosslink.endEpoch ==Int minInt(ATT._data.target.epoch, ParentCrosslink.endEpoch +Int MAX_EPOCHS_PER_CROSSLINK)
-     andBool ATT._data.crosslink.dataRoot ==K defaultHash()
-     andBool is_valid_indexed_attestation(get_indexed_attestation(ATT))
+  syntax KItem ::= "process_attestation_after_if" "(" Attestation ")"
+  rule process_attestation_after_if(ATT ) => .K
+    requires is_valid_indexed_attestation(get_indexed_attestation(ATT))
 
 
 /*
@@ -2630,68 +2175,8 @@ def process_voluntary_exit(state: BeaconState, exit: VoluntaryExit) -> None:
      andBool get_current_epoch() >=Int ExitEPOCH
      andBool get_current_epoch() >=Int getValidator(ValINDEX).activationEpoch +Int PERSISTENT_COMMITTEE_PERIOD
 
-/*
-def process_transfer(state: BeaconState, transfer: Transfer) -> None:
-    # Verify the balance the covers amount and fee (with overflow protection)
-    assert state.balances[transfer.sender] >= max(transfer.amount + transfer.fee, transfer.amount, transfer.fee)
-    # A transfer is valid in only one slot
-    assert state.slot == transfer.slot
-    # Sender must satisfy at least one of the following:
-    assert (
-        # 1) Never have been eligible for activation
-        state.validators[transfer.sender].activation_eligibility_epoch == FAR_FUTURE_EPOCH or
-        # 2) Be withdrawable
-        get_current_epoch(state) >= state.validators[transfer.sender].withdrawable_epoch or
-        # 3) Have a balance of at least MAX_EFFECTIVE_BALANCE after the transfer
-        state.balances[transfer.sender] >= transfer.amount + transfer.fee + MAX_EFFECTIVE_BALANCE
-    )
-    # Verify that the pubkey is valid
-    assert state.validators[transfer.sender].withdrawal_credentials == BLS_WITHDRAWAL_PREFIX + hash(transfer.pubkey)[1:]
-    # Verify that the signature is valid
-    assert bls_verify(transfer.pubkey, signing_root(transfer), transfer.signature, get_domain(state, DOMAIN_TRANSFER))
-    # Process the transfer
-    decrease_balance(state, transfer.sender, transfer.amount + transfer.fee)
-    increase_balance(state, transfer.recipient, transfer.amount)
-    increase_balance(state, get_beacon_proposer_index(state), transfer.fee)
-    # Verify balances are not dust
-    assert not (0 < state.balances[transfer.sender] < MIN_DEPOSIT_AMOUNT)
-    assert not (0 < state.balances[transfer.recipient] < MIN_DEPOSIT_AMOUNT)
-*/
-  syntax KItem ::= "process_transfer" "(" Transfer ")" [klabel(process_transfer), symbol]
-
-  rule <k> process_transfer(#Transfer( SENDER, RECIPIENT, AMOUNT, FEE, TrSLOT, PUBKEY, SIGNATURE ))
-           => decrease_balance(SENDER, AMOUNT +Int FEE)
-           ~> increase_balance(RECIPIENT, AMOUNT)
-           ~> increase_balance(get_beacon_proposer_index(), FEE)
-           ~> process_transfer_post_assert(SENDER, RECIPIENT) //last 2 asserts
-       ...</k>
-       <slot> SLOT </slot>
-       <validators> SENDER |-> SenderVAL ...</validators>
-    requires getBalance(SENDER) >=Int maxInt(AMOUNT +Int FEE, maxInt(AMOUNT, FEE))
-     andBool SLOT ==Int TrSLOT
-     andBool (
-               SenderVAL.activationEligibilityEpoch ==Int FAR_FUTURE_EPOCH
-        orBool get_current_epoch() >=Int SenderVAL.withdrawableEpoch
-        orBool getBalance(SENDER) >=Int AMOUNT +Int FEE +Int MAX_EFFECTIVE_BALANCE
-      )
-     andBool SenderVAL.withdrawalCredentials ==K
-        BLS_WITHDRAWAL_PREFIX +Bytes substrString({hash(PUBKEY)}:>String, 1, lengthString({hash(PUBKEY)}:>String))
-
-  syntax KItem ::= "process_transfer_post_assert" "(" ValidatorIndex "," ValidatorIndex ")"
-  rule process_transfer_post_assert(SENDER, RECIPIENT) => .K
-    requires notBool (0 <Int getBalance(SENDER)    andBool    getBalance(SENDER) <Int MIN_DEPOSIT_AMOUNT)
-     andBool notBool (0 <Int getBalance(RECIPIENT) andBool getBalance(RECIPIENT) <Int MIN_DEPOSIT_AMOUNT)
-
-  syntax Int ::= getBalance( ValidatorIndex )                         [function]
-  rule [[ getBalance(INDEX) => BAL ]]
-    <balances> INDEX |-> BAL ...</balances>
-
   syntax Validator ::= getValidator( ValidatorIndex )                 [function]
   rule [[ getValidator(INDEX) => VAL ]]
     <validators> INDEX |-> VAL ...</validators>
-
-  syntax Crosslink ::= getCurrentCrosslink( Int )                     [function]
-  rule [[ getCurrentCrosslink(INDEX) => CROSSLINK ]]
-    <current-crosslinks> INDEX |-> CROSSLINK ...</current-crosslinks>
 
 endmodule

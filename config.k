@@ -21,18 +21,12 @@ class BeaconState(Container):
     validators: List[Validator, VALIDATOR_REGISTRY_LIMIT]
     balances: List[Gwei, VALIDATOR_REGISTRY_LIMIT]
     # Shuffling
-    start_shard: Shard
     randao_mixes: Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
-    active_index_roots: Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]  # Active index digests for light clients
-    compact_committees_roots: Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]  # Committee digests for light clients
     # Slashings
     slashings: Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]  # Per-epoch sums of slashed effective balances
     # Attestations
     previous_epoch_attestations: List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
     current_epoch_attestations: List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
-    # Crosslinks
-    previous_crosslinks: Vector[Crosslink, SHARD_COUNT]  # Previous epoch snapshot
-    current_crosslinks: Vector[Crosslink, SHARD_COUNT]
     # Finality
     justification_bits: Bitvector[JUSTIFICATION_BITS_LENGTH]  # Bit set for every recent justified epoch
     previous_justified_checkpoint: Checkpoint  # Previous epoch snapshot
@@ -60,10 +54,7 @@ class BeaconState(Container):
         <validators> .Map </validators> //List[Validator, VALIDATOR_REGISTRY_LIMIT]
         <balances> .Map </balances> //List[Gwei, VALIDATOR_REGISTRY_LIMIT]
         // Shuffling
-        <start-shard> 0 </start-shard>
         <randao-mixes> .BytesList </randao-mixes> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
-        <active-index-roots> .BytesList </active-index-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
-        <compact-committees-roots> .BytesList </compact-committees-roots> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
         // Slashings
         <slashings> .Map </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
         // Attestations
@@ -71,9 +62,6 @@ class BeaconState(Container):
                                                        //List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
         <current-epoch-attestations> .PendingAttestationList </current-epoch-attestations>
                                                        //List[PendingAttestation, MAX_ATTESTATIONS * SLOTS_PER_EPOCH]
-        // Crosslinks
-        <previous-crosslinks> .Map </previous-crosslinks> //Vector[Crosslink, SHARD_COUNT]
-        <current-crosslinks> .Map </current-crosslinks> //Vector[Crosslink, SHARD_COUNT]
         // Finality
         <justification-bits> .BitList </justification-bits> //Bitvector[JUSTIFICATION_BITS_LENGTH]
         <previous-justified-checkpoint> .Checkpoint </previous-justified-checkpoint>

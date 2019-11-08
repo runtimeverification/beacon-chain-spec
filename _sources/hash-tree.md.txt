@@ -443,12 +443,8 @@ K semantics:
           hash_tree_root(P4, %bool) hash_tree_root(P5, %uint64) hash_tree_root(P6, %uint64) hash_tree_root(P7, %uint64)
           hash_tree_root(P8, %uint64) .BytesList, RemLast))
 
-  rule hash_tree_root(#Crosslink( P1, P2, P3, P4, P5 ) #as VAL, %container, RemLast)
-    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3, %uint64)
-          hash_tree_root(P4, %uint64) hash_tree_root(P5) .BytesList, RemLast))
-
-  rule hash_tree_root(#AttestationData( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
-    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
+  rule hash_tree_root(#AttestationData( P1, P2, P3, P4, P5 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3) hash_tree_root(P4) hash_tree_root(P5)
           .BytesList, RemLast))
 
   rule hash_tree_root(#AttestationDataAndCustodyBit( P1, P2 ) #as VAL, %container, RemLast)
@@ -475,10 +471,6 @@ K semantics:
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4)
           .BytesList, RemLast))
 
-  rule hash_tree_root(#CompactCommittee( P1, P2 ) #as VAL, %container, RemLast)
-    => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bytes, false)
-          hash_tree_root_list(P2, MAX_VALIDATORS_PER_COMMITTEE, %uint64, false) .BytesList, RemLast))
-
   rule hash_tree_root(#BeaconBlockHeader( P1, P2, P3, P4, P5 ) #as VAL, %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
           hash_tree_root(P5) .BytesList, RemLast))
@@ -502,22 +494,23 @@ K semantics:
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3)
           .BytesList, RemLast))
 
-  rule hash_tree_root(#Transfer( P1, P2, P3, P4, P5, P6, P7 ) #as VAL, %container, RemLast)
-    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3, %uint64)
-          hash_tree_root(P4, %uint64) hash_tree_root(P5, %uint64) hash_tree_root(P6) hash_tree_root(P7) .BytesList, RemLast))
-
-  rule hash_tree_root(#BeaconBlockBody( P1, P2, P3, P4, P5, P6, P7, P8, P9 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#BeaconBlockBody( P1, P2, P3, P4, P5, P6, P7, P8 ) #as VAL, %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3)
           hash_tree_root_list(P4, MAX_PROPOSER_SLASHINGS, %container, false)
           hash_tree_root_list(P5, MAX_ATTESTER_SLASHINGS, %container, false)
           hash_tree_root_list(P6, MAX_ATTESTATIONS, %container, false)
           hash_tree_root_list(P7, MAX_DEPOSITS, %container, false)
-          hash_tree_root_list(P8, MAX_VOLUNTARY_EXITS, %container, false)
-          hash_tree_root_list(P9, MAX_TRANSFERS, %container, false) .BytesList, RemLast))
+          hash_tree_root_list(P8, MAX_VOLUNTARY_EXITS, %container, false) .BytesList, RemLast))
 
   rule hash_tree_root(#BeaconBlock( P1, P2, P3, P4, P5 ) #as VAL, %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3)
           hash_tree_root(P4) hash_tree_root(P5) .BytesList, RemLast))
+
+  rule hash_tree_root(#AggregateAndProof( P1, P2, P3 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2)
+          hash_tree_root(P3)
+          .BytesList, RemLast))
+
 
   syntax Hash ::= "hash_tree_root_list" "(" list: ValueList "," staticLen: Int "," elemType: ElementType "," fixedSize: Bool ")"
                                                                       [function]
@@ -566,22 +559,13 @@ K semantics:
   rule chunkifyContainerList(V:VoluntaryExit L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
-  rule chunkifyContainerList(V:Transfer L, MinLen)
-    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
-
   rule chunkifyContainerList(V:Validator L, MinLen)
-    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
-
-  rule chunkifyContainerList(V:Crosslink L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(V:Eth1Data L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(V:PendingAttestation L, MinLen)
-    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
-
-  rule chunkifyContainerList(V:CompactCommittee L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(LIST, MinLen) => hash_tree_root(defaultHash()) chunkifyContainerList(LIST, MinLen -Int 1)
@@ -724,15 +708,10 @@ K semantics:
             hash_tree_root(ETH1DepositIndex, %uint64)
             hash_tree_root_list(mapToList(ValidatorsMAP, 0, .ValidatorList), VALIDATOR_REGISTRY_LIMIT, %container, false)
             hash_tree_root_list(mapToList(BalancesMAP, 0, .IntList), VALIDATOR_REGISTRY_LIMIT, %uint64, false)
-            hash_tree_root(StartShard, %uint64)
             hash_tree_root_list(RandaoMixes, EPOCHS_PER_HISTORICAL_VECTOR, %bytes, true)
-            hash_tree_root_list(ActiveIndexRoots, EPOCHS_PER_HISTORICAL_VECTOR, %bytes, true)
-            hash_tree_root_list(CompactCommitteeRoots, EPOCHS_PER_HISTORICAL_VECTOR, %bytes, true)
             hash_tree_root_list(mapToList(SlashingsMAP, 0, .IntList), EPOCHS_PER_SLASHINGS_VECTOR, %uint64, true)
             hash_tree_root_list(PreviousEpochAttestations, MAX_ATTESTATIONS *Int SLOTS_PER_EPOCH, %container, false)
             hash_tree_root_list(CurrentEpochAttestations, MAX_ATTESTATIONS *Int SLOTS_PER_EPOCH, %container, false)
-            hash_tree_root_list(mapToList(PreviousCrosslinksMAP, 0, .CrosslinkList), SHARD_COUNT, %uint64, true)
-            hash_tree_root_list(mapToList(CurrentCrosslinksMAP, 0, .CrosslinkList), SHARD_COUNT, %uint64, true)
             hash_tree_root_list(JustificationBits, JUSTIFICATION_BITS_LENGTH, %bool, true)
             hash_tree_root(PreviousJustifiedCheckpoint)
             hash_tree_root(CurrentJustifiedCheckpoint)
@@ -750,15 +729,10 @@ K semantics:
     <eth1-deposit-index> ETH1DepositIndex </eth1-deposit-index>
     <validators> ValidatorsMAP </validators>
     <balances> BalancesMAP </balances>
-    <start-shard> StartShard </start-shard>
     <randao-mixes> RandaoMixes </randao-mixes>
-    <active-index-roots> ActiveIndexRoots </active-index-roots>
-    <compact-committees-roots> CompactCommitteeRoots </compact-committees-roots>
     <slashings> SlashingsMAP </slashings>
     <previous-epoch-attestations> PreviousEpochAttestations </previous-epoch-attestations>
     <current-epoch-attestations> CurrentEpochAttestations </current-epoch-attestations>
-    <previous-crosslinks> PreviousCrosslinksMAP </previous-crosslinks>
-    <current-crosslinks> CurrentCrosslinksMAP </current-crosslinks>
     <justification-bits> JustificationBits </justification-bits>
     <previous-justified-checkpoint> PreviousJustifiedCheckpoint </previous-justified-checkpoint>
     <current-justified-checkpoint> CurrentJustifiedCheckpoint </current-justified-checkpoint>

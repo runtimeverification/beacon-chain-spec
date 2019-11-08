@@ -39,11 +39,13 @@ Start by choosing any section below or in the sidebar.
 
   * "compute_shuffled_index"
 
+  * "compute_proposer_index"
+
   * "compute_committee"
 
-  * "compute_epoch_of_slot"
+  * "compute_epoch_at_slot"
 
-  * "compute_start_slot_of_epoch"
+  * "compute_start_slot_at_epoch"
 
   * "compute_activation_exit_epoch"
 
@@ -65,19 +67,9 @@ Start by choosing any section below or in the sidebar.
 
   * "get_seed"
 
-  * "get_committee_count"
-
-  * "get_crosslink_committee"
-
-  * "get_start_shard"
-
-  * "get_shard_delta"
+  * "get_committee_count_at_slot"
 
   * "get_beacon_proposer_index"
-
-  * "get_attestation_data_slot"
-
-  * "get_compact_committees_root"
 
   * "get_total_balance"
 
@@ -117,17 +109,11 @@ Start by choosing any section below or in the sidebar.
 
   * "get_attesting_balance"
 
-  * "get_winning_crosslink_and_attesting_indices"
-
   * "process_justification_and_finalization"
-
-  * "process_crosslinks"
 
   * "get_base_reward"
 
   * "get_attestation_deltas"
-
-  * "get_crosslink_deltas"
 
   * "process_rewards_and_penalties"
 
@@ -154,8 +140,6 @@ Start by choosing any section below or in the sidebar.
   * "process_deposit"
 
   * "process_voluntary_exit"
-
-  * "process_transfer"
 
 * Hash Tree
 
@@ -193,8 +177,6 @@ Start by choosing any section below or in the sidebar.
 
   * "Validator"
 
-  * "Crosslink"
-
   * "AttestationData"
 
   * "AttestationDataAndCustodyBit"
@@ -206,8 +188,6 @@ Start by choosing any section below or in the sidebar.
   * "HistoricalBatch"
 
   * "DepositData"
-
-  * "CompactCommittee"
 
   * "BeaconBlockHeader"
 
@@ -221,11 +201,11 @@ Start by choosing any section below or in the sidebar.
 
   * "VoluntaryExit"
 
-  * "Transfer"
-
   * "BeaconBlockBody"
 
   * "BeaconBlock"
+
+  * "AggregateAndProof"
 
   * "as_bytes"
 

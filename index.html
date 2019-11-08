@@ -184,9 +184,10 @@
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#is-valid-indexed-attestation"><code class="docutils literal notranslate"><span class="pre">is_valid_indexed_attestation</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#is-valid-merkle-branch"><code class="docutils literal notranslate"><span class="pre">is_valid_merkle_branch</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#compute-shuffled-index"><code class="docutils literal notranslate"><span class="pre">compute_shuffled_index</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#compute-proposer-index"><code class="docutils literal notranslate"><span class="pre">compute_proposer_index</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#compute-committee"><code class="docutils literal notranslate"><span class="pre">compute_committee</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#compute-epoch-of-slot"><code class="docutils literal notranslate"><span class="pre">compute_epoch_of_slot</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#compute-start-slot-of-epoch"><code class="docutils literal notranslate"><span class="pre">compute_start_slot_of_epoch</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#compute-epoch-at-slot"><code class="docutils literal notranslate"><span class="pre">compute_epoch_at_slot</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#compute-start-slot-at-epoch"><code class="docutils literal notranslate"><span class="pre">compute_start_slot_at_epoch</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#compute-activation-exit-epoch"><code class="docutils literal notranslate"><span class="pre">compute_activation_exit_epoch</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#compute-domain"><code class="docutils literal notranslate"><span class="pre">compute_domain</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-current-epoch"><code class="docutils literal notranslate"><span class="pre">get_current_epoch</span></code></a></li>
@@ -197,13 +198,8 @@
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-active-validator-indices"><code class="docutils literal notranslate"><span class="pre">get_active_validator_indices</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-validator-churn-limit"><code class="docutils literal notranslate"><span class="pre">get_validator_churn_limit</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-seed"><code class="docutils literal notranslate"><span class="pre">get_seed</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-committee-count"><code class="docutils literal notranslate"><span class="pre">get_committee_count</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-crosslink-committee"><code class="docutils literal notranslate"><span class="pre">get_crosslink_committee</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-start-shard"><code class="docutils literal notranslate"><span class="pre">get_start_shard</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-shard-delta"><code class="docutils literal notranslate"><span class="pre">get_shard_delta</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-committee-count-at-slot"><code class="docutils literal notranslate"><span class="pre">get_committee_count_at_slot</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-beacon-proposer-index"><code class="docutils literal notranslate"><span class="pre">get_beacon_proposer_index</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-attestation-data-slot"><code class="docutils literal notranslate"><span class="pre">get_attestation_data_slot</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-compact-committees-root"><code class="docutils literal notranslate"><span class="pre">get_compact_committees_root</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-total-balance"><code class="docutils literal notranslate"><span class="pre">get_total_balance</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-total-active-balance"><code class="docutils literal notranslate"><span class="pre">get_total_active_balance</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-domain"><code class="docutils literal notranslate"><span class="pre">get_domain</span></code></a></li>
@@ -223,12 +219,9 @@
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-matching-head-attestations"><code class="docutils literal notranslate"><span class="pre">get_matching_head_attestations</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-unslashed-attesting-indices"><code class="docutils literal notranslate"><span class="pre">get_unslashed_attesting_indices</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-attesting-balance"><code class="docutils literal notranslate"><span class="pre">get_attesting_balance</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-winning-crosslink-and-attesting-indices"><code class="docutils literal notranslate"><span class="pre">get_winning_crosslink_and_attesting_indices</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#process-justification-and-finalization"><code class="docutils literal notranslate"><span class="pre">process_justification_and_finalization</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#process-crosslinks"><code class="docutils literal notranslate"><span class="pre">process_crosslinks</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-base-reward"><code class="docutils literal notranslate"><span class="pre">get_base_reward</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-attestation-deltas"><code class="docutils literal notranslate"><span class="pre">get_attestation_deltas</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#get-crosslink-deltas"><code class="docutils literal notranslate"><span class="pre">get_crosslink_deltas</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#process-rewards-and-penalties"><code class="docutils literal notranslate"><span class="pre">process_rewards_and_penalties</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#process-registry-updates"><code class="docutils literal notranslate"><span class="pre">process_registry_updates</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#process-slashings"><code class="docutils literal notranslate"><span class="pre">process_slashings</span></code></a></li>
@@ -242,7 +235,6 @@
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#process-attestation"><code class="docutils literal notranslate"><span class="pre">process_attestation</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#process-deposit"><code class="docutils literal notranslate"><span class="pre">process_deposit</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="beacon-chain/#process-voluntary-exit"><code class="docutils literal notranslate"><span class="pre">process_voluntary_exit</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="beacon-chain/#process-transfer"><code class="docutils literal notranslate"><span class="pre">process_transfer</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="hash-tree/">Hash Tree</a><ul>
@@ -267,23 +259,21 @@
 <li class="toctree-l2"><a class="reference internal" href="types/#fork"><code class="docutils literal notranslate"><span class="pre">Fork</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#checkpoint"><code class="docutils literal notranslate"><span class="pre">Checkpoint</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#validator"><code class="docutils literal notranslate"><span class="pre">Validator</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="types/#crosslink"><code class="docutils literal notranslate"><span class="pre">Crosslink</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#attestationdata"><code class="docutils literal notranslate"><span class="pre">AttestationData</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#attestationdataandcustodybit"><code class="docutils literal notranslate"><span class="pre">AttestationDataAndCustodyBit</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#indexedattestation"><code class="docutils literal notranslate"><span class="pre">IndexedAttestation</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#pendingattestation"><code class="docutils literal notranslate"><span class="pre">PendingAttestation</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#historicalbatch"><code class="docutils literal notranslate"><span class="pre">HistoricalBatch</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#depositdata"><code class="docutils literal notranslate"><span class="pre">DepositData</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="types/#compactcommittee"><code class="docutils literal notranslate"><span class="pre">CompactCommittee</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#beaconblockheader"><code class="docutils literal notranslate"><span class="pre">BeaconBlockHeader</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#proposerslashing"><code class="docutils literal notranslate"><span class="pre">ProposerSlashing</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#attesterslashing"><code class="docutils literal notranslate"><span class="pre">AttesterSlashing</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#attestation"><code class="docutils literal notranslate"><span class="pre">Attestation</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#deposit"><code class="docutils literal notranslate"><span class="pre">Deposit</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#voluntaryexit"><code class="docutils literal notranslate"><span class="pre">VoluntaryExit</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="types/#transfer"><code class="docutils literal notranslate"><span class="pre">Transfer</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#beaconblockbody"><code class="docutils literal notranslate"><span class="pre">BeaconBlockBody</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#beaconblock"><code class="docutils literal notranslate"><span class="pre">BeaconBlock</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="types/#aggregateandproof"><code class="docutils literal notranslate"><span class="pre">AggregateAndProof</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#as-bytes"><code class="docutils literal notranslate"><span class="pre">as_bytes</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="types/#bytes-to-int"><code class="docutils literal notranslate"><span class="pre">bytes_to_int</span></code></a></li>
 </ul>

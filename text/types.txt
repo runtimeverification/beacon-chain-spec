@@ -32,7 +32,7 @@ Types
      rule defaultBytes96() => {"\x00" *Bytes 96}:>String
 
      syntax Version        ::= String      //a fork version number
-     syntax DomainType     ::= String      //a signature domain type
+     syntax DomainType     ::= String      //a domain type
      syntax Domain         ::= String      //a signature domain
      syntax BLSPubkey      ::= String      //a BLS12-381 public key
      syntax BLSSignature   ::= String      //a BLS12-381 signature
@@ -42,8 +42,7 @@ Types
      syntax Uint64  ::= Int
 
      syntax Bit     ::= Bool
-     syntax BasicValue ::= Int | Uint64 | Bool
-                         | ValidatorIndex
+     syntax BasicValue ::= Int | Uint64 | Bool | ValidatorIndex
 
      syntax Fork ::= ".Fork"
      syntax BlockHeader ::= ".BlockHeader" | BeaconBlockHeader
@@ -66,16 +65,13 @@ Types
      syntax DepositList ::= List{Deposit, ""}
      syntax DepositDataList ::= List{DepositData, ""}
      syntax VoluntaryExitList ::= List{VoluntaryExit, ""}
-     syntax TransferList ::= List{Transfer, ""}
      syntax ValidatorList ::= List{Validator, ""}
-     syntax CrosslinkList ::= List{Crosslink, ""}
      syntax Eth1DataList ::= List{Eth1Data, ""}
      syntax PendingAttestationList ::= List{PendingAttestation, ""}
-     syntax CompactCommitteeList ::= List{CompactCommittee, ""}
 
      syntax ContainerList ::= ProposerSlashingList | AttesterSlashingList | AttestationList | DepositList | DepositDataList
-          | VoluntaryExitList | TransferList | ValidatorList | CrosslinkList
-          | Eth1DataList | PendingAttestationList | CompactCommitteeList
+          | VoluntaryExitList | ValidatorList
+          | Eth1DataList | PendingAttestationList
 
      syntax BytesList ::= List{Bytes, ""}
 
@@ -146,14 +142,14 @@ Python reference:
 
    class Validator(Container):
        pubkey: BLSPubkey
-       withdrawal_credentials: Hash  # Commitment to pubkey for withdrawals and transfers
+       withdrawal_credentials: Hash  # Commitment to pubkey for withdrawals
        effective_balance: Gwei  # Balance at stake
        slashed: boolean
        # Status epochs
        activation_eligibility_epoch: Epoch  # When criteria for activation were met
        activation_epoch: Epoch
        exit_epoch: Epoch
-       withdrawable_epoch: Epoch  # When validator can withdraw or transfer funds
+       withdrawable_epoch: Epoch  # When validator can withdraw funds
      
 
 K semantics:
@@ -182,45 +178,9 @@ K semantics:
      syntax Int       ::= Validator "." "activationEpoch"                [function]
      rule #Validator(_,_,_,_,_, ActivationEpoch, _,_).activationEpoch => ActivationEpoch
      syntax Int       ::= Validator "." "exitEpoch"                      [function]
-     rule #Validator(_,_,_,_,_,_, ExitEpoch, _).exitEpoch => ExitEpoch
+     rule #Validator(_,_,_,_,_,_, ExitEpoch,_).exitEpoch => ExitEpoch
      syntax Int       ::= Validator "." "withdrawableEpoch"              [function]
-     rule #Validator(_,_,_,_,_,_,_, WithdrawableEpoch).withdrawableEpoch => WithdrawableEpoch
-
-     
-
-
-"Crosslink"
-===========
-
-Python reference:
-
-   class Crosslink(Container):
-       shard: Shard
-       parent_root: Hash
-       # Crosslinking data
-       start_epoch: Epoch
-       end_epoch: Epoch
-       data_root: Hash
-     
-
-K semantics:
-
-
-     syntax Crosslink ::= #Crosslink( Int, Hash, Int, Int, Hash ) [klabel(#Crosslink), symbol]
-
-     syntax Int ::= Crosslink "." "shard"                                [function]
-     rule #Crosslink(SHARD, _,_,_,_).shard => SHARD
-     syntax Hash ::= Crosslink "." "parentRoot"                          [function]
-     rule #Crosslink(_,ROOT,_,_,_).parentRoot => ROOT
-     syntax Int ::= Crosslink "." "startEpoch"                           [function]
-     rule #Crosslink(_,_,EPOCH,_,_).startEpoch => EPOCH
-     syntax Int ::= Crosslink "." "endEpoch"                             [function]
-     rule #Crosslink(_,_,_,EPOCH,_).endEpoch => EPOCH
-     syntax Hash ::= Crosslink "." "dataRoot"                            [function]
-     rule #Crosslink(_,_,_,_,ROOT).dataRoot => ROOT
-
-     syntax Crosslink ::= defaultCrosslink()                             [function]
-     rule defaultCrosslink() => #Crosslink(0, defaultHash(), 0, 0, defaultHash())
+     rule #Validator(_,_,_,_,_,_,_, WithdrawEpoch).withdrawableEpoch => WithdrawEpoch
 
      
 
@@ -231,28 +191,30 @@ K semantics:
 Python reference:
 
    class AttestationData(Container):
+       slot: Slot
+       index: CommitteeIndex
        # LMD GHOST vote
        beacon_block_root: Hash
        # FFG vote
        source: Checkpoint
        target: Checkpoint
-       # Crosslink vote
-       crosslink: Crosslink
      
 
 K semantics:
 
 
-     syntax AttestationData ::= #AttestationData( Hash, Checkpoint, Checkpoint, Crosslink ) [klabel(#AttestationData), symbol]
+     syntax AttestationData ::= #AttestationData(Int, Int, Hash, Checkpoint, Checkpoint ) [klabel(#AttestationData), symbol]
 
+     syntax Int ::= AttestationData "." "_slot"                          [function]
+     rule #AttestationData(SLOT,_,_,_,_)._slot => SLOT
+     syntax Int ::= AttestationData "." "index"                          [function]
+     rule #AttestationData(_,INDEX,_,_,_).index => INDEX
      syntax Hash ::= AttestationData "." "beaconBlockRoot"               [function]
-     rule #AttestationData(ROOT,_,_,_).beaconBlockRoot => ROOT
+     rule #AttestationData(_,_,ROOT,_,_).beaconBlockRoot => ROOT
      syntax Checkpoint ::= AttestationData "." "source"                  [function]
-     rule #AttestationData(_,CP,_,_).source => CP
+     rule #AttestationData(_,_,_,CP,_).source => CP
      syntax Checkpoint ::= AttestationData "." "target"                  [function]
-     rule #AttestationData(_,_,CP,_).target => CP
-     syntax Crosslink ::= AttestationData "." "crosslink"                [function]
-     rule #AttestationData(_,_,_,CL).crosslink => CL
+     rule #AttestationData(_,_,_,_,CP).target => CP
 
      
 
@@ -264,7 +226,7 @@ Python reference:
 
    class AttestationDataAndCustodyBit(Container):
        data: AttestationData
-       custody_bit: bit  # Challengeable bit (SSZ-bool, 1 byte) for the custody of crosslink data
+       custody_bit: bit  # Challengeable bit (SSZ-bool, 1 byte) for the custody of shard data
      
 
 K semantics:
@@ -395,29 +357,6 @@ K semantics:
      rule #DepositData( _, WC, _,_ ).withdrawal_credentials => WC
      syntax Int        ::= DepositData "." "amount"                      [function]
      rule #DepositData( _,_, AMOUNT, _ ).amount => AMOUNT
-
-     
-
-
-"CompactCommittee"
-==================
-
-Python reference:
-
-   class CompactCommittee(Container):
-       pubkeys: List[BLSPubkey, MAX_VALIDATORS_PER_COMMITTEE]
-       compact_validators: List[uint64, MAX_VALIDATORS_PER_COMMITTEE]
-     
-
-K semantics:
-
-
-     syntax CompactCommittee ::= #CompactCommittee( BytesList, IntList ) [klabel(#CompactCommittee), symbol]
-
-     syntax BytesList ::= CompactCommittee "." "pubkeys"             [function]
-     rule #CompactCommittee(PUBKEYS, _).pubkeys => PUBKEYS
-     syntax IntList ::= CompactCommittee "." "compact_validators"        [function]
-     rule #CompactCommittee(_, CVALS).compact_validators => CVALS
 
      
 
@@ -559,37 +498,6 @@ K semantics:
 
      syntax VoluntaryExit ::= #VoluntaryExit( Int, ValidatorIndex, BLSSignature ) [klabel(#VoluntaryExit), symbol]
 
-     
-
-
-"Transfer"
-==========
-
-Python reference:
-
-   class Transfer(Container):
-       sender: ValidatorIndex
-       recipient: ValidatorIndex
-       amount: Gwei
-       fee: Gwei
-       slot: Slot  # Slot at which transfer must be processed
-       pubkey: BLSPubkey  # Withdrawal pubkey
-       signature: BLSSignature  # Signature checked against withdrawal pubkey
-     
-
-K semantics:
-
-
-     syntax Transfer ::= #Transfer( ValidatorIndex, ValidatorIndex, Int, Int, Int, BLSPubkey, BLSSignature ) [klabel(#Transfer), symbol]
-
-     // The return type of get_winning_crosslink_and_attesting_indices
-     syntax CrosslinkIntListPair ::= #crosslinkIntListPair(Crosslink, IntList)
-
-     syntax Crosslink ::= CrosslinkIntListPair "." "crosslink" [function]
-     rule  #crosslinkIntListPair(CL,_).crosslink => CL
-     syntax IntList ::= CrosslinkIntListPair "." "intList" [function]
-     rule  #crosslinkIntListPair(_,IL).intList => IL
-
 
 
 
@@ -608,7 +516,7 @@ Python reference:
        attestations: List[Attestation, MAX_ATTESTATIONS]
        deposits: List[Deposit, MAX_DEPOSITS]
        voluntary_exits: List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
-       transfers: List[Transfer, MAX_TRANSFERS]
+
 
 K semantics:
 
@@ -621,31 +529,28 @@ K semantics:
                                    attesterSlashings: AttesterSlashingList,
                                    attestations: AttestationList,
                                    deposits: DepositList,
-                                   voluntaryExits: VoluntaryExitList,
-                                   transfers: TransferList
+                                   voluntaryExits: VoluntaryExitList
                                 )                                [klabel(#BeaconBlockBody), symbol]
      syntax BLSSignature         ::= BeaconBlockBody "." "randaoReveal"      [function]
-     rule  #BeaconBlockBody(RR, _,_,_,_,_,_,_,_).randaoReveal => RR
+     rule  #BeaconBlockBody(RR,_,_,_,_,_,_,_).randaoReveal => RR
      syntax Eth1Data             ::= BeaconBlockBody "." "eth1Data"          [function]
-     rule  #BeaconBlockBody(_,E1D, _,_,_,_,_,_,_).eth1Data => E1D
+     rule  #BeaconBlockBody(_,E1D,_,_,_,_,_,_).eth1Data => E1D
      syntax ProposerSlashingList ::= BeaconBlockBody "." "proposerSlashings" [function]
-     rule  #BeaconBlockBody(_,_,_, PS, _,_,_,_,_).proposerSlashings => PS
+     rule  #BeaconBlockBody(_,_,_,PS,_,_,_,_).proposerSlashings => PS
      syntax AttesterSlashingList ::= BeaconBlockBody "." "attesterSlashings" [function]
-     rule  #BeaconBlockBody(_,_,_,_, AS, _,_,_,_).attesterSlashings => AS
+     rule  #BeaconBlockBody(_,_,_,_, AS,_,_,_).attesterSlashings => AS
      syntax AttestationList      ::= BeaconBlockBody "." "attestations"      [function]
-     rule  #BeaconBlockBody(_,_,_,_,_, ATT, _,_,_).attestations => ATT
+     rule  #BeaconBlockBody(_,_,_,_,_, ATT,_,_).attestations => ATT
      syntax DepositList          ::= BeaconBlockBody "." "deposits"          [function]
-     rule  #BeaconBlockBody(_,_,_,_,_,_, DEP, _,_).deposits => DEP
+     rule  #BeaconBlockBody(_,_,_,_,_,_, DEP,_).deposits => DEP
      syntax VoluntaryExitList    ::= BeaconBlockBody "." "voluntaryExits"    [function]
-     rule  #BeaconBlockBody(_,_,_,_,_,_,_, VEX, _).voluntaryExits => VEX
-     syntax TransferList         ::= BeaconBlockBody "." "transfers"         [function]
-     rule  #BeaconBlockBody(_,_,_,_,_,_,_,_, TS).transfers => TS
+     rule  #BeaconBlockBody(_,_,_,_,_,_,_, VEX).voluntaryExits => VEX
 
      syntax BeaconBlockBody ::= defaultBeaconBlockBody()                 [function]
      rule defaultBeaconBlockBody() => #BeaconBlockBody(
                                    defaultBLSSignature(), #Eth1Data(defaultHash(), 0, defaultHash()), defaultBytes32(),
                                    .ProposerSlashingList, .AttesterSlashingList, .AttestationList,
-                                   .DepositList, .VoluntaryExitList, .TransferList
+                                   .DepositList, .VoluntaryExitList
                                 )
 
 
@@ -684,7 +589,37 @@ K semantics:
      syntax BLSSignature     ::= BeaconBlock "." "signature"                 [function]
      rule  #BeaconBlock(_,_,_,_, SIG).signature => SIG
 
-     // The return type of get_attestation_deltas and get_crosslink_deltas
+
+
+
+"AggregateAndProof"
+===================
+
+Python reference:
+
+   class AggregateAndProof(Container):
+       index: ValidatorIndex
+       selection_proof: BLSSignature
+       aggregate: Attestation
+
+K semantics:
+
+
+     syntax AggregateAndProof ::= #AggregateAndProof(
+                                  index: ValidatorIndex,
+                                  selectionProof: BLSSignature,
+                                  aggregate: Attestation
+                                  )                              [klabel(#AggregateAndProof), symbol]
+
+     syntax ValidatorIndex ::= AggregateAndProof "." "index"                 [function]
+     rule #AggregateAndProof(INDEX,_,_) => INDEX
+     syntax BLSSignature ::= AggregateAndProof "." "selectionProof"          [function]
+     rule #AggregateAndProof(_,SP,_) => SP
+     syntax Attestation ::= AggregateAndProof "." "aggregate"                [function]
+     rule #AggregateAndProof(_,_,AG) => AG
+
+
+     // The return type of get_attestation_deltas
      syntax MapMapPair ::= #mapMapPair(Map, Map)
 
      syntax Map ::= MapMapPair "." "map1" [function]
@@ -703,10 +638,10 @@ K semantics:
      rule intOf(#Some(I)) => I
 
 
-     syntax Container ::= Fork | Checkpoint | Validator | Crosslink | AttestationData | AttestationDataAndCustodyBit
+     syntax Container ::= Fork | Checkpoint | Validator | AttestationData | AttestationDataAndCustodyBit
                         | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
-                        | CompactCommittee | BeaconBlockHeader | ProposerSlashing | AttesterSlashing | Attestation | Deposit
-                        | VoluntaryExit | Transfer | BeaconBlockBody | BeaconBlock
+                        | BeaconBlockHeader | ProposerSlashing | AttesterSlashing | Attestation | Deposit
+                        | VoluntaryExit | BeaconBlockBody | BeaconBlock | AggregateAndProof
 
      //ValueList are not Value, because it needs separate implementation for hash_tree_root
      //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.
@@ -880,10 +815,6 @@ K semantics:
      rule (EL1:PendingAttestation LIST) +append EL2 => EL1 (LIST +append EL2)
      rule .PendingAttestationList +append EL => EL .PendingAttestationList
 
-     syntax CrosslinkList ::= CrosslinkList "+append" Crosslink          [function]
-     rule (EL1:Crosslink LIST) +append EL2 => EL1 (LIST +append EL2)
-     rule .CrosslinkList +append EL => EL .CrosslinkList
-
      syntax Eth1DataList ::= Eth1DataList "+append" Eth1Data             [function]
      rule (EL1:Eth1Data LIST) +append EL2 => EL1 (LIST +append EL2)
      rule .Eth1DataList +append EL => EL .Eth1DataList
@@ -928,18 +859,12 @@ K semantics:
      rule len(.DepositDataList) => 0
      rule len(_ LIST:VoluntaryExitList) => 1 +Int len(LIST)
      rule len(.VoluntaryExitList) => 0
-     rule len(_ LIST:TransferList) => 1 +Int len(LIST)
-     rule len(.TransferList) => 0
      rule len(_ LIST:ValidatorList) => 1 +Int len(LIST)
      rule len(.ValidatorList) => 0
-     rule len(_ LIST:CrosslinkList) => 1 +Int len(LIST)
-     rule len(.CrosslinkList) => 0
      rule len(_ LIST:Eth1DataList) => 1 +Int len(LIST)
      rule len(.Eth1DataList) => 0
      rule len(_ LIST:PendingAttestationList) => 1 +Int len(LIST)
      rule len(.PendingAttestationList) => 0
-     rule len(_ LIST:CompactCommitteeList) => 1 +Int len(LIST)
-     rule len(.CompactCommitteeList) => 0
 
      //Converts K-Map representation of a python List/Vector to a K-ValueList. Only implemented for used types.
      syntax ValueList ::= mapToList ( map: Map, index: Int, emptyList: ValueList ) [function]
@@ -948,8 +873,6 @@ K semantics:
           => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>ProposerSlashingList
      rule mapToList((INDEX |-> ELEM:Validator) MAP, INDEX, EMPTY)
           => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>ValidatorList
-     rule mapToList((INDEX |-> ELEM:Crosslink) MAP, INDEX, EMPTY)
-          => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>CrosslinkList
      rule mapToList((INDEX |-> ELEM:Bytes) MAP, INDEX, EMPTY)
           => ELEM {mapToList(MAP, INDEX +Int 1, EMPTY)}:>BytesList
      rule mapToList((INDEX |-> ELEM:Int) MAP, INDEX, EMPTY)
@@ -1023,11 +946,6 @@ K semantics:
      //We must consider missing elements present and initialized with default value.
      rule (.BytesList)[I] => {defaultBytes32()}:>String //NOTEH will not work for Bytes of length != 32.
 
-     syntax CompactCommittee ::= CompactCommitteeList "[" Int "]"        [function]
-     rule (H:CompactCommittee HL:CompactCommitteeList)[I] => HL[I -Int 1]
-       requires I >Int 0
-     rule (H:CompactCommittee HL:CompactCommitteeList)[0] => H
-
      syntax Map ::= initMapOfSize(Int) [function]
      rule initMapOfSize(I) => (I -Int 1 |-> 0) initMapOfSize(I -Int 1)
        requires I >Int 0
@@ -1046,18 +964,4 @@ K semantics:
        requires I <Int N
      rule fillInMap(ELEM, N, N) => .Map
 
-     syntax CompactCommitteeList ::= initCompCommListOfSize(Int)         [function]
-     rule initCompCommListOfSize(I) => #CompactCommittee(.BytesList, .IntList) initCompCommListOfSize(I -Int 1)
-       requires I >Int 0
-     rule initCompCommListOfSize(0) => .CompactCommitteeList
-
-     // Check membership of a Transfer term in a TransferList
-     syntax Bool ::= Transfer "in" TransferList          [function]
-     rule T1 in T (TL:TransferList) => (T1 ==K T) orBool (T1 in TL)
-     rule T1 in .TransferList => false
-
-     // Check whether a list of transfers is duplicate-free
-     syntax Bool ::= isDuplicateFree(transferList: TransferList)          [function]
-     rule isDuplicateFree(T:Transfer TL:TransferList) => (notBool T in TL) andBool isDuplicateFree(TL)
-     rule isDuplicateFree(.TransferList) => true
    endmodule

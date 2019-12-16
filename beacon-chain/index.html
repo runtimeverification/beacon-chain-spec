@@ -410,16 +410,16 @@
 
     <span class="c1"># Verify no index has custody bit equal to 1 [to be removed in phase 1]</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">bit_1_indices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="kc">False</span>
     <span class="c1"># Verify max number of indices</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">bit_0_indices</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">bit_1_indices</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">MAX_VALIDATORS_PER_COMMITTEE</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="kc">False</span>
     <span class="c1"># Verify index sets are disjoint</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">bit_0_indices</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">bit_1_indices</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="kc">False</span>
     <span class="c1"># Verify indices are sorted</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">bit_0_indices</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">bit_0_indices</span><span class="p">)</span> <span class="ow">and</span> <span class="n">bit_1_indices</span> <span class="o">==</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">bit_1_indices</span><span class="p">)):</span>
-        <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="kc">False</span>
     <span class="c1"># Verify aggregate signature</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">bls_verify_multiple</span><span class="p">(</span>
         <span class="n">pubkeys</span><span class="o">=</span><span class="p">[</span>
@@ -433,8 +433,8 @@
         <span class="n">signature</span><span class="o">=</span><span class="n">indexed_attestation</span><span class="o">.</span><span class="n">signature</span><span class="p">,</span>
         <span class="n">domain</span><span class="o">=</span><span class="n">get_domain</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">DOMAIN_ATTESTATION</span><span class="p">,</span> <span class="n">indexed_attestation</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">epoch</span><span class="p">),</span>
     <span class="p">):</span>
-        <span class="k">return</span> <span class="bp">False</span>
-    <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span>
 
 </pre></div>
 </div>
@@ -570,7 +570,7 @@
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="n">MAX_RANDOM_BYTE</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="mi">8</span> <span class="o">-</span> <span class="mi">1</span>
     <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="n">candidate_index</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span><span class="n">compute_shuffled_index</span><span class="p">(</span><span class="n">ValidatorIndex</span><span class="p">(</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)),</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">),</span> <span class="n">seed</span><span class="p">)]</span>
         <span class="n">random_byte</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="n">seed</span> <span class="o">+</span> <span class="n">int_to_bytes</span><span class="p">(</span><span class="n">i</span> <span class="o">//</span> <span class="mi">32</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mi">8</span><span class="p">))[</span><span class="n">i</span> <span class="o">%</span> <span class="mi">32</span><span class="p">]</span>
         <span class="n">effective_balance</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">validators</span><span class="p">[</span><span class="n">candidate_index</span><span class="p">]</span><span class="o">.</span><span class="n">effective_balance</span>
@@ -1006,11 +1006,11 @@
 <div class="section" id="get-domain">
 <span id="get-domain"></span><h2><code class="docutils literal notranslate"><span class="pre">get_domain</span></code><a class="headerlink" href="#get-domain" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_domain</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">domain_type</span><span class="p">:</span> <span class="n">DomainType</span><span class="p">,</span> <span class="n">message_epoch</span><span class="p">:</span> <span class="n">Epoch</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Domain</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_domain</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">domain_type</span><span class="p">:</span> <span class="n">DomainType</span><span class="p">,</span> <span class="n">message_epoch</span><span class="p">:</span> <span class="n">Epoch</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Domain</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return the signature domain (fork version concatenated with domain type) of a message.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">epoch</span> <span class="o">=</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="k">if</span> <span class="n">message_epoch</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">message_epoch</span>
+    <span class="n">epoch</span> <span class="o">=</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="k">if</span> <span class="n">message_epoch</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">message_epoch</span>
     <span class="n">fork_version</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">fork</span><span class="o">.</span><span class="n">previous_version</span> <span class="k">if</span> <span class="n">epoch</span> <span class="o">&lt;</span> <span class="n">state</span><span class="o">.</span><span class="n">fork</span><span class="o">.</span><span class="n">epoch</span> <span class="k">else</span> <span class="n">state</span><span class="o">.</span><span class="n">fork</span><span class="o">.</span><span class="n">current_version</span>
     <span class="k">return</span> <span class="n">compute_domain</span><span class="p">(</span><span class="n">domain_type</span><span class="p">,</span> <span class="n">fork_version</span><span class="p">)</span>
 
@@ -1101,7 +1101,7 @@
 <div class="section" id="increase-balance">
 <span id="increase-balance"></span><h2><code class="docutils literal notranslate"><span class="pre">increase_balance</span></code><a class="headerlink" href="#increase-balance" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">increase_balance</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">ValidatorIndex</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="n">Gwei</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">increase_balance</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">ValidatorIndex</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="n">Gwei</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Increase the validator balance at index ``index`` by ``delta``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1119,7 +1119,7 @@
 <div class="section" id="decrease-balance">
 <span id="decrease-balance"></span><h2><code class="docutils literal notranslate"><span class="pre">decrease_balance</span></code><a class="headerlink" href="#decrease-balance" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">decrease_balance</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">ValidatorIndex</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="n">Gwei</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">decrease_balance</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">ValidatorIndex</span><span class="p">,</span> <span class="n">delta</span><span class="p">:</span> <span class="n">Gwei</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Decrease the validator balance at index ``index`` by ``delta``, with underflow protection.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1137,7 +1137,7 @@
 <div class="section" id="initiate-validator-exit">
 <span id="initiate-validator-exit"></span><h2><code class="docutils literal notranslate"><span class="pre">initiate_validator_exit</span></code><a class="headerlink" href="#initiate-validator-exit" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">initiate_validator_exit</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">ValidatorIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">initiate_validator_exit</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="n">ValidatorIndex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Initiate the exit of the validator with index ``index``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1215,21 +1215,21 @@
 <p>Python reference:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">slash_validator</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span>
                     <span class="n">slashed_index</span><span class="p">:</span> <span class="n">ValidatorIndex</span><span class="p">,</span>
-                    <span class="n">whistleblower_index</span><span class="p">:</span> <span class="n">ValidatorIndex</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">whistleblower_index</span><span class="p">:</span> <span class="n">ValidatorIndex</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Slash the validator with index ``slashed_index``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">epoch</span> <span class="o">=</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     <span class="n">initiate_validator_exit</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">slashed_index</span><span class="p">)</span>
     <span class="n">validator</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">validators</span><span class="p">[</span><span class="n">slashed_index</span><span class="p">]</span>
-    <span class="n">validator</span><span class="o">.</span><span class="n">slashed</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="n">validator</span><span class="o">.</span><span class="n">slashed</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">validator</span><span class="o">.</span><span class="n">withdrawable_epoch</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">validator</span><span class="o">.</span><span class="n">withdrawable_epoch</span><span class="p">,</span> <span class="n">Epoch</span><span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="n">EPOCHS_PER_SLASHINGS_VECTOR</span><span class="p">))</span>
     <span class="n">state</span><span class="o">.</span><span class="n">slashings</span><span class="p">[</span><span class="n">epoch</span> <span class="o">%</span> <span class="n">EPOCHS_PER_SLASHINGS_VECTOR</span><span class="p">]</span> <span class="o">+=</span> <span class="n">validator</span><span class="o">.</span><span class="n">effective_balance</span>
     <span class="n">decrease_balance</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">slashed_index</span><span class="p">,</span> <span class="n">validator</span><span class="o">.</span><span class="n">effective_balance</span> <span class="o">//</span> <span class="n">MIN_SLASHING_PENALTY_QUOTIENT</span><span class="p">)</span>
 
     <span class="c1"># Apply proposer and whistleblower rewards</span>
     <span class="n">proposer_index</span> <span class="o">=</span> <span class="n">get_beacon_proposer_index</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">whistleblower_index</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">whistleblower_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">whistleblower_index</span> <span class="o">=</span> <span class="n">proposer_index</span>
     <span class="n">whistleblower_reward</span> <span class="o">=</span> <span class="n">Gwei</span><span class="p">(</span><span class="n">validator</span><span class="o">.</span><span class="n">effective_balance</span> <span class="o">//</span> <span class="n">WHISTLEBLOWER_REWARD_QUOTIENT</span><span class="p">)</span>
     <span class="n">proposer_reward</span> <span class="o">=</span> <span class="n">Gwei</span><span class="p">(</span><span class="n">whistleblower_reward</span> <span class="o">//</span> <span class="n">PROPOSER_REWARD_QUOTIENT</span><span class="p">)</span>
@@ -1406,10 +1406,10 @@
 <p>Python reference:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">is_valid_genesis_state</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">genesis_time</span> <span class="o">&lt;</span> <span class="n">MIN_GENESIS_TIME</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">get_active_validator_indices</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">GENESIS_EPOCH</span><span class="p">))</span> <span class="o">&lt;</span> <span class="n">MIN_GENESIS_ACTIVE_VALIDATOR_COUNT</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">False</span>
-    <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">True</span>
 
 </pre></div>
 </div>
@@ -1432,7 +1432,7 @@
 <div class="section" id="state-transition">
 <span id="state-transition"></span><h2><code class="docutils literal notranslate"><span class="pre">state_transition</span></code><a class="headerlink" href="#state-transition" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">state_transition</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="n">BeaconBlock</span><span class="p">,</span> <span class="n">validate_state_root</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BeaconState</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">state_transition</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="n">BeaconBlock</span><span class="p">,</span> <span class="n">validate_state_root</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BeaconState</span><span class="p">:</span>
     <span class="c1"># Process slots (including those with no blocks) since block</span>
     <span class="n">process_slots</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">block</span><span class="o">.</span><span class="n">slot</span><span class="p">)</span>
     <span class="c1"># Process block</span>
@@ -1457,7 +1457,7 @@
 <div class="section" id="process-slots">
 <span id="process-slots"></span><h2><code class="docutils literal notranslate"><span class="pre">process_slots</span></code><a class="headerlink" href="#process-slots" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_slots</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">slot</span><span class="p">:</span> <span class="n">Slot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_slots</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">slot</span><span class="p">:</span> <span class="n">Slot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">assert</span> <span class="n">state</span><span class="o">.</span><span class="n">slot</span> <span class="o">&lt;=</span> <span class="n">slot</span>
     <span class="k">while</span> <span class="n">state</span><span class="o">.</span><span class="n">slot</span> <span class="o">&lt;</span> <span class="n">slot</span><span class="p">:</span>
         <span class="n">process_slot</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
@@ -1497,7 +1497,7 @@
 <div class="section" id="process-slot">
 <span id="process-slot"></span><h2><code class="docutils literal notranslate"><span class="pre">process_slot</span></code><a class="headerlink" href="#process-slot" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_slot</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_slot</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="c1"># Cache state root</span>
     <span class="n">previous_state_root</span> <span class="o">=</span> <span class="n">hash_tree_root</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     <span class="n">state</span><span class="o">.</span><span class="n">state_roots</span><span class="p">[</span><span class="n">state</span><span class="o">.</span><span class="n">slot</span> <span class="o">%</span> <span class="n">SLOTS_PER_HISTORICAL_ROOT</span><span class="p">]</span> <span class="o">=</span> <span class="n">previous_state_root</span>
@@ -1540,7 +1540,7 @@
 <div class="section" id="process-epoch">
 <span id="process-epoch"></span><h2><code class="docutils literal notranslate"><span class="pre">process_epoch</span></code><a class="headerlink" href="#process-epoch" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">process_justification_and_finalization</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     <span class="n">process_rewards_and_penalties</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     <span class="n">process_registry_updates</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
@@ -1680,7 +1680,7 @@
 <div class="section" id="process-justification-and-finalization">
 <span id="process-justification-and-finalization"></span><h2><code class="docutils literal notranslate"><span class="pre">process_justification_and_finalization</span></code><a class="headerlink" href="#process-justification-and-finalization" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_justification_and_finalization</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_justification_and_finalization</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">GENESIS_EPOCH</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">return</span>
 
@@ -2114,7 +2114,7 @@
 <div class="section" id="process-rewards-and-penalties">
 <span id="process-rewards-and-penalties"></span><h2><code class="docutils literal notranslate"><span class="pre">process_rewards_and_penalties</span></code><a class="headerlink" href="#process-rewards-and-penalties" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_rewards_and_penalties</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_rewards_and_penalties</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">==</span> <span class="n">GENESIS_EPOCH</span><span class="p">:</span>
         <span class="k">return</span>
 
@@ -2155,7 +2155,7 @@
 <div class="section" id="process-registry-updates">
 <span id="process-registry-updates"></span><h2><code class="docutils literal notranslate"><span class="pre">process_registry_updates</span></code><a class="headerlink" href="#process-registry-updates" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_registry_updates</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_registry_updates</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="c1"># Process activation eligibility and ejections</span>
     <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">validator</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">validators</span><span class="p">):</span>
         <span class="k">if</span> <span class="p">(</span>
@@ -2284,7 +2284,7 @@
 <div class="section" id="process-slashings">
 <span id="process-slashings"></span><h2><code class="docutils literal notranslate"><span class="pre">process_slashings</span></code><a class="headerlink" href="#process-slashings" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_slashings</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_slashings</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">epoch</span> <span class="o">=</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     <span class="n">total_balance</span> <span class="o">=</span> <span class="n">get_total_active_balance</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">validator</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">validators</span><span class="p">):</span>
@@ -2329,7 +2329,7 @@
 <div class="section" id="process-final-updates">
 <span id="process-final-updates"></span><h2><code class="docutils literal notranslate"><span class="pre">process_final_updates</span></code><a class="headerlink" href="#process-final-updates" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_final_updates</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_final_updates</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">current_epoch</span> <span class="o">=</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     <span class="n">next_epoch</span> <span class="o">=</span> <span class="n">Epoch</span><span class="p">(</span><span class="n">current_epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
     <span class="c1"># Reset eth1 data votes</span>
@@ -2436,7 +2436,7 @@
 <div class="section" id="process-block">
 <span id="process-block"></span><h2><code class="docutils literal notranslate"><span class="pre">process_block</span></code><a class="headerlink" href="#process-block" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_block</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="n">BeaconBlock</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_block</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="n">BeaconBlock</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">process_block_header</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">block</span><span class="p">)</span>
     <span class="n">process_randao</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">block</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
     <span class="n">process_eth1_data</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">block</span><span class="o">.</span><span class="n">body</span><span class="p">)</span>
@@ -2457,7 +2457,7 @@
 <div class="section" id="process-block-header">
 <span id="process-block-header"></span><h2><code class="docutils literal notranslate"><span class="pre">process_block_header</span></code><a class="headerlink" href="#process-block-header" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_block_header</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="n">BeaconBlock</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_block_header</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">block</span><span class="p">:</span> <span class="n">BeaconBlock</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="c1"># Verify that the slots match</span>
     <span class="k">assert</span> <span class="n">block</span><span class="o">.</span><span class="n">slot</span> <span class="o">==</span> <span class="n">state</span><span class="o">.</span><span class="n">slot</span>
     <span class="c1"># Verify that the parent matches</span>
@@ -2499,7 +2499,7 @@
 <div class="section" id="process-randao">
 <span id="process-randao"></span><h2><code class="docutils literal notranslate"><span class="pre">process_randao</span></code><a class="headerlink" href="#process-randao" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_randao</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">BeaconBlockBody</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_randao</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">BeaconBlockBody</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">epoch</span> <span class="o">=</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
     <span class="c1"># Verify RANDAO reveal</span>
     <span class="n">proposer</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">validators</span><span class="p">[</span><span class="n">get_beacon_proposer_index</span><span class="p">(</span><span class="n">state</span><span class="p">)]</span>
@@ -2524,7 +2524,7 @@
 </div>
 <p>Python reference:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
-<span class="k">def</span> <span class="nf">process_eth1_data</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">BeaconBlockBody</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">process_eth1_data</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">BeaconBlockBody</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">state</span><span class="o">.</span><span class="n">eth1_data_votes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">eth1_data</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">eth1_data_votes</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">eth1_data</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">&gt;</span> <span class="n">SLOTS_PER_ETH1_VOTING_PERIOD</span><span class="p">:</span>
         <span class="n">state</span><span class="o">.</span><span class="n">eth1_data</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">eth1_data</span>
@@ -2555,7 +2555,7 @@
 <div class="section" id="process-operations">
 <span id="process-operations"></span><h2><code class="docutils literal notranslate"><span class="pre">process_operations</span></code><a class="headerlink" href="#process-operations" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_operations</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">BeaconBlockBody</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_operations</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="n">BeaconBlockBody</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="c1"># Verify that outstanding deposits are processed up to the maximum number of deposits</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">deposits</span><span class="p">)</span> <span class="o">==</span> <span class="nb">min</span><span class="p">(</span><span class="n">MAX_DEPOSITS</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">eth1_data</span><span class="o">.</span><span class="n">deposit_count</span> <span class="o">-</span> <span class="n">state</span><span class="o">.</span><span class="n">eth1_deposit_index</span><span class="p">)</span>
 
@@ -2603,7 +2603,7 @@
 <div class="section" id="process-proposer-slashing">
 <span id="process-proposer-slashing"></span><h2><code class="docutils literal notranslate"><span class="pre">process_proposer_slashing</span></code><a class="headerlink" href="#process-proposer-slashing" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_proposer_slashing</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">proposer_slashing</span><span class="p">:</span> <span class="n">ProposerSlashing</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_proposer_slashing</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">proposer_slashing</span><span class="p">:</span> <span class="n">ProposerSlashing</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">proposer</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">validators</span><span class="p">[</span><span class="n">proposer_slashing</span><span class="o">.</span><span class="n">proposer_index</span><span class="p">]</span>
     <span class="c1"># Verify slots match</span>
     <span class="k">assert</span> <span class="n">proposer_slashing</span><span class="o">.</span><span class="n">header_1</span><span class="o">.</span><span class="n">slot</span> <span class="o">==</span> <span class="n">proposer_slashing</span><span class="o">.</span><span class="n">header_2</span><span class="o">.</span><span class="n">slot</span>
@@ -2632,20 +2632,20 @@
 <div class="section" id="process-attester-slashing">
 <span id="process-attester-slashing"></span><h2><code class="docutils literal notranslate"><span class="pre">process_attester_slashing</span></code><a class="headerlink" href="#process-attester-slashing" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_attester_slashing</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">attester_slashing</span><span class="p">:</span> <span class="n">AttesterSlashing</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_attester_slashing</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">attester_slashing</span><span class="p">:</span> <span class="n">AttesterSlashing</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">attestation_1</span> <span class="o">=</span> <span class="n">attester_slashing</span><span class="o">.</span><span class="n">attestation_1</span>
     <span class="n">attestation_2</span> <span class="o">=</span> <span class="n">attester_slashing</span><span class="o">.</span><span class="n">attestation_2</span>
     <span class="k">assert</span> <span class="n">is_slashable_attestation_data</span><span class="p">(</span><span class="n">attestation_1</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">attestation_2</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">is_valid_indexed_attestation</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">attestation_1</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">is_valid_indexed_attestation</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">attestation_2</span><span class="p">)</span>
 
-    <span class="n">slashed_any</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="n">slashed_any</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">attesting_indices_1</span> <span class="o">=</span> <span class="n">attestation_1</span><span class="o">.</span><span class="n">custody_bit_0_indices</span> <span class="o">+</span> <span class="n">attestation_1</span><span class="o">.</span><span class="n">custody_bit_1_indices</span>
     <span class="n">attesting_indices_2</span> <span class="o">=</span> <span class="n">attestation_2</span><span class="o">.</span><span class="n">custody_bit_0_indices</span> <span class="o">+</span> <span class="n">attestation_2</span><span class="o">.</span><span class="n">custody_bit_1_indices</span>
     <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">attesting_indices_1</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">attesting_indices_2</span><span class="p">)):</span>
         <span class="k">if</span> <span class="n">is_slashable_validator</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">validators</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">)):</span>
             <span class="n">slash_validator</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
-            <span class="n">slashed_any</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="n">slashed_any</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">assert</span> <span class="n">slashed_any</span>
 
 </pre></div>
@@ -2680,7 +2680,7 @@
 <div class="section" id="process-attestation">
 <span id="process-attestation"></span><h2><code class="docutils literal notranslate"><span class="pre">process_attestation</span></code><a class="headerlink" href="#process-attestation" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_attestation</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">attestation</span><span class="p">:</span> <span class="n">Attestation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_attestation</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">attestation</span><span class="p">:</span> <span class="n">Attestation</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">attestation</span><span class="o">.</span><span class="n">data</span>
     <span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">index</span> <span class="o">&lt;</span> <span class="n">get_committee_count_at_slot</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">slot</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">epoch</span> <span class="ow">in</span> <span class="p">(</span><span class="n">get_previous_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">),</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
@@ -2753,7 +2753,7 @@
 <div class="section" id="process-deposit">
 <span id="process-deposit"></span><h2><code class="docutils literal notranslate"><span class="pre">process_deposit</span></code><a class="headerlink" href="#process-deposit" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_deposit</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">deposit</span><span class="p">:</span> <span class="n">Deposit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_deposit</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">deposit</span><span class="p">:</span> <span class="n">Deposit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="c1"># Verify the Merkle branch</span>
     <span class="k">assert</span> <span class="n">is_valid_merkle_branch</span><span class="p">(</span>
         <span class="n">leaf</span><span class="o">=</span><span class="n">hash_tree_root</span><span class="p">(</span><span class="n">deposit</span><span class="o">.</span><span class="n">data</span><span class="p">),</span>
@@ -2850,21 +2850,21 @@
 <div class="section" id="process-voluntary-exit">
 <span id="process-voluntary-exit"></span><h2><code class="docutils literal notranslate"><span class="pre">process_voluntary_exit</span></code><a class="headerlink" href="#process-voluntary-exit" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_voluntary_exit</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="nb">exit</span><span class="p">:</span> <span class="n">VoluntaryExit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="bp">None</span><span class="p">:</span>
-    <span class="n">validator</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">validators</span><span class="p">[</span><span class="nb">exit</span><span class="o">.</span><span class="n">validator_index</span><span class="p">]</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">process_voluntary_exit</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="n">BeaconState</span><span class="p">,</span> <span class="n">exit</span><span class="p">:</span> <span class="n">VoluntaryExit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">validator</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">validators</span><span class="p">[</span><span class="n">exit</span><span class="o">.</span><span class="n">validator_index</span><span class="p">]</span>
     <span class="c1"># Verify the validator is active</span>
     <span class="k">assert</span> <span class="n">is_active_validator</span><span class="p">(</span><span class="n">validator</span><span class="p">,</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
     <span class="c1"># Verify the validator has not yet exited</span>
     <span class="k">assert</span> <span class="n">validator</span><span class="o">.</span><span class="n">exit_epoch</span> <span class="o">==</span> <span class="n">FAR_FUTURE_EPOCH</span>
     <span class="c1"># Exits must specify an epoch requires they become valid; they are not valid before then</span>
-    <span class="k">assert</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">exit</span><span class="o">.</span><span class="n">epoch</span>
+    <span class="k">assert</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">exit</span><span class="o">.</span><span class="n">epoch</span>
     <span class="c1"># Verify the validator has been active long enough</span>
     <span class="k">assert</span> <span class="n">get_current_epoch</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">validator</span><span class="o">.</span><span class="n">activation_epoch</span> <span class="o">+</span> <span class="n">PERSISTENT_COMMITTEE_PERIOD</span>
     <span class="c1"># Verify signature</span>
-    <span class="n">domain</span> <span class="o">=</span> <span class="n">get_domain</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">DOMAIN_VOLUNTARY_EXIT</span><span class="p">,</span> <span class="nb">exit</span><span class="o">.</span><span class="n">epoch</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="n">bls_verify</span><span class="p">(</span><span class="n">validator</span><span class="o">.</span><span class="n">pubkey</span><span class="p">,</span> <span class="n">signing_root</span><span class="p">(</span><span class="nb">exit</span><span class="p">),</span> <span class="nb">exit</span><span class="o">.</span><span class="n">signature</span><span class="p">,</span> <span class="n">domain</span><span class="p">)</span>
+    <span class="n">domain</span> <span class="o">=</span> <span class="n">get_domain</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">DOMAIN_VOLUNTARY_EXIT</span><span class="p">,</span> <span class="n">exit</span><span class="o">.</span><span class="n">epoch</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">bls_verify</span><span class="p">(</span><span class="n">validator</span><span class="o">.</span><span class="n">pubkey</span><span class="p">,</span> <span class="n">signing_root</span><span class="p">(</span><span class="n">exit</span><span class="p">),</span> <span class="n">exit</span><span class="o">.</span><span class="n">signature</span><span class="p">,</span> <span class="n">domain</span><span class="p">)</span>
     <span class="c1"># Initiate exit</span>
-    <span class="n">initiate_validator_exit</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="nb">exit</span><span class="o">.</span><span class="n">validator_index</span><span class="p">)</span>
+    <span class="n">initiate_validator_exit</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">exit</span><span class="o">.</span><span class="n">validator_index</span><span class="p">)</span>
 
 </pre></div>
 </div>

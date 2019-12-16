@@ -194,8 +194,8 @@
 </pre></div>
 </div>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span> <span class="n">Takes</span> <span class="n">a</span> <span class="n">String</span> <span class="ow">and</span> <span class="n">returns</span> <span class="n">a</span> <span class="mi">64</span><span class="o">-</span><span class="n">character</span> <span class="nb">hex</span><span class="o">-</span><span class="n">encoded</span> <span class="n">string</span> <span class="n">of</span> <span class="n">the</span> <span class="mi">32</span><span class="o">-</span><span class="n">byte</span> <span class="n">SHA2</span><span class="o">-</span><span class="mi">256</span> <span class="nb">hash</span> <span class="n">of</span> <span class="n">the</span> <span class="n">string</span><span class="o">.</span>
-<span class="n">Input</span> <span class="sb">`String`</span> <span class="ow">is</span> <span class="n">interpreted</span> <span class="k">as</span> <span class="n">byte</span> <span class="n">array</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="n">it</span> <span class="ow">is</span> <span class="n">NOT</span> <span class="nb">hex</span><span class="o">-</span><span class="n">encoded</span><span class="o">.</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span> Takes a String and returns a 64-character hex-encoded string of the 32-byte SHA2-256 hash of the string.
+Input `String` is interpreted as byte array, e.g. it is NOT hex-encoded.
 
 </pre></div>
 </div>
@@ -242,7 +242,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x00</span><span class="s1">&#39;</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Type not supported: {type(value)}&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Type not supported: {type(value)}&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>K semantics:</p>
@@ -317,9 +317,9 @@
 <div class="section" id="merkleize-chunks">
 <span id="merkleize-chunks"></span><h2><code class="docutils literal notranslate"><span class="pre">merkleize_chunks</span></code><a class="headerlink" href="#merkleize-chunks" title="Permalink to this headline">¶</a></h2>
 <p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">merkleize_chunks</span><span class="p">(</span><span class="n">chunks</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">merkleize_chunks</span><span class="p">(</span><span class="n">chunks</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="c1"># If no limit is defined, we are just merkleizing chunks (e.g. SSZ container).</span>
-    <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">limit</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span>
 
     <span class="n">count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunks</span><span class="p">)</span>
@@ -332,11 +332,11 @@
 
     <span class="n">depth</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span>
     <span class="n">max_depth</span> <span class="o">=</span> <span class="p">(</span><span class="n">limit</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span>
-    <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="bp">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+    <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
 
     <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">&amp;</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">j</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">count</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">depth</span><span class="p">:</span>
                     <span class="n">h</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="n">zerohashes</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>  <span class="c1"># keep going if we are complementing the void to the next power of 2</span>
@@ -434,7 +434,7 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span>  <span class="n">Inner</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">merkleize_chunks</span><span class="o">.</span> <span class="n">Returns</span> <span class="n">the</span> <span class="n">new</span> <span class="n">tmp</span><span class="o">.</span>
     <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
         <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">&amp;</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">j</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">count</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">depth</span><span class="p">:</span>
                     <span class="n">h</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="n">zerohashes</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>  <span class="c1"># keep going if we are complementing the void to the next power of 2</span>
@@ -510,7 +510,7 @@
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">BasicValue</span><span class="p">):</span>
         <span class="n">leaves</span> <span class="o">=</span> <span class="n">chunkify</span><span class="p">(</span><span class="n">serialize_basic</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Type not supported: {type(obj)}&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Type not supported: {type(obj)}&quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">List</span><span class="p">,</span> <span class="n">Bytes</span><span class="p">,</span> <span class="n">Bitlist</span><span class="p">)):</span>
         <span class="k">return</span> <span class="n">mix_in_length</span><span class="p">(</span><span class="n">merkleize_chunks</span><span class="p">(</span><span class="n">leaves</span><span class="p">,</span> <span class="n">pad_to</span><span class="o">=</span><span class="n">chunk_count</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">type</span><span class="p">())),</span> <span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="p">))</span>
@@ -739,7 +739,7 @@
     <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">typ</span><span class="p">,</span> <span class="n">Container</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">typ</span><span class="o">.</span><span class="n">get_fields</span><span class="p">())</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Type not supported: {typ}&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Type not supported: </span><span class="si">{typ}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 </pre></div>
 </div>

@@ -35,6 +35,11 @@ module CONSTANTS
   syntax Int ::= "MIN_GENESIS_TIME"
   rule MIN_GENESIS_TIME => 1578009600                         [macro]
 
+  // Configuration -- fork choice
+  //====================================================
+  syntax Int ::= "SAFE_SLOTS_TO_UPDATE_JUSTIFIED"
+  rule SAFE_SLOTS_TO_UPDATE_JUSTIFIED => 8                    [macro] 
+
   // Configuration -- Gwei values
   //====================================================
   syntax Int ::= "MIN_DEPOSIT_AMOUNT"

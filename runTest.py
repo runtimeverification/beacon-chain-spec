@@ -63,13 +63,7 @@ attestationDataTerm = labelWithKeyPairs('#AttestationData' , [ ('slot' , intToke
                                                              ]
                                        )
 
-attestationDataAndCustodyBitTerm = labelWithKeyPairs('#AttestationDataAndCustodyBit' , [ ('data'      , attestationDataTerm)
-                                                                                       , ('custody_bit' , boolToken)
-                                                                                       ]
-                                                    )
-
-indexedAttestationTerm = labelWithKeyPairs('#IndexedAttestation' , [ ('custody_bit_0_indices' , listOf('Int', converter = intToken))
-                                                                   , ('custody_bit_1_indices' , listOf('Int', converter = intToken))
+indexedAttestationTerm = labelWithKeyPairs('#IndexedAttestation' , [ ('attesting_indices' , listOf('Int', converter = intToken))
                                                                    , ('data'                  , attestationDataTerm)
                                                                    , ('signature'             , hashToken)
                                                                    ]
@@ -104,11 +98,9 @@ attesterSlashingTerm = labelWithKeyPairs('#AttesterSlashing' , [ ('attestation_1
 # class Attestation(Container):
 #     aggregation_bits: Bitlist[MAX_VALIDATORS_PER_COMMITTEE]
 #     data: AttestationData
-#     custody_bits: Bitlist[MAX_VALIDATORS_PER_COMMITTEE]
 #     signature: BLSSignature
 attestationTerm = labelWithKeyPairs('#Attestation' , [ ('aggregation_bits' , bitListTerm)
                                                      , ('data'             , attestationDataTerm)
-                                                     , ('custody_bits'     , bitListTerm)
                                                      , ('signature'        , hashToken)
                                                      ]
                                    )
@@ -198,7 +190,6 @@ test_type_to_term = {
 data_class_to_converter = {
     'Attestation': attestationTerm,
     'AttestationData': attestationDataTerm,
-    'AttestationDataAndCustodyBit': attestationDataAndCustodyBitTerm,
     'AttesterSlashing': attesterSlashingTerm,
     'BeaconBlock': beaconBlockTerm,
     'BeaconBlockBody': beaconBlockBodyTerm,

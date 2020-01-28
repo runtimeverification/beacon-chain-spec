@@ -216,33 +216,20 @@ Python reference:
        """
        Check if ``indexed_attestation`` has valid indices and signature.
        """
-       bit_0_indices = indexed_attestation.custody_bit_0_indices
-       bit_1_indices = indexed_attestation.custody_bit_1_indices
+       indices = indexed_attestation.attesting_indices
 
-       # Verify no index has custody bit equal to 1 [to be removed in phase 1]
-       if not len(bit_1_indices) == 0:
-           return False
        # Verify max number of indices
-       if not len(bit_0_indices) + len(bit_1_indices) <= MAX_VALIDATORS_PER_COMMITTEE:
-           return False
-       # Verify index sets are disjoint
-       if not len(set(bit_0_indices).intersection(bit_1_indices)) == 0:
+       if not len(indices) <= MAX_VALIDATORS_PER_COMMITTEE:
            return False
        # Verify indices are sorted
-       if not (bit_0_indices == sorted(bit_0_indices) and bit_1_indices == sorted(bit_1_indices)):
+       if not indices == sorted(indices):
            return False
        # Verify aggregate signature
-       if not bls_verify_multiple(
-           pubkeys=[
-               bls_aggregate_pubkeys([state.validators[i].pubkey for i in bit_0_indices]),
-               bls_aggregate_pubkeys([state.validators[i].pubkey for i in bit_1_indices]),
-           ],
-           message_hashes=[
-               hash_tree_root(AttestationDataAndCustodyBit(data=indexed_attestation.data, custody_bit=0b0)),
-               hash_tree_root(AttestationDataAndCustodyBit(data=indexed_attestation.data, custody_bit=0b1)),
-           ],
+       if not bls_verify( 
+           pubkey=bls_aggregate_pubkeys([state.validators[i].pubkey for i in indices]), 
+           message_hash=hash_tree_root(indexed_attestation.data), 
            signature=indexed_attestation.signature,
-           domain=get_domain(state, DOMAIN_ATTESTATION, indexed_attestation.data.target.epoch),
+           domain=get_domain(state, DOMAIN_BEACON_ATTESTER, indexed_attestation.data.target.epoch),
        ):
            return False
        return True
@@ -253,11 +240,8 @@ K semantics:
 
      syntax Bool ::= "is_valid_indexed_attestation" "(" IndexedAttestation ")" [function]
      rule is_valid_indexed_attestation(IAtt)
-       =>      len(IAtt.custodyBit1Indices) ==Int 0
-       andBool len(IAtt.custodyBit0Indices) +Int len(IAtt.custodyBit1Indices) <=Int MAX_VALIDATORS_PER_COMMITTEE
-       andBool intersection(IAtt.custodyBit0Indices, IAtt.custodyBit1Indices) ==K .IntList
-       andBool IAtt.custodyBit0Indices ==K sortIntList(IAtt.custodyBit0Indices)
-       andBool IAtt.custodyBit1Indices ==K sortIntList(IAtt.custodyBit1Indices)
+       => len(IAtt.attesting_indices) <=Int MAX_VALIDATORS_PER_COMMITTEE
+       andBool IAtt.attesting_indices ==K sortIntList(IAtt.attesting_indices)
        //we do not check for BLS signature
 
 
@@ -937,13 +921,8 @@ Python reference:
        Return the indexed attestation corresponding to ``attestation``.
        """
        attesting_indices = get_attesting_indices(state, attestation.data, attestation.aggregation_bits)
-       custody_bit_1_indices = get_attesting_indices(state, attestation.data, attestation.custody_bits)
-       assert custody_bit_1_indices.issubset(attesting_indices)
-       custody_bit_0_indices = attesting_indices.difference(custody_bit_1_indices)
-
        return IndexedAttestation(
-           custody_bit_0_indices=sorted(custody_bit_0_indices),
-           custody_bit_1_indices=sorted(custody_bit_1_indices),
+           attesting_indices=sorted(attesting_indices),
            data=attestation.data,
            signature=attestation.signature,
        )
@@ -953,21 +932,13 @@ K semantics:
 
 
      syntax IndexedAttestation ::= "get_indexed_attestation" "(" Attestation ")" [function]
-     rule get_indexed_attestation(#Attestation(AggregationBits, DATA, CustodyBits, SIG)) =>
-       #fun(AttestingIndices =>
-       #fun(CustodyBit1Indices =>
-       #fun(CustodyBit0Indices => #IndexedAttestation(
-                                     sortIntList(CustodyBit0Indices),
-                                     sortIntList(CustodyBit1Indices),
+     rule get_indexed_attestation(#Attestation(AggregationBits, DATA, SIG)) =>
+       #fun(AttestingIndices => #IndexedAttestation(
+                                     sortIntList(AttestingIndices),
                                      DATA,
                                      SIG
                                   )
-       )(listDiff(AttestingIndices, CustodyBit1Indices))
-       )(get_attesting_indices(DATA, CustodyBits))
        )(get_attesting_indices(DATA, AggregationBits))
-       // assert custody_bit_1_indices.issubset(attesting_indices)
-       //requires listDiff(CustodyBit1Indices, AttestingIndices) ==K .IntList - cannot be used, vars out of scope
-       requires listDiff(get_attesting_indices(DATA, CustodyBits), get_attesting_indices(DATA, AggregationBits)) ==K .IntList
 
 
 
@@ -2688,9 +2659,8 @@ Python reference:
        assert is_valid_indexed_attestation(state, attestation_2)
 
        slashed_any = False
-       attesting_indices_1 = attestation_1.custody_bit_0_indices + attestation_1.custody_bit_1_indices
-       attesting_indices_2 = attestation_2.custody_bit_0_indices + attestation_2.custody_bit_1_indices
-       for index in sorted(set(attesting_indices_1).intersection(attesting_indices_2)):
+       indices = set(attestation_1.attesting_indices).intersection(attestation_2.attesting_indices)
+       for index in sorted(indices): 
            if is_slashable_validator(state.validators[index], get_current_epoch(state)):
                slash_validator(state, index)
                slashed_any = True
@@ -2703,8 +2673,7 @@ K semantics:
      syntax KItem ::= "process_attester_slashing" "(" AttesterSlashing ")" [klabel(process_attester_slashing), symbol]
      rule process_attester_slashing(#AttesterSlashing( IAtt1, IAtt2 ))
        => processAttesterSlashingLoop(
-           sortIntList(intersection(IAtt1.custodyBit0Indices +IntList IAtt1.custodyBit1Indices,
-                                    IAtt2.custodyBit0Indices +IntList IAtt2.custodyBit1Indices)), false)
+           sortIntList(intersection(IAtt1.attesting_indices, IAtt2.attesting_indices)), false)
        requires is_slashable_attestation_data(IAtt1.data, IAtt2.data)
         andBool is_valid_indexed_attestation(IAtt1)
         andBool is_valid_indexed_attestation(IAtt2)
@@ -2740,7 +2709,7 @@ Python reference:
        assert data.slot + MIN_ATTESTATION_INCLUSION_DELAY <= state.slot <= data.slot + SLOTS_PER_EPOCH
 
        committee = get_beacon_committee(state, data.slot, data.index)
-       assert len(attestation.aggregation_bits) == len(attestation.custody_bits) == len(committee)
+       assert len(attestation.aggregation_bits) == len(committee)
 
        pending_attestation = PendingAttestation(
            data=data,
@@ -2775,8 +2744,7 @@ K semantics:
         andBool (ATT._data.target.epoch) in (SetItem(get_previous_epoch()) SetItem(get_current_epoch()))
         andBool ATT._data._slot +Int MIN_ATTESTATION_INCLUSION_DELAY <=Int SLOT
         andBool SLOT <=Int ATT._data._slot +Int SLOTS_PER_EPOCH
-        andBool len(ATT.aggregation_bits) ==K len(ATT.custody_bits)
-        andBool len(ATT.custody_bits) ==K len(get_beacon_committee(ATT._data._slot, ATT._data.index))
+        andBool len(ATT.aggregation_bits) ==K len(get_beacon_committee(ATT._data._slot, ATT._data.index))
 
      //logic starting from if statement inside `process_attestation`
      syntax KItem ::= "process_attestation_if" "(" Attestation "," PendingAttestation ")"

@@ -195,6 +195,11 @@
 <span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MIN_GENESIS_TIME&quot;</span><span class="w"></span>
 <span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">MIN_GENESIS_TIME</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">1578009600</span><span class="w">                         </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"></span>
 
+<span class="w">  </span><span class="c1">// Configuration -- fork choice</span>
+<span class="w">  </span><span class="c1">//====================================================</span>
+<span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;SAFE_SLOTS_TO_UPDATE_JUSTIFIED&quot;</span><span class="w"></span>
+<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">SAFE_SLOTS_TO_UPDATE_JUSTIFIED</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="mi">2</span><span class="w">                    </span><span class="p">[</span><span class="nv">macro</span><span class="p">]</span><span class="w"> </span>
+
 <span class="w">  </span><span class="c1">// Configuration -- Gwei values</span>
 <span class="w">  </span><span class="c1">//====================================================</span>
 <span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Int</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;MIN_DEPOSIT_AMOUNT&quot;</span><span class="w"></span>

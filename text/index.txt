@@ -179,8 +179,6 @@ Start by choosing any section below or in the sidebar.
 
   * "AttestationData"
 
-  * "AttestationDataAndCustodyBit"
-
   * "IndexedAttestation"
 
   * "PendingAttestation"

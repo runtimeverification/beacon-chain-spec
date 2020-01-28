@@ -219,32 +219,13 @@ K semantics:
      
 
 
-"AttestationDataAndCustodyBit"
-==============================
-
-Python reference:
-
-   class AttestationDataAndCustodyBit(Container):
-       data: AttestationData
-       custody_bit: bit  # Challengeable bit (SSZ-bool, 1 byte) for the custody of shard data
-     
-
-K semantics:
-
-
-     syntax AttestationDataAndCustodyBit ::= #AttestationDataAndCustodyBit( AttestationData, Bit ) [klabel(#AttestationDataAndCustodyBit), symbol]
-
-     
-
-
 "IndexedAttestation"
 ====================
 
 Python reference:
 
    class IndexedAttestation(Container):
-       custody_bit_0_indices: List[ValidatorIndex, MAX_VALIDATORS_PER_COMMITTEE]  # Indices with custody bit equal to 0
-       custody_bit_1_indices: List[ValidatorIndex, MAX_VALIDATORS_PER_COMMITTEE]  # Indices with custody bit equal to 1
+       attesting_indices: List[ValidatorIndex, MAX_VALIDATORS_PER_COMMITTEE]
        data: AttestationData
        signature: BLSSignature
      
@@ -252,14 +233,12 @@ Python reference:
 K semantics:
 
 
-     syntax IndexedAttestation ::= #IndexedAttestation( IntList, IntList, AttestationData, BLSSignature ) [klabel(#IndexedAttestation), symbol]
+     syntax IndexedAttestation ::= #IndexedAttestation( IntList, AttestationData, BLSSignature ) [klabel(#IndexedAttestation), symbol]
 
-     syntax IntList ::= IndexedAttestation "." "custodyBit0Indices"      [function]
-     rule #IndexedAttestation( IL0, _, _, _ ).custodyBit0Indices => IL0
-     syntax IntList ::= IndexedAttestation "." "custodyBit1Indices"      [function]
-     rule #IndexedAttestation( _, IL1, _, _ ).custodyBit1Indices => IL1
+     syntax IntList ::= IndexedAttestation "." "attesting_indices"       [function]
+     rule #IndexedAttestation( IL0, _, _ ).attesting_indices => IL0
      syntax AttestationData ::= IndexedAttestation "." "data"            [function]
-     rule #IndexedAttestation( _,_, DATA, _ ).data => DATA
+     rule #IndexedAttestation( _,DATA ,_ ).data => DATA
 
      
 
@@ -438,22 +417,18 @@ Python reference:
    class Attestation(Container):
        aggregation_bits: Bitlist[MAX_VALIDATORS_PER_COMMITTEE]
        data: AttestationData
-       custody_bits: Bitlist[MAX_VALIDATORS_PER_COMMITTEE]
        signature: BLSSignature
      
 
 K semantics:
 
 
-     syntax Attestation ::= #Attestation( BitList, AttestationData, BitList, BLSSignature ) [klabel(#Attestation), symbol]
+     syntax Attestation ::= #Attestation( BitList, AttestationData, BLSSignature ) [klabel(#Attestation), symbol]
 
      syntax BitList ::= Attestation "." "aggregation_bits"               [function]
-     rule #Attestation(AggrBITS, _,_,_).aggregation_bits => AggrBITS
+     rule #Attestation(AggrBITS, _,_).aggregation_bits => AggrBITS
      syntax AttestationData ::= Attestation "." "_data"                  [function]
-     rule #Attestation(_, AttDATA, _,_)._data => AttDATA
-     syntax BitList ::= Attestation "." "custody_bits"                   [function]
-     rule #Attestation(_,_, CustBITS,_).custody_bits => CustBITS
-
+     rule #Attestation(_, AttDATA,_)._data => AttDATA
 
      
 
@@ -638,7 +613,7 @@ K semantics:
      rule intOf(#Some(I)) => I
 
 
-     syntax Container ::= Fork | Checkpoint | Validator | AttestationData | AttestationDataAndCustodyBit
+     syntax Container ::= Fork | Checkpoint | Validator | AttestationData
                         | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
                         | BeaconBlockHeader | ProposerSlashing | AttesterSlashing | Attestation | Deposit
                         | VoluntaryExit | BeaconBlockBody | BeaconBlock | AggregateAndProof

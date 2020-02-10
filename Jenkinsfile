@@ -16,6 +16,7 @@ pipeline {
       steps {
         sh '''
           make deps
+          make test-split
         '''
       }
     }

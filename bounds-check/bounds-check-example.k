@@ -4,32 +4,32 @@ imports INT
 imports LIST
 
 // bounded values
-syntax UInt ::= #uint(Int, Int, Int) // {min, max} bounds, value (64-bit)
+syntax UInt64 ::= #uint64(Int, Int, Int) // {min, max} bounds, value (64-bit)
 
 // constructor
-syntax UInt ::= ui(Int, Int, Int) [function]
-rule ui(L, U, V) => #uint(L, U, V) requires 0 <=Int L andBool L <=Int V andBool V <=Int U andBool U <Int 2 ^Int 64
+syntax UInt64 ::= ui(Int, Int, Int) [function]
+rule ui(L, U, V) => #uint64(L, U, V) requires 0 <=Int L andBool L <=Int V andBool V <=Int U andBool U <Int 2 ^Int 64
 
 // arithmetic
-syntax UInt ::= left: // no functional, no hook
-                UInt "*UInt" UInt [function, left, klabel(_*UInt_), smtlib(mulUInt)]
-              | UInt "/UInt" UInt [function, left, klabel(_/UInt_), smtlib(divUInt)]
+syntax UInt64 ::= left: // no functional, no hook
+                UInt64 "*UInt64" UInt64 [function, left, klabel(_*UInt64_), smtlib(mulUInt64)]
+              | UInt64 "/UInt64" UInt64 [function, left, klabel(_/UInt64_), smtlib(divUInt64)]
               > left:
-                UInt "+UInt" UInt [function, left, klabel(_+UInt_), smtlib(addUInt)]
-              | UInt "-UInt" UInt [function, left, klabel(_-UInt_), smtlib(subUInt)]
+                UInt64 "+UInt64" UInt64 [function, left, klabel(_+UInt64_), smtlib(addUInt64)]
+              | UInt64 "-UInt64" UInt64 [function, left, klabel(_-UInt64_), smtlib(subUInt64)]
 
-rule #uint(L1, U1, V1) *UInt #uint(L2, U2, V2) => ui(          L1 *Int L2,            U1 *Int U2,  V1 *Int V2)
-rule #uint(L1, U1, V1) /UInt #uint(L2, U2, V2) => ui(          L1 /Int U2,            U1 /Int L2,  V1 /Int V2)
-rule #uint(L1, U1, V1) +UInt #uint(L2, U2, V2) => ui(          L1 +Int L2,            U1 +Int U2,  V1 +Int V2)
-rule #uint(L1, U1, V1) -UInt #uint(L2, U2, V2) => ui(maxInt(0, L1 -Int U2), maxInt(0, U1 -Int L2), V1 -Int V2) // requires V1 >=Int V2
+rule #uint64(L1, U1, V1) *UInt64 #uint64(L2, U2, V2) => ui(          L1 *Int L2,            U1 *Int U2,  V1 *Int V2)
+rule #uint64(L1, U1, V1) /UInt64 #uint64(L2, U2, V2) => ui(          L1 /Int U2,            U1 /Int L2,  V1 /Int V2)
+rule #uint64(L1, U1, V1) +UInt64 #uint64(L2, U2, V2) => ui(          L1 +Int L2,            U1 +Int U2,  V1 +Int V2)
+rule #uint64(L1, U1, V1) -UInt64 #uint64(L2, U2, V2) => ui(maxInt(0, L1 -Int U2), maxInt(0, U1 -Int L2), V1 -Int V2) // requires V1 >=Int V2
 
 // lift constants
-syntax UInt ::= ci(Int) [function]
+syntax UInt64 ::= ci(Int) [function]
 rule ci(V) => ui(V, V, V) requires V >=Int 0
 
 // ensure bounds
-syntax UInt ::= ei(Int, Int, UInt) [function]
-rule ei(L, U, #uint(L0, U0, _) #as V) => V requires L <=Int L0 andBool U0 <=Int U
+syntax UInt64 ::= ei(Int, Int, UInt64) [function]
+rule ei(L, U, #uint64(L0, U0, _) #as V) => V requires L <=Int L0 andBool U0 <=Int U
 
 
 
@@ -52,11 +52,11 @@ rule <k> run(EffectiveBalance, TotalBalance, AttestingBalance) => . ... </k>
               /Int TotalBalance
            */
             getBaseReward(EffectiveBalance, TotalBalance)
-            *UInt ui(MAX_EFFECTIVE_BALANCE, MAX_ATTESTING_BALANCE, AttestingBalance)
-            /UInt ui(MAX_EFFECTIVE_BALANCE, TOTAL_ETHER_SUPPLY, TotalBalance)
+            *UInt64 ui(MAX_EFFECTIVE_BALANCE, MAX_ATTESTING_BALANCE, AttestingBalance)
+            /UInt64 ui(MAX_EFFECTIVE_BALANCE, TOTAL_ETHER_SUPPLY, TotalBalance)
      )) </r>
 
-syntax UInt ::= getBaseReward(Int, Int) [function]
+syntax UInt64 ::= getBaseReward(Int, Int) [function]
 rule getBaseReward(EffectiveBalance, TotalBalance)
   => /*
         EffectiveBalance
@@ -66,9 +66,9 @@ rule getBaseReward(EffectiveBalance, TotalBalance)
      */
      ei(500, 3 *Int 10 ^Int 6,
         ui(MIN_DEPOSIT_AMOUNT, MAX_EFFECTIVE_BALANCE, EffectiveBalance)
-        *UInt ci(BASE_REWARD_FACTOR)
-        /UInt ui(sqrt(MAX_EFFECTIVE_BALANCE), sqrt(TOTAL_ETHER_SUPPLY), sqrt(TotalBalance))
-        /UInt ci(BASE_REWARDS_PER_EPOCH)
+        *UInt64 ci(BASE_REWARD_FACTOR)
+        /UInt64 ui(sqrt(MAX_EFFECTIVE_BALANCE), sqrt(TOTAL_ETHER_SUPPLY), sqrt(TotalBalance))
+        /UInt64 ci(BASE_REWARDS_PER_EPOCH)
      )
 
 // constants

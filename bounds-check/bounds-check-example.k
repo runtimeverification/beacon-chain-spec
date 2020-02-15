@@ -46,18 +46,29 @@ rule C:Cmd Cs:Cmds => C ~> Cs
 syntax Cmd ::= run(Int, Int, Int)
 rule <k> run(EffectiveBalance, TotalBalance, AttestingBalance) => . ... </k>
      <r> _:List (.List => ListItem(
-            getBaseReward(EffectiveBalance, TotalBalance)                                       // #uint(11, 23, getBaseReward)
-            *UInt ui(MAX_EFFECTIVE_BALANCE, MAX_ATTESTING_BALANCE, AttestingBalance)            // #uint(35, 41, AttestingBalance)
-            /UInt ui(MAX_EFFECTIVE_BALANCE, TOTAL_ETHER_SUPPLY, TotalBalance)                   // #uint(35, 50, TotalBalance)
+           /*
+              getBaseReward(EffectiveBalance, TotalBalance)
+              *Int AttestingBalance
+              /Int TotalBalance
+           */
+            getBaseReward(EffectiveBalance, TotalBalance)
+            *UInt ui(MAX_EFFECTIVE_BALANCE, MAX_ATTESTING_BALANCE, AttestingBalance)
+            /UInt ui(MAX_EFFECTIVE_BALANCE, TOTAL_ETHER_SUPPLY, TotalBalance)
      )) </r>
 
 syntax UInt ::= getBaseReward(Int, Int) [function]
 rule getBaseReward(EffectiveBalance, TotalBalance)
-  => ei(500, 3 *Int 10 ^Int 6,
-        ui(MIN_DEPOSIT_AMOUNT, MAX_EFFECTIVE_BALANCE, EffectiveBalance)                         // #uint(30, 35, EffectiveBalance)
-        *UInt ci(BASE_REWARD_FACTOR)                                                            // #uint( 7,  7, 64)
-        /UInt ui(sqrt(MAX_EFFECTIVE_BALANCE), sqrt(TOTAL_ETHER_SUPPLY), sqrt(TotalBalance))     // #uint(18, 25, sqrt(TotalBalance))
-        /UInt ci(BASE_REWARDS_PER_EPOCH)                                                        // #uint( 3,  3, 4)
+  => /*
+        EffectiveBalance
+        *Int BASE_REWARD_FACTOR
+        /Int TotalBalance
+        /Int BASE_REWARDS_PER_EPOCH
+     */
+     ei(500, 3 *Int 10 ^Int 6,
+        ui(MIN_DEPOSIT_AMOUNT, MAX_EFFECTIVE_BALANCE, EffectiveBalance)
+        *UInt ci(BASE_REWARD_FACTOR)
+        /UInt ui(sqrt(MAX_EFFECTIVE_BALANCE), sqrt(TOTAL_ETHER_SUPPLY), sqrt(TotalBalance))
+        /UInt ci(BASE_REWARDS_PER_EPOCH)
      )
 
 // constants

@@ -61,7 +61,7 @@ rule getBaseReward(EffectiveBalance, TotalBalance)
   => /*
         EffectiveBalance
         *Int BASE_REWARD_FACTOR
-        /Int TotalBalance
+        /Int sqrt(TotalBalance)
         /Int BASE_REWARDS_PER_EPOCH
      */
      ei(500, 3 *Int 10 ^Int 6,

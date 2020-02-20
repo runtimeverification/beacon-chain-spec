@@ -822,7 +822,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Root,
        <randao-mixes> _ => fillInVector(E1BH, EPOCHS_PER_HISTORICAL_VECTOR) </randao-mixes>
        <latest-block-header>
               //BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody()))
-         _ => #BeaconBlockHeader(0, defaultRoot(), defaultRoot(), hash_tree_root(defaultBeaconBlockBody()), defaultBLSSignature())
+         _ => #BeaconBlockHeader(0, defaultRoot(), defaultRoot(), hash_tree_root(defaultBeaconBlockBody()))
        </latest-block-header>
 
   //Full state initialization, when generating genesis state
@@ -912,22 +912,28 @@ def is_valid_genesis_state(state: BeaconState) -> bool:
   //====================================================
 
 /*
-def state_transition(state: BeaconState, block: BeaconBlock, validate_state_root: bool=False) -> BeaconState:
+def state_transition(state: BeaconState, signed_block: SignedBeaconBlock, validate_result: bool=True) -> BeaconState:
+    block = signed_block.message
     # Process slots (including those with no blocks) since block
     process_slots(state, block.slot)
+    # Verify signature
+    if validate_result:
+        assert verify_block_signature(state, signed_block)
     # Process block
     process_block(state, block)
-    # Validate state root (`validate_state_root == True` in production)
-    if validate_state_root:
+    # Verify state root
+    if validate_result:
         assert block.state_root == hash_tree_root(state)
     # Return post-state
     return state
 */
-  syntax KItem ::= "state_transition" "(" block: BeaconBlock "," validateStateRoot: Bool ")"  [klabel(state_transition), symbol]
-  rule state_transition(BLOCK, VSR) => process_slots(BLOCK._slot) ~> process_block(BLOCK) ~> validateStateRoot(BLOCK, VSR)
+  syntax KItem ::= "state_transition" "(" signedBlock: SignedBeaconBlock "," validateResult: Bool ")"  [klabel(state_transition), symbol]
+  rule state_transition(SIGNEDBLOCK, VSR) => process_slots(SIGNEDBLOCK.message._slot) ~> process_block(SIGNEDBLOCK.message) ~> validateStateRoot(SIGNEDBLOCK.message, VSR)
   syntax KItem ::= validateStateRoot ( BeaconBlock, Bool )
     rule validateStateRoot(BLOCK, VSR) => .K
       requires (notBool VSR) orBool (BLOCK.stateRoot ==K hash_tree_root_state())
+
+// *   - bls_verify is not implemented (as discussed). Signature verification is not done.
 
 /*
 def process_slots(state: BeaconState, slot: Slot) -> None:
@@ -971,7 +977,7 @@ def process_slot(state: BeaconState) -> None:
     if state.latest_block_header.state_root == Bytes32():
         state.latest_block_header.state_root = previous_state_root
     # Cache block root
-    previous_block_root = signing_root(state.latest_block_header)
+    previous_block_root = hash_tree_root(state.latest_block_header)
     state.block_roots[state.slot % SLOTS_PER_HISTORICAL_ROOT] = previous_block_root
 */
   syntax KItem ::= "process_slot" "(" ")"
@@ -987,12 +993,12 @@ def process_slot(state: BeaconState) -> None:
                                                      => #if BHStateRoot ==K defaultBytes32()
                                                           #then PreviousStateRoot
                                                           #else BHStateRoot
-                                                        #fi , _,_) </latest-block-header>
+                                                        #fi ,_ ) </latest-block-header>
 
   syntax KItem ::= "cacheBlockRoot" "(" Int ")"
   rule <k> cacheBlockRoot(SLOT) => .K ...</k>
        <latest-block-header> LatestBlockHEADER </latest-block-header>
-       <block-roots> SLOT |-> (_ => signing_root(LatestBlockHEADER)) ...</block-roots>
+       <block-roots> SLOT |-> (_ => hash_tree_root(LatestBlockHEADER)) ...</block-roots>
 
 
   // State transition function -- Epoch processing
@@ -1787,20 +1793,18 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
     # Verify that the slots match
     assert block.slot == state.slot
     # Verify that the parent matches
-    assert block.parent_root == signing_root(state.latest_block_header)
-    # Save current block as the new latest block
+    assert block.parent_root == hash_tree_root(state.latest_block_header)
+    # Cache current block as the new latest block
     state.latest_block_header = BeaconBlockHeader(
         slot=block.slot,
         parent_root=block.parent_root,
-        # `state_root` is zeroed and overwritten in the next `process_slot` call
+        state_root=Bytes32(),  # Overwritten in the next process_slot call
         body_root=hash_tree_root(block.body),
-        # `signature` is zeroed
     )
+
     # Verify proposer is not slashed
     proposer = state.validators[get_beacon_proposer_index(state)]
     assert not proposer.slashed
-    # Verify proposer signature
-    assert bls_verify(proposer.pubkey, signing_root(block), block.signature, get_domain(state, DOMAIN_BEACON_PROPOSER))
 */
   syntax KItem ::= "process_block_header" "(" BeaconBlock ")"           [klabel(process_block_header), symbol]
   rule <k> process_block_header(BLOCK) => .K ... </k>
@@ -1809,12 +1813,11 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
                                BLOCK._slot,                 // block.slot
                                BLOCK.parentRoot,            // block.parent_root
                                defaultRoot(),               // zeroed
-                               hash_tree_root(BLOCK.body),  // hash_tree_root(block.body)
-                               defaultBLSSignature()  )     // zeroed
+                               hash_tree_root(BLOCK.body))  // hash_tree_root(block.body)
        </latest-block-header>
        <slot> SLOT </slot>
     requires BLOCK._slot ==K SLOT
-     andBool BLOCK.parentRoot ==K signing_root(OldBlockHEADER)
+     andBool BLOCK.parentRoot ==K hash_tree_root(OldBlockHEADER)
      andBool notBool getValidator(get_beacon_proposer_index()).slashed
 
 /*
@@ -1887,7 +1890,7 @@ def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
     requires len(BlockBODY.deposits) ==Int minInt(MAX_DEPOSITS, ETH1DATA.deposit_count -Int ETH1DINDEX)
 
   syntax KItem ::= "process_operations_aux" "(" ProposerSlashingList "," AttesterSlashingList "," AttestationList
-                                            "," DepositList "," VoluntaryExitList ")"
+                                            "," DepositList "," SignedVoluntaryExitList ")"
 
   rule (. => process_proposer_slashing(PropSlashing))
        ~> process_operations_aux(PropSlashing:ProposerSlashing L => L, _,_,_,_)
@@ -1899,29 +1902,30 @@ def process_operations(state: BeaconState, body: BeaconBlockBody) -> None:
        ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, DEP:Deposit L => L, _)
   rule (. => process_voluntary_exit(VolEX))
        ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, .DepositList,
-                                 VolEX:VoluntaryExit L => L)
+                                 VolEX:SignedVoluntaryExit L => L)
   rule process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, .DepositList,
-                              .VoluntaryExitList ) => .K
+                              .SignedVoluntaryExitList ) => .K
 
 /*
 def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSlashing) -> None:
+    # Verify header slots match
+    assert proposer_slashing.signed_header_1.message.slot == proposer_slashing.signed_header_2.message.slot
+    # Verify the headers are different
+    assert proposer_slashing.signed_header_1 != proposer_slashing.signed_header_2
+    # Verify the proposer is slashable
     proposer = state.validators[proposer_slashing.proposer_index]
-    # Verify slots match
-    assert proposer_slashing.header_1.slot == proposer_slashing.header_2.slot
-    # But the headers are different
-    assert proposer_slashing.header_1 != proposer_slashing.header_2
-    # Check proposer is slashable
     assert is_slashable_validator(proposer, get_current_epoch(state))
-    # Signatures are valid
-    for header in (proposer_slashing.header_1, proposer_slashing.header_2):
-        domain = get_domain(state, DOMAIN_BEACON_PROPOSER, compute_epoch_at_slot(header.slot))
-        assert bls_verify(proposer.pubkey, signing_root(header), header.signature, domain)
+    # Verify signatures
+    for signed_header in (proposer_slashing.signed_header_1, proposer_slashing.signed_header_2):
+        domain = get_domain(state, DOMAIN_BEACON_PROPOSER, compute_epoch_at_slot(signed_header.message.slot))
+        signing_root = compute_signing_root(signed_header.message, domain)
+        assert bls.Verify(proposer.pubkey, signing_root, signed_header.signature)
 
     slash_validator(state, proposer_slashing.proposer_index)
 */
   syntax KItem ::= "process_proposer_slashing" "(" ProposerSlashing ")" [klabel(process_proposer_slashing), symbol]
   rule process_proposer_slashing(#ProposerSlashing(ProposerIndex, HEAD1, HEAD2)) => slash_validator(ProposerIndex, .ValidatorIndex)
-    requires HEAD1._slot ==Int HEAD2._slot
+    requires HEAD1.message._slot ==Int HEAD2.message._slot
      andBool HEAD1 =/=K HEAD2
      andBool is_slashable_validator(getValidator(ProposerIndex), get_current_epoch())
 
@@ -1966,6 +1970,7 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
     data = attestation.data
     assert data.index < get_committee_count_at_slot(state, data.slot)
     assert data.target.epoch in (get_previous_epoch(state), get_current_epoch(state))
+    assert data.target.epoch == compute_epoch_at_slot(data.slot) 
     assert data.slot + MIN_ATTESTATION_INCLUSION_DELAY <= state.slot <= data.slot + SLOTS_PER_EPOCH
 
     committee = get_beacon_committee(state, data.slot, data.index)
@@ -1998,6 +2003,7 @@ def process_attestation(state: BeaconState, attestation: Attestation) -> None:
        <slot> SLOT </slot>
     requires ATT._data.index <Int get_committee_count_at_slot(ATT._data._slot)
      andBool (ATT._data.target.epoch) in (SetItem(get_previous_epoch()) SetItem(get_current_epoch()))
+     andBool ATT._data.target.epoch ==K compute_epoch_at_slot(ATT._data._slot)
      andBool ATT._data._slot +Int MIN_ATTESTATION_INCLUSION_DELAY <=Int SLOT
      andBool SLOT <=Int ATT._data._slot +Int SLOTS_PER_EPOCH
      andBool len(ATT.aggregation_bits) ==K len(get_beacon_committee(ATT._data._slot, ATT._data.index))
@@ -2119,27 +2125,29 @@ def process_deposit(state: BeaconState, deposit: Deposit) -> None:
 
 
 /*
-def process_voluntary_exit(state: BeaconState, exit: VoluntaryExit) -> None:
-    validator = state.validators[exit.validator_index]
+def process_voluntary_exit(state: BeaconState, signed_voluntary_exit: SignedVoluntaryExit) -> None:
+    voluntary_exit = signed_voluntary_exit.message
+    validator = state.validators[voluntary_exit.validator_index]
     # Verify the validator is active
     assert is_active_validator(validator, get_current_epoch(state))
-    # Verify the validator has not yet exited
+    # Verify exit has not been initiated
     assert validator.exit_epoch == FAR_FUTURE_EPOCH
-    # Exits must specify an epoch requires they become valid; they are not valid before then
-    assert get_current_epoch(state) >= exit.epoch
+    # Exits must specify an epoch when they become valid; they are not valid before then
+    assert get_current_epoch(state) >= voluntary_exit.epoch
     # Verify the validator has been active long enough
     assert get_current_epoch(state) >= validator.activation_epoch + PERSISTENT_COMMITTEE_PERIOD
     # Verify signature
-    domain = get_domain(state, DOMAIN_VOLUNTARY_EXIT, exit.epoch)
-    assert bls_verify(validator.pubkey, signing_root(exit), exit.signature, domain)
+    domain = get_domain(state, DOMAIN_VOLUNTARY_EXIT, voluntary_exit.epoch)
+    signing_root = compute_signing_root(voluntary_exit, domain)
+    assert bls.Verify(validator.pubkey, signing_root, signed_voluntary_exit.signature)
     # Initiate exit
-    initiate_validator_exit(state, exit.validator_index)
+    initiate_validator_exit(state, voluntary_exit.validator_index)
 */
-  syntax KItem ::= "process_voluntary_exit" "(" VoluntaryExit ")" [klabel(process_voluntary_exit), symbol]
+  syntax KItem ::= "process_voluntary_exit" "(" SignedVoluntaryExit ")" [klabel(process_voluntary_exit), symbol]
 
-  rule process_voluntary_exit(#VoluntaryExit(ExitEPOCH, ValINDEX, _)) => initiate_validator_exit(ValINDEX)
+  rule process_voluntary_exit(#SignedVoluntaryExit(#VoluntaryExit(ExitEPOCH, ValINDEX), _) => initiate_validator_exit(ValINDEX)
     requires is_active_validator(getValidator(ValINDEX), get_current_epoch())
-     andBool getValidator(ValINDEX).exitEpoch ==Int FAR_FUTURE_EPOCH
+     andBool getValidator(valINDEX).exitEpoch ==Int FAR_FUTURE_EPOCH
      andBool get_current_epoch() >=Int ExitEPOCH
      andBool get_current_epoch() >=Int getValidator(ValINDEX).activationEpoch +Int PERSISTENT_COMMITTEE_PERIOD
 

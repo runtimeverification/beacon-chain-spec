@@ -3,14 +3,14 @@ module CONSTANTS
 
   // (Non-configurable) constants
   //====================================================
+  syntax Int ::= "GENESIS_FORK_VERSION"
+  rule GENESIS_FORK_VERSION => "\x00\x00\x00\x00"             [macro]
   syntax Int ::= "FAR_FUTURE_EPOCH"
   rule FAR_FUTURE_EPOCH => 2 ^Int 64 -Int 1                   [macro]
   syntax Int ::= "BASE_REWARDS_PER_EPOCH"
   rule BASE_REWARDS_PER_EPOCH => 4                            [macro]
   syntax Int ::= "DEPOSIT_CONTRACT_TREE_DEPTH"
   rule DEPOSIT_CONTRACT_TREE_DEPTH => 2 ^Int 5                [macro]
-  syntax Int ::= "SECONDS_PER_DAY"
-  rule SECONDS_PER_DAY => 86400                               [macro]
   syntax Int ::= "JUSTIFICATION_BITS_LENGTH"
   rule JUSTIFICATION_BITS_LENGTH => 4                         [macro]
   syntax String ::= "ENDIANNESS"
@@ -31,7 +31,7 @@ module CONSTANTS
   syntax Int ::= "SHUFFLE_ROUND_COUNT"
   rule SHUFFLE_ROUND_COUNT => 90                              [macro]
   syntax Int ::= "MIN_GENESIS_ACTIVE_VALIDATOR_COUNT"
-  rule MIN_GENESIS_ACTIVE_VALIDATOR_COUNT => 2 ^Int 16        [macro]
+  rule MIN_GENESIS_ACTIVE_VALIDATOR_COUNT => 2 ^Int 14        [macro]
   syntax Int ::= "MIN_GENESIS_TIME"
   rule MIN_GENESIS_TIME => 1578009600                         [macro]
 
@@ -62,6 +62,8 @@ module CONSTANTS
 
   // Configuration -- Time parameters
   //====================================================
+  syntax Int ::= "MIN_GENESIS_DELAY"
+  rule MIN_GENESIS_DELAY => 86400                             [macro]
   syntax Int ::= "SECONDS_PER_SLOT"
   rule SECONDS_PER_SLOT => 12                                 [macro]
   syntax Int ::= "MIN_ATTESTATION_INCLUSION_DELAY"

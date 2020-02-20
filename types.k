@@ -14,13 +14,13 @@ module TYPES
 
   syntax Bytes8  ::= String | Domain
 
-  syntax Bytes32 ::= String | Hash
+  syntax Bytes32 ::= String | Root
   syntax Bytes32 ::= defaultBytes32()                                 [function]
   rule defaultBytes32() => {"\x00" *Bytes 32}:>String
 
-  syntax Hash    ::= String
-  syntax Hash ::= defaultHash()                                       [function]
-  rule defaultHash() => {defaultBytes32()}:>String
+  syntax Root    ::= String
+  syntax Root    ::= defaultRoot()                                       [function]
+  rule defaultRoot() => {defaultBytes32()}:>String
 
   syntax Bytes48 ::= String | BLSPubkey
 
@@ -95,22 +95,22 @@ class Fork(Container):
   /*
 class Checkpoint(Container):
     epoch: Epoch
-    root: Hash
+    root: Root
   */
-  syntax Checkpoint ::= #Checkpoint( Int, Hash ) [klabel(#Checkpoint), symbol]
+  syntax Checkpoint ::= #Checkpoint( Int, Root ) [klabel(#Checkpoint), symbol]
 
   syntax Int ::= Checkpoint "." "epoch"                               [function]
   rule #Checkpoint(EPOCH,_).epoch => EPOCH
-  syntax Hash ::= Checkpoint "." "root"                               [function]
+  syntax Root ::= Checkpoint "." "root"                               [function]
   rule #Checkpoint(_,ROOT).root => ROOT
 
   syntax Checkpoint ::= defaultCheckpoint()                           [function]
-  rule defaultCheckpoint() => #Checkpoint(0, defaultHash())
+  rule defaultCheckpoint() => #Checkpoint(0, defaultRoot())
 
   /*
 class Validator(Container):
     pubkey: BLSPubkey
-    withdrawal_credentials: Hash  # Commitment to pubkey for withdrawals
+    withdrawal_credentials: Root  # Commitment to pubkey for withdrawals
     effective_balance: Gwei  # Balance at stake
     slashed: boolean
     # Status epochs
@@ -120,7 +120,7 @@ class Validator(Container):
     withdrawable_epoch: Epoch  # When validator can withdraw funds
   */
   syntax Validator ::= #Validator( pubkey: BLSPubkey,
-                                   withdrawalCredentials: Hash,
+                                   withdrawalCredentials: Root,
                                    effectiveBalance: Int,
                                    slashed: Bool,
                                    activationEligibilityEpoch: Int,
@@ -131,7 +131,7 @@ class Validator(Container):
 
   syntax BLSPubkey ::= Validator "." "pubkey"                         [function]
   rule #Validator(PK, _,_,_,_,_,_,_).pubkey => PK
-  syntax Hash      ::= Validator "." "withdrawalCredentials"          [function]
+  syntax Root      ::= Validator "." "withdrawalCredentials"          [function]
   rule #Validator(_, HASH, _,_,_,_,_,_).withdrawalCredentials => HASH
   syntax Int      ::= Validator "." "effectiveBalance"                [function]
   rule #Validator(_,_, EffBal, _,_,_,_,_).effectiveBalance => EffBal
@@ -151,18 +151,18 @@ class AttestationData(Container):
     slot: Slot
     index: CommitteeIndex
     # LMD GHOST vote
-    beacon_block_root: Hash
+    beacon_block_root: Root
     # FFG vote
     source: Checkpoint
     target: Checkpoint
   */
-  syntax AttestationData ::= #AttestationData(Int, Int, Hash, Checkpoint, Checkpoint ) [klabel(#AttestationData), symbol]
+  syntax AttestationData ::= #AttestationData(Int, Int, Root, Checkpoint, Checkpoint ) [klabel(#AttestationData), symbol]
 
   syntax Int ::= AttestationData "." "_slot"                          [function]
   rule #AttestationData(SLOT,_,_,_,_)._slot => SLOT
   syntax Int ::= AttestationData "." "index"                          [function]
   rule #AttestationData(_,INDEX,_,_,_).index => INDEX
-  syntax Hash ::= AttestationData "." "beaconBlockRoot"               [function]
+  syntax Root ::= AttestationData "." "beaconBlockRoot"               [function]
   rule #AttestationData(_,_,ROOT,_,_).beaconBlockRoot => ROOT
   syntax Checkpoint ::= AttestationData "." "source"                  [function]
   rule #AttestationData(_,_,_,CP,_).source => CP
@@ -202,38 +202,38 @@ class PendingAttestation(Container):
 
   /*
 class Eth1Data(Container):
-    deposit_root: Hash
+    deposit_root: Root
     deposit_count: uint64
-    block_hash: Hash
+    block_hash: Root
   */
-  syntax Eth1Data ::= #Eth1Data( Hash, Int, Hash ) [klabel(#Eth1Data), symbol]
+  syntax Eth1Data ::= #Eth1Data( Root, Int, Root ) [klabel(#Eth1Data), symbol]
 
-  syntax Hash ::= Eth1Data "." "deposit_root" [function]
+  syntax Root ::= Eth1Data "." "deposit_root" [function]
   rule #Eth1Data(DROOT, _, _).deposit_root => DROOT
   syntax Int ::= Eth1Data "." "deposit_count" [function]
   rule #Eth1Data(_, DCOUNT, _).deposit_count => DCOUNT
-  syntax Hash ::= Eth1Data "." "block_hash" [function]
+  syntax Root ::= Eth1Data "." "block_hash" [function]
   rule #Eth1Data(_, _, BHASH).block_hash => BHASH
 
   /*
 class HistoricalBatch(Container):
-    block_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-    state_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
+    block_roots: Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
+    state_roots: Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
   */
   syntax HistoricalBatch ::= #HistoricalBatch( BytesList, BytesList ) [klabel(#HistoricalBatch), symbol]
 
   /*
 class DepositData(Container):
     pubkey: BLSPubkey
-    withdrawal_credentials: Hash
+    withdrawal_credentials: Root
     amount: Gwei
     signature: BLSSignature
   */
-  syntax DepositData ::= #DepositData( BLSPubkey, Hash, Int, BLSSignature ) [klabel(#DepositData), symbol]
+  syntax DepositData ::= #DepositData( BLSPubkey, Root, Int, BLSSignature ) [klabel(#DepositData), symbol]
 
   syntax BLSPubkey  ::= DepositData "." "pubkey"                      [function]
   rule #DepositData( PUBKEY, _,_,_ ).pubkey => PUBKEY
-  syntax Hash       ::= DepositData "." "withdrawal_credentials"      [function]
+  syntax Root       ::= DepositData "." "withdrawal_credentials"      [function]
   rule #DepositData( _, WC, _,_ ).withdrawal_credentials => WC
   syntax Int        ::= DepositData "." "amount"                      [function]
   rule #DepositData( _,_, AMOUNT, _ ).amount => AMOUNT
@@ -241,21 +241,21 @@ class DepositData(Container):
   /*
 class BeaconBlockHeader(Container):
     slot: Slot
-    parent_root: Hash
-    state_root: Hash
-    body_root: Hash
+    parent_root: Root
+    state_root: Root
+    body_root: Root
     signature: BLSSignature
   */
-  syntax BeaconBlockHeader ::= #BeaconBlockHeader( Int, Hash, Hash, Hash, BLSSignature ) [klabel(#BeaconBlockHeader), symbol]
+  syntax BeaconBlockHeader ::= #BeaconBlockHeader( Int, Root, Root, Root, BLSSignature ) [klabel(#BeaconBlockHeader), symbol]
 
   //Cannot use "slot", conflicts with cell <slot>
   syntax Int  ::= BeaconBlockHeader "." "_slot"                       [function]
   rule #BeaconBlockHeader(SLOT, _,_,_,_)._slot => SLOT
-  syntax Hash ::= BeaconBlockHeader "." "parent_root"                 [function]
+  syntax Root ::= BeaconBlockHeader "." "parent_root"                 [function]
   rule #BeaconBlockHeader(_,ParentRoot, _,_,_).parent_root => ParentRoot
-  syntax Hash ::= BeaconBlockHeader "." "state_root"                  [function]
+  syntax Root ::= BeaconBlockHeader "." "state_root"                  [function]
   rule #BeaconBlockHeader(_,_,StateRoot, _,_).state_root => StateRoot
-  syntax Hash ::= BeaconBlockHeader "." "body_root"                   [function]
+  syntax Root ::= BeaconBlockHeader "." "body_root"                   [function]
   rule #BeaconBlockHeader(_,_,_,BodyRoot, _).body_root => BodyRoot
 
 /* class ProposerSlashing(Container):
@@ -288,7 +288,7 @@ class Attestation(Container):
 
   /*
 class Deposit(Container):
-    proof: Vector[Hash, DEPOSIT_CONTRACT_TREE_DEPTH + 1]  # Merkle path to deposit data list root
+    proof: Vector[Root, DEPOSIT_CONTRACT_TREE_DEPTH + 1]  # Merkle path to deposit data list root
     data: DepositData
   */
   syntax Deposit ::= #Deposit( BytesList, DepositData ) [klabel(#Deposit), symbol]
@@ -345,29 +345,29 @@ class VoluntaryExit(Container):
 
   syntax BeaconBlockBody ::= defaultBeaconBlockBody()                 [function]
   rule defaultBeaconBlockBody() => #BeaconBlockBody(
-                                defaultBLSSignature(), #Eth1Data(defaultHash(), 0, defaultHash()), defaultBytes32(),
+                                defaultBLSSignature(), #Eth1Data(defaultRoot(), 0, defaultRoot()), defaultBytes32(),
                                 .ProposerSlashingList, .AttesterSlashingList, .AttestationList,
                                 .DepositList, .VoluntaryExitList
                              )
 
 /*class BeaconBlock(Container):
     slot: Slot
-    parent_root: Hash
-    state_root: Hash
+    parent_root: Root
+    state_root: Root
     body: BeaconBlockBody
     signature: BLSSignature*/
   syntax BeaconBlock ::= #BeaconBlock(
                             blockSlot: Int,
-                            parentRoot: Hash,
-                            stateRoot: Hash,
+                            parentRoot: Root,
+                            stateRoot: Root,
                             body: BeaconBlockBody,
                             signature: BLSSignature
                          )                                    [klabel(#BeaconBlock), symbol]
   syntax Int              ::= BeaconBlock "." "_slot"                     [function]
   rule  #BeaconBlock(SLOT, _,_,_,_)._slot => SLOT
-  syntax Hash             ::= BeaconBlock "." "parentRoot"                [function]
+  syntax Root             ::= BeaconBlock "." "parentRoot"                [function]
   rule  #BeaconBlock(_, PR, _,_,_).parentRoot => PR
-  syntax Hash             ::= BeaconBlock "." "stateRoot"                 [function]
+  syntax Root             ::= BeaconBlock "." "stateRoot"                 [function]
   rule  #BeaconBlock(_,_, SR, _,_).stateRoot => SR
   syntax BeaconBlockBody  ::= BeaconBlock "." "body"                      [function]
   rule  #BeaconBlock(_,_,_, BODY, _).body => BODY
@@ -535,7 +535,7 @@ def bytes_to_int(data: bytes) -> uint64:
   rule sumMapIntValues(MAP:Map (_ |-> VALUE:Int => .Map), S => S +Int VALUE)
   rule sumMapIntValues(.Map, S) => S
 
-  syntax Int ::= getByte(Hash, Int) [function]
+  syntax Int ::= getByte(Root, Int) [function]
   rule getByte(BYTES:String, I) => ordChar(substrString(BYTES, I, I +Int 1))
 
   //IntList concatenation

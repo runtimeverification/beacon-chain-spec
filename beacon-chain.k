@@ -38,7 +38,7 @@ for layer in range(1, 100):
     zerohashes.append(hash(zerohashes[layer - 1] + zerohashes[layer - 1]))
 */
   rule <k> init => initZeroHashes(1, 64) ...</k> //max pre-computed zerohash is 64 - ehough for all cases
-       <zerohashes-cache> .Map => (0 |-> defaultHash()) </zerohashes-cache>
+       <zerohashes-cache> .Map => (0 |-> defaultRoot()) </zerohashes-cache>
 
   rule <k> initZeroHashes(I => I +Int 1, N) ...</k>
        <zerohashes-cache> (.Map => (I |-> hashConcat(zerohashes(I -Int 1), zerohashes(I -Int 1)))) ...</zerohashes-cache>
@@ -166,7 +166,7 @@ def is_valid_indexed_attestation(state: BeaconState, indexed_attestation: Indexe
     //we do not check for BLS signature
 
 /*
-def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, index: uint64, root: Hash) -> bool:
+def is_valid_merkle_branch(leaf: Root, branch: Sequence[Root], depth: uint64, index: uint64, root: Root) -> bool:
     """
     Check if ``leaf`` at ``index`` verifies against the Merkle ``root`` and ``branch``.
     """
@@ -178,16 +178,16 @@ def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, in
             value = hash(value + branch[i])
     return value == root
 */
-  syntax Bool ::= "is_valid_merkle_branch" "(" Hash "," BytesList "," Int "," Int "," Hash ")" [function]
+  syntax Bool ::= "is_valid_merkle_branch" "(" Root "," BytesList "," Int "," Int "," Root ")" [function]
   rule is_valid_merkle_branch(Leaf, Branch, Depth, Index, Root)
        => is_valid_merkle_branch_aux(Branch, Depth, Index, Root, 0, Leaf)
 
-  syntax Bool ::= "is_valid_merkle_branch_aux" "(" BytesList "," Int "," Int "," Hash "," Int "," Hash ")" [function]
+  syntax Bool ::= "is_valid_merkle_branch_aux" "(" BytesList "," Int "," Int "," Root "," Int "," Root ")" [function]
   rule is_valid_merkle_branch_aux(Branch, Depth, Index, _,
                                   I => I +Int 1,
                                   Value => #if Index /Int (2 ^Int I) %Int 2 ==Int 1
-                                            #then {hash(Branch[I] +Bytes Value)}:>Hash
-                                            #else {hash(Value +Bytes Branch[I])}:>Hash
+                                            #then {hash(Branch[I] +Bytes Value)}:>Root
+                                            #else {hash(Value +Bytes Branch[I])}:>Root
                                            #fi
                                  )
     requires I <Int Depth
@@ -199,7 +199,7 @@ def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, in
   //====================================================
 
 /*
-def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Hash) -> ValidatorIndex:
+def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Root) -> ValidatorIndex:
     """
     Return the shuffled validator index corresponding to ``seed`` (and ``index_count``).
     """
@@ -218,11 +218,11 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
 
     return ValidatorIndex(index)
 */
-  syntax Int ::= "compute_shuffled_index" "(" Int "," Int "," Hash ")" [function]
+  syntax Int ::= "compute_shuffled_index" "(" Int "," Int "," Root ")" [function]
   rule compute_shuffled_index(INDEX, COUNT, SEED) => compute_shuffled_index_loop(INDEX, COUNT, SEED, 0, SHUFFLE_ROUND_COUNT)
     requires INDEX <Int COUNT
 
-  syntax Int ::= "compute_shuffled_index_loop" "(" Int "," Int "," Hash "," Int "," Int ")" [function]
+  syntax Int ::= "compute_shuffled_index_loop" "(" Int "," Int "," Root "," Int "," Int ")" [function]
   rule compute_shuffled_index_loop(
          INDEX => #if computeBit(maxInt(INDEX, computeFlip(computePivot(SEED, CurrRound, COUNT), INDEX, COUNT)),
                                  SEED, CurrRound)
@@ -241,7 +241,7 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
 
 //        byte = source[(position % 256) // 8]
 //        bit = (byte >> (position % 8)) % 2
-  syntax Bool ::= computeBit(Int /* position */, Hash /* seed */, Int /* current round */ ) [function]
+  syntax Bool ::= computeBit(Int /* position */, Root /* seed */, Int /* current round */ ) [function]
   rule computeBit(Position, Seed, CurrRound)
     => (ordChar( substrString({computeSource(Position, Seed, CurrRound)}:>String,
                       (Position %Int 256) /Int 8,
@@ -249,7 +249,7 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
        ) /Int 2 ^Int (Position %Int 8))  // shifting right by (position % 8)
        %Int 2 ==Int 1
 
-  syntax Hash ::= computeSource(Int /* position */, Hash /* seed */, Int /* current round */) [function]
+  syntax Root ::= computeSource(Int /* position */, Root /* seed */, Int /* current round */) [function]
   rule computeSource(Position, Seed, CurrRound)
     => hash(({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1)) +Bytes to_bytes(Position /Int 256, 4))
 
@@ -257,12 +257,12 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Has
   rule computeFlip(Pivot, Index, Count) => (Pivot +Int Count -Int Index) %Int Count
 
   //pivot = bytes_to_int(hash(seed + int_to_bytes(current_round, length=1))[0:8]) % index_count
-  syntax Int ::= computePivot(Hash /* seed */, Int /* current round */, Int /* index count */ ) [function]
+  syntax Int ::= computePivot(Root /* seed */, Int /* current round */, Int /* index count */ ) [function]
     rule computePivot(Seed, CurrRound, Count)
       => bytes_to_int(substrString({hash({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1))}:>String, 0, 8)) %Int Count
 
 /*
-def compute_proposer_index(state: BeaconState, indices: Sequence[ValidatorIndex], seed: Hash) -> ValidatorIndex:
+def compute_proposer_index(statE: BeaconState, indices: Sequence[ValidatorIndex], seed: Root) -> ValidatorIndex:
     """
     Return from ``indices`` a random index sampled by effective balance.
     """
@@ -277,11 +277,11 @@ def compute_proposer_index(state: BeaconState, indices: Sequence[ValidatorIndex]
             return ValidatorIndex(candidate_index)
         i += 1
 */
-  syntax ValidatorIndex ::= "compute_proposer_index" "(" IntList "," Hash ")" [function]
+  syntax ValidatorIndex ::= "compute_proposer_index" "(" IntList "," Root ")" [function]
   rule compute_proposer_index(INDICES, SEED) => computeProposerIndexLoop(INDICES, SEED, 0)
   requires INDICES =/=K .IntList
 
-  syntax ValidatorIndex ::= computeProposerIndexLoop(IntList, Hash, Int) [function]
+  syntax ValidatorIndex ::= computeProposerIndexLoop(IntList, Root, Int) [function]
   rule computeProposerIndexLoop(INDICES, SEED, I)
          => #fun(CandidateIndex
          => #fun(RandomByte
@@ -292,7 +292,7 @@ def compute_proposer_index(state: BeaconState, indices: Sequence[ValidatorIndex]
             )(getByte( hashConcat(SEED, to_bytes(I /Int 32, 8)), I %Int 32))
             )(INDICES[compute_shuffled_index(I %Int len(INDICES), len(INDICES), SEED)])
 
-  syntax ValidatorIndex ::= computeProposerIndexLoopAux(IntList, Hash, Int, Int, Int, ValidatorIndex) [function]
+  syntax ValidatorIndex ::= computeProposerIndexLoopAux(IntList, Root, Int, Int, Int, ValidatorIndex) [function]
 
   rule computeProposerIndexLoopAux(INDICES, SEED, I, EffectiveBalance, RandomByte, CandidateIndex) =>
        computeProposerIndexLoop(INDICES, SEED, I +Int 1)
@@ -306,7 +306,7 @@ def compute_proposer_index(state: BeaconState, indices: Sequence[ValidatorIndex]
 
 /*
 def compute_committee(indices: Sequence[ValidatorIndex],
-                      seed: Hash,
+                      seed: Root,
                       index: uint64,
                       count: uint64) -> Sequence[ValidatorIndex]:
     """
@@ -316,7 +316,7 @@ def compute_committee(indices: Sequence[ValidatorIndex],
     end = (len(indices) * (index + 1)) // count
     return [indices[compute_shuffled_index(ValidatorIndex(i), len(indices), seed)] for i in range(start, end)]
 */
-  syntax IntList ::= "compute_committee" "(" IntList "," Hash "," Int "," Int ")" [function]
+  syntax IntList ::= "compute_committee" "(" IntList "," Root "," Int "," Int ")" [function]
   rule compute_committee(INDICES, SEED, INDEX, COUNT)
     => computeCommitteeLoop(
         (len(INDICES) *Int INDEX) /Int COUNT,
@@ -326,7 +326,7 @@ def compute_committee(indices: Sequence[ValidatorIndex],
         .IntList
     )
 
-  syntax IntList ::= computeCommitteeLoop( Int, Int, Hash, IntList, IntList )     [function]
+  syntax IntList ::= computeCommitteeLoop( Int, Int, Root, IntList, IntList )     [function]
   rule computeCommitteeLoop(I => I +Int 1, END, SEED, INDICES,
                             RESULT => RESULT +append INDICES[compute_shuffled_index(I, len(INDICES), SEED)] )
     requires I <Int END
@@ -402,38 +402,38 @@ def get_previous_epoch(state: BeaconState) -> Epoch:
                                 #fi
 
 /*
-def get_block_root(state: BeaconState, epoch: Epoch) -> Hash:
+def get_block_root(state: BeaconState, epoch: Epoch) -> Root:
     """
     Return the block root at the start of a recent ``epoch``.
     """
     return get_block_root_at_slot(state, compute_start_slot_at_epoch(epoch))
 */
-  syntax Hash ::= "get_block_root" "(" Int ")" [function]
+  syntax Root ::= "get_block_root" "(" Int ")" [function]
   rule get_block_root(EP) => get_block_root_at_slot(compute_start_slot_at_epoch(EP))
 
 /*
-def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
+def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Root:
     """
     Return the block root at a recent ``slot``.
     """
     assert slot < state.slot <= slot + SLOTS_PER_HISTORICAL_ROOT
     return state.block_roots[slot % SLOTS_PER_HISTORICAL_ROOT]
 */
-  syntax Hash ::= "get_block_root_at_slot" "(" Int ")" [function]
-  rule [[ get_block_root_at_slot(SLOT) => {BLOCKROOTS[ SLOT %Int SLOTS_PER_HISTORICAL_ROOT ]}:>Hash ]]
+  syntax Root ::= "get_block_root_at_slot" "(" Int ")" [function]
+  rule [[ get_block_root_at_slot(SLOT) => {BLOCKROOTS[ SLOT %Int SLOTS_PER_HISTORICAL_ROOT ]}:>Root ]]
     <slot> StateSLOT </slot>
     <block-roots> BLOCKROOTS </block-roots>
     requires SLOT <Int StateSLOT andBool StateSLOT <=Int (SLOT +Int SLOTS_PER_HISTORICAL_ROOT)
 
 /*
-def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
+def get_randao_mix(state: BeaconState, epoch: Epoch) -> Root:
     """
     Return the randao mix at a recent ``epoch``.
     """
     return state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
 */
-  syntax Hash ::= "get_randao_mix" "(" Int ")" [function]
-  rule [[ get_randao_mix( EPOCH ) => {RMS[ EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR ]}:>Hash ]]
+  syntax Root ::= "get_randao_mix" "(" Int ")" [function]
+  rule [[ get_randao_mix( EPOCH ) => {RMS[ EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR ]}:>Root ]]
     <randao-mixes> RMS </randao-mixes>
 
 /*
@@ -468,14 +468,14 @@ def get_validator_churn_limit(state: BeaconState) -> uint64:
           len(get_active_validator_indices(get_current_epoch())) /Int CHURN_LIMIT_QUOTIENT )
 
 /*
-def get_seed(state: BeaconState, epoch: Epoch, domain_type: DomainType) -> Hash:
+def get_seed(state: BeaconState, epoch: Epoch, domain_type: DomainType) -> Root:
     """
     Return the seed at ``epoch``.
     """
     mix = get_randao_mix(state, Epoch(epoch + EPOCHS_PER_HISTORICAL_VECTOR - MIN_SEED_LOOKAHEAD - 1))  # Avoid underflow
     return hash(domain_type + int_to_bytes(epoch, length=8) + mix)
 */
-  syntax Hash ::= "get_seed" "(" Int "," DomainType ")" [function]
+  syntax Root ::= "get_seed" "(" Int "," DomainType ")" [function]
   rule get_seed(Epoch, DOMAINTYPE)
     => hash( (DOMAINTYPE
              +Bytes to_bytes(Epoch, 8))
@@ -784,7 +784,7 @@ def slash_validator(state: BeaconState,
   //====================================================
 
 /*
-def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
+def initialize_beacon_state_from_eth1(eth1_block_hash: Root,
                                       eth1_timestamp: uint64,
                                       deposits: Sequence[Deposit]) -> BeaconState:
     state = BeaconState(
@@ -811,18 +811,18 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
 
     return state
 */
-  syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Hash "," Int "," DepositList ")" [klabel(initialize_beacon_state_from_eth1), symbol]
+  syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Root "," Int "," DepositList ")" [klabel(initialize_beacon_state_from_eth1), symbol]
   rule <k> initialize_beacon_state_from_eth1(E1BH, E1TS, Deposits)
            => stateInit
            ~> processEth1Deposits(Deposits, getDataList(Deposits), 0)
            ~> processEth1Activations
        ... </k>
        <genesis-time> _ => E1TS -Int E1TS %Int SECONDS_PER_DAY +Int 2 *Int SECONDS_PER_DAY </genesis-time>
-       <eth1-data> _ => #Eth1Data(defaultHash(), len(Deposits), E1BH) </eth1-data>
+       <eth1-data> _ => #Eth1Data(defaultRoot(), len(Deposits), E1BH) </eth1-data>
        <randao-mixes> _ => fillInVector(E1BH, EPOCHS_PER_HISTORICAL_VECTOR) </randao-mixes>
        <latest-block-header>
               //BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody()))
-         _ => #BeaconBlockHeader(0, defaultHash(), defaultHash(), hash_tree_root(defaultBeaconBlockBody()), defaultBLSSignature())
+         _ => #BeaconBlockHeader(0, defaultRoot(), defaultRoot(), hash_tree_root(defaultBeaconBlockBody()), defaultBLSSignature())
        </latest-block-header>
 
   //Full state initialization, when generating genesis state
@@ -830,8 +830,8 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
 
   rule <k> stateInit => .K ...</k>
        <fork> _ => #Fork({defaultBytes4()}:>Version, {defaultBytes4()}:>Version, 0) </fork>
-       <block-roots>  _ => fillInMap(defaultHash(), SLOTS_PER_HISTORICAL_ROOT) </block-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-       <state-roots>  _ => fillInMap(defaultHash(), SLOTS_PER_HISTORICAL_ROOT) </state-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
+       <block-roots>  _ => fillInMap(defaultRoot(), SLOTS_PER_HISTORICAL_ROOT) </block-roots> //Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
+       <state-roots>  _ => fillInMap(defaultRoot(), SLOTS_PER_HISTORICAL_ROOT) </state-roots> //Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
        <slashings>    _ => fillInMap(0, EPOCHS_PER_SLASHINGS_VECTOR) </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
        <justification-bits> _ => false  false  false  false  .BitList </justification-bits> //Bitvector[JUSTIFICATION_BITS_LENGTH]
        <previous-justified-checkpoint> _ => defaultCheckpoint() </previous-justified-checkpoint>
@@ -855,7 +855,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
 
   rule processEth1Deposits(.DepositList, _,_) => .K
 
-  syntax Eth1Data ::= setDepositRoot(Eth1Data, Hash) [function]
+  syntax Eth1Data ::= setDepositRoot(Eth1Data, Root) [function]
   rule setDepositRoot(#Eth1Data(DROOT, COUNT, BHASH), NewDROOT) => #Eth1Data(NewDROOT, COUNT, BHASH)
 
   syntax DepositDataList ::= getDataList(DepositList) [function]
@@ -980,7 +980,7 @@ def process_slot(state: BeaconState) -> None:
        ...</k>
        <slot> SLOT </slot>
 
-  syntax KItem ::= "processSlotAux" "(" previousStateRoot: Hash "," stateRootsIndex: Int ")"
+  syntax KItem ::= "processSlotAux" "(" previousStateRoot: Root "," stateRootsIndex: Int ")"
   rule <k> processSlotAux(PreviousStateRoot, SLOT) => cacheBlockRoot(SLOT) ...</k>
        <state-roots> SLOT |-> (_ => PreviousStateRoot) ...</state-roots>
        <latest-block-header> #BeaconBlockHeader(_,_, BHStateRoot
@@ -1808,7 +1808,7 @@ def process_block_header(state: BeaconState, block: BeaconBlock) -> None:
          OldBlockHEADER  => #BeaconBlockHeader(
                                BLOCK._slot,                 // block.slot
                                BLOCK.parentRoot,            // block.parent_root
-                               defaultHash(),               // zeroed
+                               defaultRoot(),               // zeroed
                                hash_tree_root(BLOCK.body),  // hash_tree_root(block.body)
                                defaultBLSSignature()  )     // zeroed
        </latest-block-header>

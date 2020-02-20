@@ -334,9 +334,9 @@ def chunkify(bytez):
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4)
           .BytesList, RemLast))
 
-  rule hash_tree_root(#BeaconBlockHeader( P1, P2, P3, P4, P5 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#BeaconBlockHeader( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
-          hash_tree_root(P5) .BytesList, RemLast))
+          .BytesList, RemLast))
 
   rule hash_tree_root(#ProposerSlashing( P1, P2, P3 ) #as VAL, %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) .BytesList, RemLast))
@@ -543,17 +543,6 @@ def chunkify(bytez):
     <previous-justified-checkpoint> PreviousJustifiedCheckpoint </previous-justified-checkpoint>
     <current-justified-checkpoint> CurrentJustifiedCheckpoint </current-justified-checkpoint>
     <finalized-checkpoint> FinalizedCheckpoint </finalized-checkpoint>
-
-  // signing_root() - Same as hash_tree_root(), but ignoring last field, when it is BLSSignature.
-  //====================================================
-/* def signing_root(obj: Container):
-    # ignore last field
-    fields = [field for field in obj][:-1]
-    leaves = [hash_tree_root(f) for f in fields]
-    return merkleize_chunks(chunkify(b''.join(leaves)))
-*/
-  syntax Root ::= "signing_root" "(" val: Container ")"               [function, klabel(signing_root), symbol]
-  rule signing_root(VAL) => hash_tree_root(VAL, %container, true)
 
   // Utility functions
   //====================================================

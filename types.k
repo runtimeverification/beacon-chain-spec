@@ -61,7 +61,8 @@ module TYPES
   syntax AttestationList ::= List{Attestation, ""}
   syntax DepositList ::= List{Deposit, ""}
   syntax DepositDataList ::= List{DepositData, ""}
-  syntax VoluntaryExitList ::= List{VoluntaryExit, ""}
+  syntax VoluntaryExitList ::= List{VoluntaryExit, ""} //still in use?
+  syntax SignedVoluntaryExitList ::= List{SignedVoluntaryExit, ""}
   syntax ValidatorList ::= List{Validator, ""}
   syntax Eth1DataList ::= List{Eth1Data, ""}
   syntax PendingAttestationList ::= List{PendingAttestation, ""}
@@ -110,7 +111,7 @@ class Checkpoint(Container):
   /*
 class Validator(Container):
     pubkey: BLSPubkey
-    withdrawal_credentials: Root  # Commitment to pubkey for withdrawals
+    withdrawal_credentials: Bytes32  # Commitment to pubkey for withdrawals
     effective_balance: Gwei  # Balance at stake
     slashed: boolean
     # Status epochs
@@ -120,7 +121,7 @@ class Validator(Container):
     withdrawable_epoch: Epoch  # When validator can withdraw funds
   */
   syntax Validator ::= #Validator( pubkey: BLSPubkey,
-                                   withdrawalCredentials: Root,
+                                   withdrawalCredentials: Bytes32,
                                    effectiveBalance: Int,
                                    slashed: Bool,
                                    activationEligibilityEpoch: Int,
@@ -131,7 +132,7 @@ class Validator(Container):
 
   syntax BLSPubkey ::= Validator "." "pubkey"                         [function]
   rule #Validator(PK, _,_,_,_,_,_,_).pubkey => PK
-  syntax Root      ::= Validator "." "withdrawalCredentials"          [function]
+  syntax Bytes32   ::= Validator "." "withdrawalCredentials"          [function]
   rule #Validator(_, HASH, _,_,_,_,_,_).withdrawalCredentials => HASH
   syntax Int      ::= Validator "." "effectiveBalance"                [function]
   rule #Validator(_,_, EffBal, _,_,_,_,_).effectiveBalance => EffBal
@@ -204,15 +205,15 @@ class PendingAttestation(Container):
 class Eth1Data(Container):
     deposit_root: Root
     deposit_count: uint64
-    block_hash: Root
+    block_hash: Bytes32
   */
-  syntax Eth1Data ::= #Eth1Data( Root, Int, Root ) [klabel(#Eth1Data), symbol]
+  syntax Eth1Data ::= #Eth1Data( Root, Int, Bytes32 ) [klabel(#Eth1Data), symbol]
 
   syntax Root ::= Eth1Data "." "deposit_root" [function]
   rule #Eth1Data(DROOT, _, _).deposit_root => DROOT
   syntax Int ::= Eth1Data "." "deposit_count" [function]
   rule #Eth1Data(_, DCOUNT, _).deposit_count => DCOUNT
-  syntax Root ::= Eth1Data "." "block_hash" [function]
+  syntax Bytes32 ::= Eth1Data "." "block_hash" [function]
   rule #Eth1Data(_, _, BHASH).block_hash => BHASH
 
   /*
@@ -221,19 +222,33 @@ class HistoricalBatch(Container):
     state_roots: Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
   */
   syntax HistoricalBatch ::= #HistoricalBatch( BytesList, BytesList ) [klabel(#HistoricalBatch), symbol]
+ /*   
+class DepositMessage(Container):
+    pubkey: BLSPubkey
+    withdrawal_credentials: Bytes32
+    amount: Gwei
+  */
+  syntax DepositMessage ::= #DepositMessage( BLSPubkey, Bytes32, Int ) [klabel(#DepositMessage), symbol]
 
+  syntax BLSPubkey  ::= DepositMessage "." "pubkey"                      [function]
+  rule #DepositMessage( PUBKEY, _,_).pubkey => PUBKEY
+  syntax Bytes32    ::= DepositMessage "." "withdrawal_credentials"      [function]
+  rule #DepositMessage( _, WC, _).withdrawal_credentials => WC
+  syntax Int        ::= DepositMessage "." "amount"                      [function]
+  rule #DepositMessage( _,_, AMOUNT).amount => AMOUNT
+  
   /*
 class DepositData(Container):
     pubkey: BLSPubkey
-    withdrawal_credentials: Root
+    withdrawal_credentials: Bytes32
     amount: Gwei
     signature: BLSSignature
   */
-  syntax DepositData ::= #DepositData( BLSPubkey, Root, Int, BLSSignature ) [klabel(#DepositData), symbol]
+  syntax DepositData ::= #DepositData( BLSPubkey, Bytes32, Int, BLSSignature ) [klabel(#DepositData), symbol]
 
   syntax BLSPubkey  ::= DepositData "." "pubkey"                      [function]
   rule #DepositData( PUBKEY, _,_,_ ).pubkey => PUBKEY
-  syntax Root       ::= DepositData "." "withdrawal_credentials"      [function]
+  syntax Bytes32    ::= DepositData "." "withdrawal_credentials"      [function]
   rule #DepositData( _, WC, _,_ ).withdrawal_credentials => WC
   syntax Int        ::= DepositData "." "amount"                      [function]
   rule #DepositData( _,_, AMOUNT, _ ).amount => AMOUNT
@@ -244,27 +259,67 @@ class BeaconBlockHeader(Container):
     parent_root: Root
     state_root: Root
     body_root: Root
-    signature: BLSSignature
   */
-  syntax BeaconBlockHeader ::= #BeaconBlockHeader( Int, Root, Root, Root, BLSSignature ) [klabel(#BeaconBlockHeader), symbol]
+  syntax BeaconBlockHeader ::= #BeaconBlockHeader( Int, Root, Root, Root ) [klabel(#BeaconBlockHeader), symbol]
 
   //Cannot use "slot", conflicts with cell <slot>
   syntax Int  ::= BeaconBlockHeader "." "_slot"                       [function]
-  rule #BeaconBlockHeader(SLOT, _,_,_,_)._slot => SLOT
+  rule #BeaconBlockHeader(SLOT, _,_,_)._slot => SLOT
   syntax Root ::= BeaconBlockHeader "." "parent_root"                 [function]
-  rule #BeaconBlockHeader(_,ParentRoot, _,_,_).parent_root => ParentRoot
+  rule #BeaconBlockHeader(_,ParentRoot, _,_).parent_root => ParentRoot
   syntax Root ::= BeaconBlockHeader "." "state_root"                  [function]
-  rule #BeaconBlockHeader(_,_,StateRoot, _,_).state_root => StateRoot
+  rule #BeaconBlockHeader(_,_,StateRoot, _).state_root => StateRoot
   syntax Root ::= BeaconBlockHeader "." "body_root"                   [function]
-  rule #BeaconBlockHeader(_,_,_,BodyRoot, _).body_root => BodyRoot
+  rule #BeaconBlockHeader(_,_,_,BodyRoot).body_root => BodyRoot
+/*
+class SigningRoot(Container):
+    object_root: Root
+    domain: Domain
+*/
+  syntax SigningRoot ::= #SigningRoot ( Root, Domain ) [klabel(#SigningRoot), symbol]
+
+  syntax Root  ::= SigningRoot "." "object_root"                      [function]
+  rule #SigningRoot(ROOT,_).object_root => ROOT
+  syntax Domain ::= SigningRoot "." "domain"                          [function]
+  rule #SigningRoot(_,DOMAIN).domain => DOMAIN
+
+/*
+class SignedVoluntaryExit(Container):
+    message: VoluntaryExit
+    signature: BLSSignature
+*/
+  syntax SignedVoluntaryExit ::= #SignedVoluntaryExit ( VoluntaryExit, BLSSignature ) [klabel(#SignedVoluntaryExit), symbol]
+
+  syntax VoluntaryExit  ::= SignedVoluntaryExit "." "message"                   [function]
+  rule #SignedVoluntaryExit(EXIT,_).message => EXIT
+
+/*
+class SignedBeaconBlock(Container):
+    message: BeaconBlock
+    signature: BLSSignature
+*/
+  syntax SignedBeaconBlock ::= #SignedBeaconBlock ( BeaconBlock, BLSSignature ) [klabel(#SignedBeaconBlock), symbol]
+
+  syntax BeaconBlock  ::= SignedBeaconBlock "." "message"                      [function]
+  rule #SignedBeaconBlock(BLOCK,_).message => BLOCK
+
+/*
+class SignedBeaconBlockHeader(Container):
+    message: BeaconBlockHeader
+    signature: BLSSignature
+*/
+  syntax SignedBeaconBlockHeader ::= #SignedBeaconBlockHeader ( BeaconBlockHeader, BLSSignature ) [klabel(#SignedBeaconBlockHeader), symbol]
+
+  syntax BeaconBlockHeader  ::= SignedBeaconBlockHeader "." "message"           [function]
+  rule #SignedBeaconBlockHeader(BLOCKH,_).message => BLOCKH
 
 /* class ProposerSlashing(Container):
     proposer_index: ValidatorIndex
-    header_1: BeaconBlockHeader
-    header_2: BeaconBlockHeader
+    header_1: SignedBeaconBlockHeader
+    header_2: SignedBeaconBlockHeader
 */
 syntax ProposerSlashing ::= #ProposerSlashing( proposerIndex: ValidatorIndex,
-                                               header1: BeaconBlockHeader, header2: BeaconBlockHeader ) [klabel(#ProposerSlashing), symbol]
+                                               header1: SignedBeaconBlockHeader, header2: SignedBeaconBlockHeader ) [klabel(#ProposerSlashing), symbol]
 
   /*
 class AttesterSlashing(Container):
@@ -288,14 +343,14 @@ class Attestation(Container):
 
   /*
 class Deposit(Container):
-    proof: Vector[Root, DEPOSIT_CONTRACT_TREE_DEPTH + 1]  # Merkle path to deposit data list root
+    proof: Vector[Bytes32, DEPOSIT_CONTRACT_TREE_DEPTH + 1]  # Merkle path to deposit data list root
     data: DepositData
   */
   syntax Deposit ::= #Deposit( BytesList, DepositData ) [klabel(#Deposit), symbol]
 
   syntax BytesList ::= Deposit "." "proof"                           [function]
   rule #Deposit(PROOF, _).proof => PROOF
-  syntax DepositData ::= Deposit "." "data"                           [function]
+  syntax DepositData ::= Deposit "." "data"                          [function]
   rule #Deposit(_, DATA).data => DATA
 
 
@@ -303,9 +358,8 @@ class Deposit(Container):
 class VoluntaryExit(Container):
     epoch: Epoch  # Earliest epoch when voluntary exit can be processed
     validator_index: ValidatorIndex
-    signature: BLSSignature
   */
-  syntax VoluntaryExit ::= #VoluntaryExit( Int, ValidatorIndex, BLSSignature ) [klabel(#VoluntaryExit), symbol]
+  syntax VoluntaryExit ::= #VoluntaryExit( Int, ValidatorIndex ) [klabel(#VoluntaryExit), symbol]
 
 /*class BeaconBlockBody(Container):
     randao_reveal: BLSSignature
@@ -316,7 +370,7 @@ class VoluntaryExit(Container):
     attester_slashings: List[AttesterSlashing, MAX_ATTESTER_SLASHINGS]
     attestations: List[Attestation, MAX_ATTESTATIONS]
     deposits: List[Deposit, MAX_DEPOSITS]
-    voluntary_exits: List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
+    voluntary_exits: List[SignedVoluntaryExit, MAX_VOLUNTARY_EXITS]
 */
   syntax BeaconBlockBody ::= #BeaconBlockBody(
                                 randaoReveal: BLSSignature,
@@ -326,28 +380,28 @@ class VoluntaryExit(Container):
                                 attesterSlashings: AttesterSlashingList,
                                 attestations: AttestationList,
                                 deposits: DepositList,
-                                voluntaryExits: VoluntaryExitList
+                                voluntaryExits: SignedVoluntaryExitList
                              )                                [klabel(#BeaconBlockBody), symbol]
-  syntax BLSSignature         ::= BeaconBlockBody "." "randaoReveal"      [function]
+  syntax BLSSignature            ::= BeaconBlockBody "." "randaoReveal"      [function]
   rule  #BeaconBlockBody(RR,_,_,_,_,_,_,_).randaoReveal => RR
-  syntax Eth1Data             ::= BeaconBlockBody "." "eth1Data"          [function]
+  syntax Eth1Data                ::= BeaconBlockBody "." "eth1Data"          [function]
   rule  #BeaconBlockBody(_,E1D,_,_,_,_,_,_).eth1Data => E1D
-  syntax ProposerSlashingList ::= BeaconBlockBody "." "proposerSlashings" [function]
+  syntax ProposerSlashingList    ::= BeaconBlockBody "." "proposerSlashings" [function]
   rule  #BeaconBlockBody(_,_,_,PS,_,_,_,_).proposerSlashings => PS
-  syntax AttesterSlashingList ::= BeaconBlockBody "." "attesterSlashings" [function]
+  syntax AttesterSlashingList    ::= BeaconBlockBody "." "attesterSlashings" [function]
   rule  #BeaconBlockBody(_,_,_,_, AS,_,_,_).attesterSlashings => AS
-  syntax AttestationList      ::= BeaconBlockBody "." "attestations"      [function]
+  syntax AttestationList         ::= BeaconBlockBody "." "attestations"      [function]
   rule  #BeaconBlockBody(_,_,_,_,_, ATT,_,_).attestations => ATT
-  syntax DepositList          ::= BeaconBlockBody "." "deposits"          [function]
+  syntax DepositList             ::= BeaconBlockBody "." "deposits"          [function]
   rule  #BeaconBlockBody(_,_,_,_,_,_, DEP,_).deposits => DEP
-  syntax VoluntaryExitList    ::= BeaconBlockBody "." "voluntaryExits"    [function]
+  syntax SignedVoluntaryExitList ::= BeaconBlockBody "." "voluntaryExits"    [function]
   rule  #BeaconBlockBody(_,_,_,_,_,_,_, VEX).voluntaryExits => VEX
 
   syntax BeaconBlockBody ::= defaultBeaconBlockBody()                 [function]
   rule defaultBeaconBlockBody() => #BeaconBlockBody(
                                 defaultBLSSignature(), #Eth1Data(defaultRoot(), 0, defaultRoot()), defaultBytes32(),
                                 .ProposerSlashingList, .AttesterSlashingList, .AttestationList,
-                                .DepositList, .VoluntaryExitList
+                                .DepositList, .SignedVoluntaryExitList
                              )
 
 /*class BeaconBlock(Container):
@@ -411,10 +465,10 @@ class VoluntaryExit(Container):
   rule intOf(#Some(I)) => I
 
 
-  syntax Container ::= Fork | Checkpoint | Validator | AttestationData
+  syntax Container ::= Fork | Checkpoint | Validator | AttestationData | SigningRoot
                      | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
                      | BeaconBlockHeader | ProposerSlashing | AttesterSlashing | Attestation | Deposit
-                     | VoluntaryExit | BeaconBlockBody | BeaconBlock | AggregateAndProof
+                     | VoluntaryExit | BeaconBlockBody | BeaconBlock | AggregateAndProof | DepositMessage
 
   //ValueList are not Value, because it needs separate implementation for hash_tree_root
   //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.

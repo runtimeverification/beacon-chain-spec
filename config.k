@@ -54,7 +54,7 @@ class BeaconState(Container):
         <validators> .Map </validators> //List[Validator, VALIDATOR_REGISTRY_LIMIT]
         <balances> .Map </balances> //List[Gwei, VALIDATOR_REGISTRY_LIMIT]
         // Shuffling
-        <randao-mixes> .BytesList </randao-mixes> //Vector[Root, EPOCHS_PER_HISTORICAL_VECTOR]
+        <randao-mixes> .BytesList </randao-mixes> //Vector[Bytes32, EPOCHS_PER_HISTORICAL_VECTOR]
         // Slashings
         <slashings> .Map </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
         // Attestations

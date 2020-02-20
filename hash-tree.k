@@ -26,10 +26,10 @@ Input `String` is interpreted as byte array, e.g. it is NOT hex-encoded.
 */
   syntax String ::= Sha256 ( String )                                 [function, hook(KRYPTO.sha256)]
 
-/* def hash(data: bytes) -> Hash is SHA256.
+/* def hash(data: bytes) -> Root is SHA256.
 */
-  syntax Hash ::= hash( Bytes )                                       [function]
-  rule hash(BYTES) => {toBinary(Sha256(BYTES))}:>Hash
+  syntax Root ::= hash( Bytes )                                       [function]
+  rule hash(BYTES) => {toBinary(Sha256(BYTES))}:>Root
 
   syntax Bytes ::= toBinary( Bytes )                                  [function]
   rule toBinary(S) => chrChar(String2Base(substrString(S, 0, 2), 16)) +Bytes toBinary(substrString(S, 2, lengthString(S)))
@@ -39,7 +39,7 @@ Input `String` is interpreted as byte array, e.g. it is NOT hex-encoded.
   // Aux functions
   //====================================================
 
-  syntax Hash ::= hashConcat(Bytes, Bytes)                            [function]
+  syntax Root ::= hashConcat(Bytes, Bytes)                            [function]
   rule hashConcat(H1, H2) => hash(H1 +Bytes H2)
 
   // SSZ library functions
@@ -107,7 +107,7 @@ def chunkify(bytez):
 
   rule chunkifyAux("") => .BytesList
 
-  syntax Hash ::= zerohashes ( Int )                                  [function]
+  syntax Root ::= zerohashes ( Int )                                  [function]
   rule [[ zerohashes(I) => HASH ]]
     <zerohashes-cache> I |-> HASH ...</zerohashes-cache>
 
@@ -155,7 +155,7 @@ def chunkify(bytez):
 
     return tmp[max_depth]
 */
-  syntax Hash ::= "merkleize_chunks" "(" BytesList "," Int ")"        [function]
+  syntax Root ::= "merkleize_chunks" "(" BytesList "," Int ")"        [function]
   rule merkleize_chunks(.BytesList, 0) => zerohashes(0)
 
   rule merkleize_chunks(CHUNKS, LIMIT)
@@ -170,7 +170,7 @@ def chunkify(bytez):
 
   /*    for i in range(count):
           merge(chunks[i], i)     */
-  syntax Hash ::= merkleizeChunksLoop1(count:     Int,
+  syntax Root ::= merkleizeChunksLoop1(count:     Int,
                                        depth:     Int,
                                        maxDepth:  Int,
                                        chunks:    BytesList,
@@ -193,16 +193,16 @@ def chunkify(bytez):
 /* for j in range(depth, max_depth):
       tmp[j + 1] = hash(tmp[j] + zerohashes[j])
 */
-  syntax Hash ::= merkleizeChunksLoop2(Int, // j
+  syntax Root ::= merkleizeChunksLoop2(Int, // j
                                        Int, // max_depth
                                        Map  //tmp
                                       )                               [function]
-  rule merkleizeChunksLoop2( J => J +Int 1, MaxDEPTH, TMP => TMP[J +Int 1 <- hashConcat({TMP[J]}:>Hash, zerohashes(J))] )
+  rule merkleizeChunksLoop2( J => J +Int 1, MaxDEPTH, TMP => TMP[J +Int 1 <- hashConcat({TMP[J]}:>Root, zerohashes(J))] )
     requires J <Int MaxDEPTH
 
   //end of merkleize_chunks
   //return tmp[max_depth]
-  rule merkleizeChunksLoop2( J, MaxDEPTH, TMP ) => {TMP[MaxDEPTH]}:>Hash
+  rule merkleizeChunksLoop2( J, MaxDEPTH, TMP ) => {TMP[MaxDEPTH]}:>Root
     requires J >=Int MaxDEPTH
 
 /*  Inner function in merkleize_chunks. Returns the new tmp.
@@ -219,7 +219,7 @@ def chunkify(bytez):
             j += 1
         tmp[j] = h
 */
-  syntax Map ::= merkleMerge( Hash, // h
+  syntax Map ::= merkleMerge( Root, // h
                               Int,  // i
                               Int,  // count
                               Int,  // depth
@@ -227,7 +227,7 @@ def chunkify(bytez):
                               )                                       [function]
   rule merkleMerge(H, I, COUNT, DEPTH, TMP) => merkleMergeLoop(H, I, COUNT, DEPTH, TMP, 0)
 
-  syntax Map ::= merkleMergeLoop( Hash, // h
+  syntax Map ::= merkleMergeLoop( Root, // h
                                   Int,  // i
                                   Int,  // count
                                   Int,  // depth
@@ -275,11 +275,11 @@ def chunkify(bytez):
     else:
         return merkleize_chunks(leaves)
 */
-  syntax Hash ::= "hash_tree_root" "(" BytesOrContainer ")"           [function, klabel(hash_tree_root), symbol]
+  syntax Root ::= "hash_tree_root" "(" BytesOrContainer ")"           [function, klabel(hash_tree_root), symbol]
   rule hash_tree_root(VAL:Container) => hash_tree_root(VAL, %container, false)
   rule hash_tree_root(BYTES:Bytes) => hash_tree_root(BYTES, %bytes)
 
-  syntax Hash ::= "hash_tree_root" "(" BasicValueOrBytes "," ElementType ")" [function]
+  syntax Root ::= "hash_tree_root" "(" BasicValueOrBytes "," ElementType ")" [function]
 
   //hash_tree_root branch 2:
   // elif isinstance(obj, BasicValue):
@@ -296,7 +296,7 @@ def chunkify(bytez):
   //leaves = [hash_tree_root(value) for value in obj]
   //version for containers. Has the option to remove last element, used by signing_root().
   //-----------------------------------------------
-  syntax Hash ::= "hash_tree_root" "(" Container "," ElementType "," removeLast: Bool ")"      [function]
+  syntax Root ::= "hash_tree_root" "(" Container "," ElementType "," removeLast: Bool ")"      [function]
 
   rule hash_tree_root(#Fork( P1, P2, P3 ) #as VAL, %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) .BytesList, RemLast))
@@ -374,7 +374,7 @@ def chunkify(bytez):
           .BytesList, RemLast))
 
 
-  syntax Hash ::= "hash_tree_root_list" "(" list: ValueList "," staticLen: Int "," elemType: ElementType "," fixedSize: Bool ")"
+  syntax Root ::= "hash_tree_root_list" "(" list: ValueList "," staticLen: Int "," elemType: ElementType "," fixedSize: Bool ")"
                                                                       [function]
 
   //hash_tree_root branch 1.1, case list of basic values
@@ -430,7 +430,7 @@ def chunkify(bytez):
   rule chunkifyContainerList(V:PendingAttestation L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
-  rule chunkifyContainerList(LIST, MinLen) => hash_tree_root(defaultHash()) chunkifyContainerList(LIST, MinLen -Int 1)
+  rule chunkifyContainerList(LIST, MinLen) => hash_tree_root(defaultRoot()) chunkifyContainerList(LIST, MinLen -Int 1)
     requires len(LIST) ==Int 0 andBool MinLen >Int 0
 
   rule chunkifyContainerList(LIST, MinLen) => .BytesList
@@ -439,7 +439,7 @@ def chunkify(bytez):
 /*  if isinstance(obj, (List, Bytes, Bitlist)):
         return mix_in_length(merkleize_chunks(leaves, pad_to=chunk_count(obj.type())), len(obj))
 */
-  syntax Hash ::= "hash_tree_root_part2_v1" "(" leaves: BytesList "," staticLen: Int "," elemType: ElementType ","
+  syntax Root ::= "hash_tree_root_part2_v1" "(" leaves: BytesList "," staticLen: Int "," elemType: ElementType ","
                                                 dynamicLen: Int ")"   [function]
   rule hash_tree_root_part2_v1(LEAVES, StaticLEN, ElemType, DynamicLen)
     => mix_in_length(merkleize_chunks(LEAVES, chunk_count(StaticLEN, ElemType)), DynamicLen)
@@ -447,13 +447,13 @@ def chunkify(bytez):
 /*  else: (from above)
         return merkleize_chunks(leaves)
 */
-  syntax Hash ::= "hash_tree_root_part2_v2" "(" BytesList ")"         [function]
+  syntax Root ::= "hash_tree_root_part2_v2" "(" BytesList ")"         [function]
   rule hash_tree_root_part2_v2(LEAVES) => merkleize_chunks(LEAVES, len(LEAVES))
 
 /* def mix_in_length(root, length):
     return hash(root + length.to_bytes(32, 'little'))
 */
-  syntax Hash ::= "mix_in_length" "(" Hash "," Int ")"                [function]
+  syntax Root ::= "mix_in_length" "(" Root "," Int ")"                [function]
   rule mix_in_length(ROOT, LEN) => hashConcat(ROOT, to_bytes(LEN, 32))
 
 /* def chunk_count(typ: SSZType) -> int:
@@ -499,7 +499,7 @@ def chunkify(bytez):
 
   // hash_tree_root() - BeaconState, stored in <state> in configuration
   //====================================================
-  syntax Hash ::= "hash_tree_root_state" "(" ")"                      [function, klabel(hash_tree_root_state), symbol]
+  syntax Root ::= "hash_tree_root_state" "(" ")"                      [function, klabel(hash_tree_root_state), symbol]
   rule [[ hash_tree_root_state()
        => hash_tree_root_part2_v2(
             hash_tree_root(GenesisTime, %uint64)
@@ -552,7 +552,7 @@ def chunkify(bytez):
     leaves = [hash_tree_root(f) for f in fields]
     return merkleize_chunks(chunkify(b''.join(leaves)))
 */
-  syntax Hash ::= "signing_root" "(" val: Container ")"               [function, klabel(signing_root), symbol]
+  syntax Root ::= "signing_root" "(" val: Container ")"               [function, klabel(signing_root), symbol]
   rule signing_root(VAL) => hash_tree_root(VAL, %container, true)
 
   // Utility functions

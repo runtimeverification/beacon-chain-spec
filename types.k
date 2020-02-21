@@ -463,6 +463,15 @@ class VoluntaryExit(Container):
   syntax Int ::= intOf(OptionInt) [function]
   rule intOf(#Some(I)) => I
 
+  // An argument type of compute_domain
+  syntax OptionVersion ::= #NoneVers() | #SomeVers(Version)
+
+  syntax Bool ::= isNone(OptionVersion) [function]
+  rule isNone(#NoneVers()) => true
+  rule isNone(#SomeVers(_)) => false
+
+  syntax Version ::= versOf(OptionVersion) [function]
+  rule versOf(#SomeVers(I)) => I
 
   syntax Container ::= Fork | Checkpoint | Validator | AttestationData | SigningRoot
                      | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
@@ -551,9 +560,19 @@ def bytes_to_int(data: bytes) -> uint64:
   rule sortIntList(I IL) => #fun(MIN => MIN sortIntList(listExcept(I IL, MIN)))(minIndex(IL, I))
   rule sortIntList(.IntList) => .IntList
 
+  syntax IntList ::= sortUniqueIntList(IntList)                       [function]
+  rule sortUniqueIntList(I IL) => #fun(MIN => MIN sortUniqueIntList(listExcept(I IL, MIN)))(strictlyMinIndex(IL, I))
+  rule sortUniqueIntList(.IntList) => .IntList
+
+
   syntax Int ::= minIndex(IntList, Int)                               [function]
   rule minIndex(I IL => IL, M => #if I <Int M #then I #else M #fi)
   rule minIndex(.IntList, M) => M
+
+  syntax Int ::= strictlyMinIndex(IntList, Int)                       [function]
+  rule strictlyMinIndex(I IL, M) => I requires I <Int M
+  rule strictlyMinIndex(I IL, M) => M requires M <Int I
+  rule strictlyMinIndex(.IntList, M) => M
 
   // Note: If listExcept(IL, I) removes every occurrence of I in IL, then difference here will do the same
   syntax IntList ::= listDiff(IntList, IntList)                       [function]

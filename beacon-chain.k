@@ -111,8 +111,8 @@ def is_eligible_for_activation_queue(validator: Validator) -> bool:
 */
   syntax Bool ::= "is_eligible_for_activation_queue" "(" Validator ")" [function]
   rule is_eligible_for_activation_queue ( VAL )
-    => VAL.activationEligibilityEpoch ==K FAR_FUTURE_EPOCH
-    andBool VAL.effectiveBalance ==K MAX_EFFECTIVE_BALANCE
+    => VAL.activationEligibilityEpoch ==Int FAR_FUTURE_EPOCH
+    andBool VAL.effectiveBalance ==Int MAX_EFFECTIVE_BALANCE
 
 /*
 def is_eligible_for_activation(state: BeaconState, validator: Validator) -> bool:
@@ -180,27 +180,23 @@ def is_valid_indexed_attestation(state: BeaconState, indexed_attestation: Indexe
     # Verify max number of indices
     if not len(indices) <= MAX_VALIDATORS_PER_COMMITTEE:
         return False
-    # Verify indices are sorted
-    if not indices == sorted(indices):
+    # Verify indices are sorted and unique
+    if not indices == sorted(set(indices)):
         return False
     # Verify aggregate signature
-    if not bls_verify( 
-        pubkey=bls_aggregate_pubkeys([state.validators[i].pubkey for i in indices]), 
-        message_hash=hash_tree_root(indexed_attestation.data), 
-        signature=indexed_attestation.signature,
-        domain=get_domain(state, DOMAIN_BEACON_ATTESTER, indexed_attestation.data.target.epoch),
-    ):
-        return False
-    return True
+    pubkeys = [state.validators[i].pubkey for i in indices]
+    domain = get_domain(state, DOMAIN_BEACON_ATTESTER, indexed_attestation.data.target.epoch)
+    signing_root = compute_signing_root(indexed_attestation.data, domain)
+    return bls.FastAggregateVerify(pubkeys, signing_root, indexed_attestation.signature)
 */
   syntax Bool ::= "is_valid_indexed_attestation" "(" IndexedAttestation ")" [function]
   rule is_valid_indexed_attestation(IAtt)
     => len(IAtt.attesting_indices) <=Int MAX_VALIDATORS_PER_COMMITTEE
-    andBool IAtt.attesting_indices ==K sortIntList(IAtt.attesting_indices)
+    andBool IAtt.attesting_indices ==K sortUniqueIntList(IAtt.attesting_indices)
     //we do not check for BLS signature
 
 /*
-def is_valid_merkle_branch(leaf: Root, branch: Sequence[Root], depth: uint64, index: uint64, root: Root) -> bool:
+def is_valid_merkle_branch(leaf: Bytes32, branch: Sequence[Bytes32], depth: uint64, index: uint64, root: Root) -> bool:
     """
     Check if ``leaf`` at ``index`` verifies against the Merkle ``root`` and ``branch``.
     """
@@ -212,7 +208,7 @@ def is_valid_merkle_branch(leaf: Root, branch: Sequence[Root], depth: uint64, in
             value = hash(value + branch[i])
     return value == root
 */
-  syntax Bool ::= "is_valid_merkle_branch" "(" Root "," BytesList "," Int "," Int "," Root ")" [function]
+  syntax Bool ::= "is_valid_merkle_branch" "(" Bytes32 "," BytesList "," Int "," Int "," Root ")" [function]
   rule is_valid_merkle_branch(Leaf, Branch, Depth, Index, Root)
        => is_valid_merkle_branch_aux(Branch, Depth, Index, Root, 0, Leaf)
 
@@ -233,7 +229,7 @@ def is_valid_merkle_branch(leaf: Root, branch: Sequence[Root], depth: uint64, in
   //====================================================
 
 /*
-def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Root) -> ValidatorIndex:
+def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Bytes32) -> ValidatorIndex:
     """
     Return the shuffled validator index corresponding to ``seed`` (and ``index_count``).
     """
@@ -252,11 +248,11 @@ def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Roo
 
     return ValidatorIndex(index)
 */
-  syntax Int ::= "compute_shuffled_index" "(" Int "," Int "," Root ")" [function]
+  syntax Int ::= "compute_shuffled_index" "(" Int "," Int "," Bytes32 ")" [function]
   rule compute_shuffled_index(INDEX, COUNT, SEED) => compute_shuffled_index_loop(INDEX, COUNT, SEED, 0, SHUFFLE_ROUND_COUNT)
     requires INDEX <Int COUNT
 
-  syntax Int ::= "compute_shuffled_index_loop" "(" Int "," Int "," Root "," Int "," Int ")" [function]
+  syntax Int ::= "compute_shuffled_index_loop" "(" Int "," Int "," Bytes32 "," Int "," Int ")" [function]
   rule compute_shuffled_index_loop(
          INDEX => #if computeBit(maxInt(INDEX, computeFlip(computePivot(SEED, CurrRound, COUNT), INDEX, COUNT)),
                                  SEED, CurrRound)
@@ -340,7 +336,7 @@ def compute_proposer_index(statE: BeaconState, indices: Sequence[ValidatorIndex]
 
 /*
 def compute_committee(indices: Sequence[ValidatorIndex],
-                      seed: Root,
+                      seed: Bytes32,
                       index: uint64,
                       count: uint64) -> Sequence[ValidatorIndex]:
     """
@@ -350,7 +346,7 @@ def compute_committee(indices: Sequence[ValidatorIndex],
     end = (len(indices) * (index + 1)) // count
     return [indices[compute_shuffled_index(ValidatorIndex(i), len(indices), seed)] for i in range(start, end)]
 */
-  syntax IntList ::= "compute_committee" "(" IntList "," Root "," Int "," Int ")" [function]
+  syntax IntList ::= "compute_committee" "(" IntList "," Bytes32 "," Int "," Int ")" [function]
   rule compute_committee(INDICES, SEED, INDEX, COUNT)
     => computeCommitteeLoop(
         (len(INDICES) *Int INDEX) /Int COUNT,
@@ -360,7 +356,7 @@ def compute_committee(indices: Sequence[ValidatorIndex],
         .IntList
     )
 
-  syntax IntList ::= computeCommitteeLoop( Int, Int, Root, IntList, IntList )     [function]
+  syntax IntList ::= computeCommitteeLoop( Int, Int, Bytes32, IntList, IntList )     [function]
   rule computeCommitteeLoop(I => I +Int 1, END, SEED, INDICES,
                             RESULT => RESULT +append INDICES[compute_shuffled_index(I, len(INDICES), SEED)] )
     requires I <Int END
@@ -398,14 +394,20 @@ def compute_activation_exit_epoch(epoch: Epoch) -> Epoch:
   rule compute_activation_exit_epoch(EP) => EP +Int 1 +Int MAX_SEED_LOOKAHEAD
 
 /*
-def compute_domain(domain_type: DomainType, fork_version: Version=Version()) -> Domain:
+def compute_domain(domain_type: DomainType, fork_version: Optional[Version]=None) -> Domain:
     """
     Return the domain for the ``domain_type`` and ``fork_version``.
     """
+    if fork_version is None:
+        fork_version = GENESIS_FORK_VERSION
     return Domain(domain_type + fork_version)
 */
-  syntax Domain ::= "compute_domain" "(" DomainType "," Version ")"    [function]
-  rule compute_domain(Domain_Type, Fork_Version) => {Domain_Type +Bytes Fork_Version}:>Domain
+  syntax Domain ::= "compute_domain" "(" DomainType "," OptionVersion ")"     [function]
+  rule compute_domain(DTYPE, OVERSION)
+    => compute_domain_aux(DTYPE, #if isNone(OVERSION) #then GENESIS_FORK_VERSION #else versOf(OVERSION) #fi)
+
+  syntax Domain ::= "compute_domain_aux" "(" DomainType "," Version ")"    [function]
+  rule compute_domain_aux(Domain_Type, Fork_Version) => {Domain_Type +Bytes Fork_Version}:>Domain
 
   // Helper functions -- Beacon state accessors
   //====================================================
@@ -460,14 +462,14 @@ def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Root:
     requires SLOT <Int StateSLOT andBool StateSLOT <=Int (SLOT +Int SLOTS_PER_HISTORICAL_ROOT)
 
 /*
-def get_randao_mix(state: BeaconState, epoch: Epoch) -> Root:
+def get_randao_mix(state: BeaconState, epoch: Epoch) -> Bytes32:
     """
     Return the randao mix at a recent ``epoch``.
     """
     return state.randao_mixes[epoch % EPOCHS_PER_HISTORICAL_VECTOR]
 */
-  syntax Root ::= "get_randao_mix" "(" Int ")" [function]
-  rule [[ get_randao_mix( EPOCH ) => {RMS[ EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR ]}:>Root ]]
+  syntax Bytes32 ::= "get_randao_mix" "(" Int ")" [function]
+  rule [[ get_randao_mix( EPOCH ) => {RMS[ EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR ]}:>Bytes32 ]]
     <randao-mixes> RMS </randao-mixes>
 
 /*
@@ -607,11 +609,11 @@ def get_total_active_balance(state: BeaconState) -> Gwei:
   rule get_total_active_balance() => get_total_balance(get_active_validator_indices(get_current_epoch()))
 
 /*
-def get_domain(state: BeaconState, domain_type: DomainType, message_epoch: Epoch=None) -> Domain:
+def get_domain(state: BeaconState, domain_type: DomainType, epoch: Epoch=None) -> Domain:
     """
     Return the signature domain (fork version concatenated with domain type) of a message.
     """
-    epoch = get_current_epoch(state) if message_epoch is None else message_epoch
+    epoch = get_current_epoch(state) if epoch is None else epoch
     fork_version = state.fork.previous_version if epoch < state.fork.epoch else state.fork.current_version
     return compute_domain(domain_type, fork_version)
 */
@@ -621,7 +623,7 @@ def get_domain(state: BeaconState, domain_type: DomainType, message_epoch: Epoch
 
   syntax Domain ::= "get_domain_aux" "(" DomainType "," Int ")" [function]
   rule [[ get_domain_aux(DTYPE, EPOCH)
-    => compute_domain(DTYPE, #if EPOCH <Int FEPOCH #then FPREV #else FCURR #fi) ]]
+    => compute_domain(DTYPE, #if EPOCH <Int FEPOCH #then #SomeVers(FPREV) #else #SomeVers(FCURR) #fi) ]]
   <fork> #Fork(FPREV,FCURR,FEPOCH) </fork>
 
 /*
@@ -818,7 +820,7 @@ def slash_validator(state: BeaconState,
   //====================================================
 
 /*
-def initialize_beacon_state_from_eth1(eth1_block_hash: Root,
+def initialize_beacon_state_from_eth1(eth1_block_hash: Bytes32,
                                       eth1_timestamp: uint64,
                                       deposits: Sequence[Deposit]) -> BeaconState:
     state = BeaconState(
@@ -1566,26 +1568,22 @@ def process_rewards_and_penalties(state: BeaconState) -> None:
 def process_registry_updates(state: BeaconState) -> None:
     # Process activation eligibility and ejections
     for index, validator in enumerate(state.validators):
-        if (
-            validator.activation_eligibility_epoch == FAR_FUTURE_EPOCH
-            and validator.effective_balance == MAX_EFFECTIVE_BALANCE
-        ):
-            validator.activation_eligibility_epoch = get_current_epoch(state)
+        if is_eligible_for_activation_queue(validator):
+            validator.activation_eligibility_epoch = get_current_epoch(state) + 1
 
         if is_active_validator(validator, get_current_epoch(state)) and validator.effective_balance <= EJECTION_BALANCE:
             initiate_validator_exit(state, ValidatorIndex(index))
 
-    # Queue validators eligible for activation and not dequeued for activation prior to finalized epoch
+    # Queue validators eligible for activation and not yet dequeued for activation
     activation_queue = sorted([
         index for index, validator in enumerate(state.validators)
-        if validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH
-        and validator.activation_epoch >= compute_activation_exit_epoch(state.finalized_checkpoint.epoch)
-    ], key=lambda index: state.validators[index].activation_eligibility_epoch)
-    # Dequeued validators for activation up to churn limit (without resetting activation epoch)
+        if is_eligible_for_activation(state, validator)
+        # Order by the sequence of activation_eligibility_epoch setting and then index
+    ], key=lambda index: (state.validators[index].activation_eligibility_epoch, index))
+    # Dequeued validators for activation up to churn limit
     for index in activation_queue[:get_validator_churn_limit(state)]:
         validator = state.validators[index]
-        if validator.activation_epoch == FAR_FUTURE_EPOCH:
-            validator.activation_epoch = compute_activation_exit_epoch(get_current_epoch(state))
+        validator.activation_epoch = compute_activation_exit_epoch(get_current_epoch(state))
 */
   syntax KItem ::= "process_registry_updates" "(" ")" [klabel(process_registry_updates), symbol]
   rule <k> process_registry_updates()
@@ -1607,19 +1605,18 @@ def process_registry_updates(state: BeaconState) -> None:
        ...</k>
        <validators>... INDEX |-> (#Validator(_,_,_,_,
           ActEligibilityEpoch
-          => #if ActEligibilityEpoch ==Int FAR_FUTURE_EPOCH
-                 andBool VAL.effectiveBalance >=Int MAX_EFFECTIVE_BALANCE
-                #then get_current_epoch()
+          => #if is_eligible_for_activation_queue(VAL)
+                #then get_current_epoch() +Int 1
                 #else ActEligibilityEpoch
              #fi,
-          _,_,_) #as VAL) ...</validators>
+          _,_,_)) ...</validators>
 
   rule processRegistryUpdatesLoop1(.Map) => .K
 
   syntax KItem ::= processActivationQueue()
                  | processActivationQueue( activationQueue: IntList , churnLimit: Int )
 
-  //must be done here instead of main rule, basause it needs state updated by Loop1
+  //must be done here instead of main rule, because it needs state updated by Loop1
   rule <k> processActivationQueue() => processActivationQueue(
           sortActivationQueue(getActivationQueueUnsorted(0, VALIDATORS, .IntList)),
           get_validator_churn_limit() )
@@ -1632,34 +1629,27 @@ def process_registry_updates(state: BeaconState) -> None:
           ActEpoch => compute_activation_exit_epoch(get_current_epoch()), _,_)
           ...</validators>
     requires I >Int 0
-             andBool ActEpoch ==K FAR_FUTURE_EPOCH
-
-  rule processActivationQueue(INDEX:Int IL => IL, I => I -Int 1)
-    requires I >Int 0
-             andBool getValidator(INDEX).activationEpoch =/=K FAR_FUTURE_EPOCH
 
   rule processActivationQueue(.IntList, _) => .K
   rule processActivationQueue(       _, 0) => .K
 
   /*
-  index for index, validator in enumerate(state.validator_registry) if
-        validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH and
-        validator.activation_epoch >= get_delayed_activation_exit_epoch(state.finalized_epoch) */
+        index for index, validator in enumerate(state.validators)
+        if is_eligible_for_activation(state, validator)
+  */
   syntax IntList ::= getActivationQueueUnsorted(i: Int, validators: Map, result: IntList ) [function]
   rule [[ getActivationQueueUnsorted(INDEX => INDEX +Int 1, _:Map (INDEX |-> VAL => .Map),  IL => IL +append INDEX) ]]
        <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
-    requires VAL.activationEligibilityEpoch =/=K FAR_FUTURE_EPOCH
-         andBool VAL.activationEpoch >=Int compute_activation_exit_epoch(FinalizedEpoch)
+    requires is_eligible_for_activation(VAL)
 
   rule [[ getActivationQueueUnsorted(INDEX => INDEX +Int 1, _:Map (INDEX |-> VAL => .Map),  IL /*unchanged*/ ) ]]
        <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
-    requires notBool ( VAL.activationEligibilityEpoch =/=K FAR_FUTURE_EPOCH
-                   andBool VAL.activationEpoch >=Int compute_activation_exit_epoch(FinalizedEpoch) )
+    requires notBool is_eligible_for_activation(VAL)
 
   rule getActivationQueueUnsorted(_, .Map, IL ) => IL
 
   /*activation_queue = sorted([ index for ...
-    ], key=lambda index: state.validator_registry[index].activation_eligibility_epoch)*/
+    ], key=lambda index: (state.validators[index].activation_eligibility_epoch, index))*/
   syntax IntList ::= sortActivationQueue( IntList ) [function]
   rule sortActivationQueue(IL) => indexForMinEligEpoch(IL) listExcept(IL, indexForMinEligEpoch(IL))
     requires IL =/=K .IntList
@@ -1669,8 +1659,11 @@ def process_registry_updates(state: BeaconState) -> None:
   syntax Int ::= indexForMinEligEpoch ( IntList )      [function, klabel(indexForMinEligEpoch)]
                | indexForMinEligEpoch ( Int, IntList ) [function, klabel(indexForMinEligEpoch2)]
   rule indexForMinEligEpoch(I:Int IL) => indexForMinEligEpoch(I, IL)
-  rule indexForMinEligEpoch( MIN => #if getValidator(MIN).activationEligibilityEpoch <=Int getValidator(I).activationEligibilityEpoch
-                                      #then MIN #else I #fi,
+  rule indexForMinEligEpoch( MIN => #if getValidator(MIN).activationEligibilityEpoch ==Int getValidator(I).activationEligibilityEpoch
+                                    #then #if I <Int MIN #then I #else MIN #fi
+                                    #else #if getValidator(MIN).activationEligibilityEpoch <Int getValidator(I).activationEligibilityEpoch
+                                          #then MIN #else I #fi
+                                    #fi,
                              (I:Int IL) => IL )
   rule indexForMinEligEpoch(MIN, .IntList) => MIN
 

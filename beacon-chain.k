@@ -823,8 +823,14 @@ def slash_validator(state: BeaconState,
 def initialize_beacon_state_from_eth1(eth1_block_hash: Bytes32,
                                       eth1_timestamp: uint64,
                                       deposits: Sequence[Deposit]) -> BeaconState:
+    fork = Fork(
+        previous_version=GENESIS_FORK_VERSION,
+        current_version=GENESIS_FORK_VERSION,
+        epoch=GENESIS_EPOCH,
+    )
     state = BeaconState(
-        genesis_time=eth1_timestamp - eth1_timestamp % SECONDS_PER_DAY + 2 * SECONDS_PER_DAY,
+        genesis_time=eth1_timestamp - eth1_timestamp % MIN_GENESIS_DELAY + 2 * MIN_GENESIS_DELAY,
+        fork=fork,
         eth1_data=Eth1Data(block_hash=eth1_block_hash, deposit_count=len(deposits)),
         latest_block_header=BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody())),
         randao_mixes=[eth1_block_hash] * EPOCHS_PER_HISTORICAL_VECTOR,  # Seed RANDAO with Eth1 entropy
@@ -853,7 +859,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Bytes32,
            ~> processEth1Deposits(Deposits, getDataList(Deposits), 0)
            ~> processEth1Activations
        ... </k>
-       <genesis-time> _ => E1TS -Int E1TS %Int SECONDS_PER_DAY +Int 2 *Int SECONDS_PER_DAY </genesis-time>
+       <genesis-time> _ => E1TS -Int E1TS %Int MIN_GENESIS_DELAY +Int 2 *Int MIN_GENESIS_DELAY </genesis-time>
        <eth1-data> _ => #Eth1Data(defaultRoot(), len(Deposits), E1BH) </eth1-data>
        <randao-mixes> _ => fillInVector(E1BH, EPOCHS_PER_HISTORICAL_VECTOR) </randao-mixes>
        <latest-block-header>
@@ -865,7 +871,7 @@ def initialize_beacon_state_from_eth1(eth1_block_hash: Bytes32,
   syntax KItem ::= "stateInit"
 
   rule <k> stateInit => .K ...</k>
-       <fork> _ => #Fork({defaultBytes4()}:>Version, {defaultBytes4()}:>Version, 0) </fork>
+       <fork> _ => #Fork(GENESIS_FORK_VERSION, GENESIS_FORK_VERSION, GENESIS_EPOCH) </fork>
        <block-roots>  _ => fillInMap(defaultRoot(), SLOTS_PER_HISTORICAL_ROOT) </block-roots> //Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
        <state-roots>  _ => fillInMap(defaultRoot(), SLOTS_PER_HISTORICAL_ROOT) </state-roots> //Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
        <slashings>    _ => fillInMap(0, EPOCHS_PER_SLASHINGS_VECTOR) </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
@@ -1321,9 +1327,7 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
         proposer_reward = Gwei(get_base_reward(state, index) // PROPOSER_REWARD_QUOTIENT)
         rewards[attestation.proposer_index] += proposer_reward
         max_attester_reward = get_base_reward(state, index) - proposer_reward
-        rewards[index] += Gwei(
-            max_attester_reward // attestation.inclusion_delay
-        )
+        rewards[index] += Gwei(max_attester_reward // attestation.inclusion_delay)
 
     # Inactivity penalty
     finality_delay = previous_epoch - state.finalized_checkpoint.epoch
@@ -1332,9 +1336,8 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
         for index in eligible_validator_indices:
             penalties[index] += Gwei(BASE_REWARDS_PER_EPOCH * get_base_reward(state, index))
             if index not in matching_target_attesting_indices:
-                penalties[index] += Gwei(
-                    state.validators[index].effective_balance * finality_delay // INACTIVITY_PENALTY_QUOTIENT
-                )
+                effective_balance = state.validators[index].effective_balance
+                penalties[index] += Gwei(effective_balance * finality_delay // INACTIVITY_PENALTY_QUOTIENT)
 
     return rewards, penalties
 */

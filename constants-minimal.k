@@ -3,6 +3,8 @@ module CONSTANTS
 
   // (Non-configurable) constants
   //====================================================
+  syntax Version ::= "GENESIS_FORK_VERSION"
+  rule GENESIS_FORK_VERSION => "\x00\x00\x00\x01"             [macro]
   syntax Int ::= "FAR_FUTURE_EPOCH"
   rule FAR_FUTURE_EPOCH => 2 ^Int 64 -Int 1                   [macro]
   syntax Int ::= "BASE_REWARDS_PER_EPOCH"
@@ -62,6 +64,8 @@ module CONSTANTS
 
   // Configuration -- Time parameters
   //====================================================
+  syntax Int ::= "MIN_GENESIS_DELAY"
+  rule MIN_GENESIS_DELAY => 300                               [macro]
   syntax Int ::= "SECONDS_PER_SLOT"
   rule SECONDS_PER_SLOT => 6                                  [macro]
   syntax Int ::= "MIN_ATTESTATION_INCLUSION_DELAY"
@@ -142,6 +146,19 @@ module CONSTANTS
   rule DOMAIN_DEPOSIT => "\x03\x00\x00\x00"                   [macro]
   syntax DomainType ::= "DOMAIN_VOLUNTARY_EXIT"
   rule DOMAIN_VOLUNTARY_EXIT => "\x04\x00\x00\x00"            [macro]
+
+  // Configuration --  Validator
+  //====================================================
+  syntax Int ::= "ETH1_FOLLOW_DISTANCE"
+  rule ETH1_FOLLOW_DISTANCE => 16                             [macro]
+  syntax Int ::= "TARGET_AGGREGATORS_PER_COMMITTEE"
+  rule TARGET_AGGREGATORS_PER_COMMITTEE => 16                 [macro]
+  syntax Int ::= "RANDOM_SUBNETS_PER_VALIDATOR"
+  rule RANDOM_SUBNETS_PER_VALIDATOR => 16                     [macro]
+  syntax Int ::= "EPOCHS_PER_RANDOM_SUBNET_SUBSCRIPTION"
+  rule EPOCHS_PER_RANDOM_SUBNET_SUBSCRIPTION => 256           [macro]
+  syntax Int ::= "SECONDS_PER_ETH1_BLOCK"
+  rule SECONDS_PER_ETH1_BLOCK => 14                           [macro]
 
   //TODO: Some phase 1 stuff here
 endmodule

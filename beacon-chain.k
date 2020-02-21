@@ -100,6 +100,40 @@ def is_active_validator(validator: Validator, epoch: Epoch) -> bool:
     => VAL.activationEpoch <=Int EPOCH andBool EPOCH <Int VAL.exitEpoch
 
 /*
+def is_eligible_for_activation_queue(validator: Validator) -> bool:
+    """
+    Check if ``validator`` is eligible to be placed into the activation queue.
+    """
+    return (
+        validator.activation_eligibility_epoch == FAR_FUTURE_EPOCH
+        and validator.effective_balance == MAX_EFFECTIVE_BALANCE
+    )
+*/
+  syntax Bool ::= "is_eligible_for_activation_queue" "(" Validator ")" [function]
+  rule is_eligible_for_activation_queue ( VAL )
+    => VAL.activationEligibilityEpoch ==K FAR_FUTURE_EPOCH
+    andBool VAL.effectiveBalance ==K MAX_EFFECTIVE_BALANCE
+
+/*
+def is_eligible_for_activation(state: BeaconState, validator: Validator) -> bool:
+    """
+    Check if ``validator`` is eligible for activation.
+    """
+    return (
+        # Placement in queue is finalized
+        validator.activation_eligibility_epoch <= state.finalized_checkpoint.epoch
+        # Has not yet been activated
+        and validator.activation_epoch == FAR_FUTURE_EPOCH
+    )
+*/
+
+  syntax Bool ::= "is_eligible_for_activation" "(" Validator ")" [function]
+  rule [[ is_eligible_for_activation ( VAL )
+    => VAL.activationEligibilityEpoch <=Int CHECKPOINT.epoch
+    andBool VAL.activationEpoch ==K FAR_FUTURE_EPOCH ]]
+    <finalized-checkpoint> CHECKPOINT </finalized-checkpoint>
+
+/*
 def is_slashable_validator(validator: Validator, epoch: Epoch) -> bool:
     """
     Check if ``validator`` is slashable.

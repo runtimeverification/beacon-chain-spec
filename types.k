@@ -314,11 +314,11 @@ class SignedBeaconBlockHeader(Container):
 
 /* class ProposerSlashing(Container):
     proposer_index: ValidatorIndex
-    header_1: SignedBeaconBlockHeader
-    header_2: SignedBeaconBlockHeader
+    signed_header_1: SignedBeaconBlockHeader
+    signed_header_2: SignedBeaconBlockHeader
 */
 syntax ProposerSlashing ::= #ProposerSlashing( proposerIndex: ValidatorIndex,
-                                               header1: SignedBeaconBlockHeader, header2: SignedBeaconBlockHeader ) [klabel(#ProposerSlashing), symbol]
+                                               signedHeader1: SignedBeaconBlockHeader, signedHeader2: SignedBeaconBlockHeader ) [klabel(#ProposerSlashing), symbol]
 
   /*
 class AttesterSlashing(Container):

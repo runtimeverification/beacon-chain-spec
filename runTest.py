@@ -80,13 +80,18 @@ beaconBlockHeaderTerm = labelWithKeyPairs('#BeaconBlockHeader', [ ('slot'       
                                                                 , ('parent_root' , hashToken)
                                                                 , ('state_root'  , hashToken)
                                                                 , ('body_root'   , hashToken)
-                                                                , ('signature'   , hashToken)
                                                                 ]
                                           )
 
+signedBeaconBlockHeaderTerm = labelWithKeyPairs('#SignedBeaconBlockHeader' , [ ('message'   , beaconBlockHeaderTerm)
+                                                                           ,   ('signature' , hashToken)
+                                                                             ]
+                                               )
+
+
 proposerSlashingTerm = labelWithKeyPairs('#ProposerSlashing' , [ ('proposer_index' , intToken)
-                                                               , ('header_1'       , beaconBlockHeaderTerm)
-                                                               , ('header_2'       , beaconBlockHeaderTerm)
+                                                               , ('signed_header_1'       , signedBeaconBlockHeaderTerm)
+                                                               , ('signed_header_2'       , signedBeaconBlockHeaderTerm)
                                                                ]
                                         )
 
@@ -112,9 +117,14 @@ depositTerm = labelWithKeyPairs('#Deposit' , [ ('proof' , bytesListTerm)
 
 voluntaryExitTerm = labelWithKeyPairs('#VoluntaryExit' , [ ('epoch'           , intToken)
                                                          , ('validator_index' , intToken)
-                                                         , ('signature'       , hashToken)
                                                          ]
                                      )
+
+signedVoluntaryExitTerm = labelWithKeyPairs('#SignedVoluntaryExit' , [ ('message'   , voluntaryExitTerm)
+                                                                   ,   ('signature' , hashToken)
+                                                                   ]
+                                           )
+
 
 eth1DataTerm = labelWithKeyPairs('#Eth1Data', [ ('deposit_root'  , hashToken)
                                               , ('deposit_count' , intToken)
@@ -139,14 +149,14 @@ pendingAttestationTerm = labelWithKeyPairs('#PendingAttestation' , [ ('aggregati
                                                                    ]
                                           )
 
-beaconBlockBodyTerm = labelWithKeyPairs('#BeaconBlockBody' , [ ('randao_reveal'         , hashToken)
-                                                             , ('eth1_data'             , eth1DataTerm)
-                                                             , ('graffiti'              , hashToken)
-                                                             , ('proposer_slashings'    , listOf('ProposerSlashing', converter = proposerSlashingTerm))
-                                                             , ('attester_slashings'    , listOf('AttesterSlashing', converter = attesterSlashingTerm))
-                                                             , ('attestations'          , listOf('Attestation', converter = attestationTerm))
-                                                             , ('deposits'              , listOf('Deposit', converter = depositTerm))
-                                                             , ('voluntary_exits'       , listOf('VoluntaryExit', converter = voluntaryExitTerm))
+beaconBlockBodyTerm = labelWithKeyPairs('#BeaconBlockBody' , [ ('randao_reveal'          , hashToken)
+                                                             , ('eth1_data'              , eth1DataTerm)
+                                                             , ('graffiti'               , hashToken)
+                                                             , ('proposer_slashings'     , listOf('ProposerSlashing', converter = proposerSlashingTerm))
+                                                             , ('attester_slashings'     , listOf('AttesterSlashing', converter = attesterSlashingTerm))
+                                                             , ('attestations'           , listOf('Attestation', converter = attestationTerm))
+                                                             , ('deposits'               , listOf('Deposit', converter = depositTerm))
+                                                             , ('voluntary_exits' , listOf('SignedVoluntaryExit', converter = signedVoluntaryExitTerm))
                                                              ]
                                        )
 
@@ -154,12 +164,16 @@ beaconBlockTerm = labelWithKeyPairs('#BeaconBlock' , [ ('slot'          , intTok
                                                      , ('parent_root'   , hashToken)
                                                      , ('state_root'    , hashToken)
                                                      , ('body'          , beaconBlockBodyTerm)
-                                                     , ('signature'     , hashToken)
                                                      ]
                                    )
 aggregateAndProofTerm = labelWithKeyPairs('#AggregateAndProof' , [ ('index'           , intToken)
                                                                  , ('selection_proof' , hashToken)
                                                                  , ('aggregate'       , attestationTerm)
+                                                                 ]
+                                         )
+
+signedBeaconBlockTerm = labelWithKeyPairs('#SignedBeaconBlock' , [ ('message'   , beaconBlockTerm)
+                                                               ,   ('signature' , hashToken)
                                                                  ]
                                          )
 
@@ -169,7 +183,7 @@ test_type_to_term = {
     'attester_slashing': attesterSlashingTerm,
     'attestation'      : attestationTerm,
     'deposit'          : depositTerm,
-    'voluntary_exit'   : voluntaryExitTerm,
+    'voluntary_exit'   : signedVoluntaryExitTerm,
 
     'block_header'     : beaconBlockTerm,
 
@@ -193,7 +207,9 @@ data_class_to_converter = {
     'AttesterSlashing': attesterSlashingTerm,
     'BeaconBlock': beaconBlockTerm,
     'BeaconBlockBody': beaconBlockBodyTerm,
+    'SignedBeaconBlock': signedBeaconBlockTerm,
     'BeaconBlockHeader': beaconBlockHeaderTerm,
+    'SignedBeaconBlockHeader': signedBeaconBlockHeaderTerm,
     'BeaconState': None,
     'Checkpoint': checkpointTerm,
     'Deposit': depositTerm,
@@ -206,6 +222,7 @@ data_class_to_converter = {
     'ProposerSlashing': proposerSlashingTerm,
     'Validator': validatorTerm,
     'VoluntaryExit': voluntaryExitTerm,
+    'SignedVoluntaryExit': signedVoluntaryExitTerm,
     'AggregateAndProof' : aggregateAndProofTerm,
 }
 

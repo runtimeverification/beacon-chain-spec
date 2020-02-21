@@ -2145,9 +2145,9 @@ def process_voluntary_exit(state: BeaconState, signed_voluntary_exit: SignedVolu
 */
   syntax KItem ::= "process_voluntary_exit" "(" SignedVoluntaryExit ")" [klabel(process_voluntary_exit), symbol]
 
-  rule process_voluntary_exit(#SignedVoluntaryExit(#VoluntaryExit(ExitEPOCH, ValINDEX), _) => initiate_validator_exit(ValINDEX)
+  rule process_voluntary_exit(#SignedVoluntaryExit(#VoluntaryExit(ExitEPOCH, ValINDEX), _)) => initiate_validator_exit(ValINDEX)
     requires is_active_validator(getValidator(ValINDEX), get_current_epoch())
-     andBool getValidator(valINDEX).exitEpoch ==Int FAR_FUTURE_EPOCH
+     andBool getValidator(ValINDEX).exitEpoch ==Int FAR_FUTURE_EPOCH
      andBool get_current_epoch() >=Int ExitEPOCH
      andBool get_current_epoch() >=Int getValidator(ValINDEX).activationEpoch +Int PERSISTENT_COMMITTEE_PERIOD
 

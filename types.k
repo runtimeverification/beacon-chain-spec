@@ -61,14 +61,13 @@ module TYPES
   syntax AttestationList ::= List{Attestation, ""}
   syntax DepositList ::= List{Deposit, ""}
   syntax DepositDataList ::= List{DepositData, ""}
-  syntax VoluntaryExitList ::= List{VoluntaryExit, ""} //still in use?
   syntax SignedVoluntaryExitList ::= List{SignedVoluntaryExit, ""}
   syntax ValidatorList ::= List{Validator, ""}
   syntax Eth1DataList ::= List{Eth1Data, ""}
   syntax PendingAttestationList ::= List{PendingAttestation, ""}
 
   syntax ContainerList ::= ProposerSlashingList | AttesterSlashingList | AttestationList | DepositList | DepositDataList
-       | VoluntaryExitList | ValidatorList
+       | SignedVoluntaryExitList | ValidatorList
        | Eth1DataList | PendingAttestationList
 
   syntax BytesList ::= List{Bytes, ""}
@@ -469,6 +468,7 @@ class VoluntaryExit(Container):
                      | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
                      | BeaconBlockHeader | ProposerSlashing | AttesterSlashing | Attestation | Deposit
                      | VoluntaryExit | BeaconBlockBody | BeaconBlock | AggregateAndProof | DepositMessage
+                     | SignedVoluntaryExit | SignedBeaconBlock | SignedBeaconBlockHeader
 
   //ValueList are not Value, because it needs separate implementation for hash_tree_root
   //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.
@@ -653,8 +653,8 @@ def bytes_to_int(data: bytes) -> uint64:
   rule len(.DepositList) => 0
   rule len(_ LIST:DepositDataList) => 1 +Int len(LIST)
   rule len(.DepositDataList) => 0
-  rule len(_ LIST:VoluntaryExitList) => 1 +Int len(LIST)
-  rule len(.VoluntaryExitList) => 0
+  rule len(_ LIST:SignedVoluntaryExitList) => 1 +Int len(LIST)
+  rule len(.SignedVoluntaryExitList) => 0
   rule len(_ LIST:ValidatorList) => 1 +Int len(LIST)
   rule len(.ValidatorList) => 0
   rule len(_ LIST:Eth1DataList) => 1 +Int len(LIST)

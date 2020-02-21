@@ -352,8 +352,8 @@ def chunkify(bytez):
     => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, DEPOSIT_CONTRACT_TREE_DEPTH +Int 1, %bytes, true)
           hash_tree_root(P2) .BytesList, RemLast))
 
-  rule hash_tree_root(#VoluntaryExit( P1, P2, P3 ) #as VAL, %container, RemLast)
-    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3)
+  rule hash_tree_root(#VoluntaryExit( P1, P2 ) #as VAL, %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64)
           .BytesList, RemLast))
 
   rule hash_tree_root(#BeaconBlockBody( P1, P2, P3, P4, P5, P6, P7, P8 ) #as VAL, %container, RemLast)
@@ -371,6 +371,19 @@ def chunkify(bytez):
   rule hash_tree_root(#AggregateAndProof( P1, P2, P3 ) #as VAL, %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2)
           hash_tree_root(P3)
+          .BytesList, RemLast))
+
+  rule hash_tree_root(#SignedVoluntaryExit( P1, P2 ), %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2)
+          .BytesList, RemLast))
+
+
+  rule hash_tree_root(#SignedBeaconBlock( P1, P2 ), %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2)
+          .BytesList, RemLast))
+
+  rule hash_tree_root(#SignedBeaconBlockHeader( P1, P2 ), %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2)
           .BytesList, RemLast))
 
 
@@ -418,8 +431,8 @@ def chunkify(bytez):
   rule chunkifyContainerList(V:DepositData L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
-  rule chunkifyContainerList(V:VoluntaryExit L, MinLen)
-    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
+  // rule chunkifyContainerList(V:VoluntaryExit L, MinLen)
+  //   => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(V:Validator L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)

@@ -1590,21 +1590,21 @@ def process_registry_updates(state: BeaconState) -> None:
 */
   syntax KItem ::= "process_registry_updates" "(" ")" [klabel(process_registry_updates), symbol]
   rule <k> process_registry_updates()
-           => processRegistryUpdatesLoop1(VALIDATORS)
+           => processRegistryUpdatesLoop1(VALIDATORS, 0)
            ~> processActivationQueue()
          ...
        </k>
        <validators> VALIDATORS </validators>
 
-  //we will process validators in any order, not strictly increasing index like in python
-  syntax KItem ::= "processRegistryUpdatesLoop1" "(" Map ")" //validators
+  //we will process validators by index like in python
+  syntax KItem ::= "processRegistryUpdatesLoop1" "(" Map /* validators*/"," Int /*index*/ ")"
   rule <k> (. => #if is_active_validator(VAL, get_current_epoch())
                       andBool VAL.effectiveBalance <=Int EJECTION_BALANCE
                     #then initiate_validator_exit(INDEX)
                     #else .K
                  #fi
            )
-           ~> processRegistryUpdatesLoop1(_:Map (INDEX |-> VAL => .Map) )
+           ~> processRegistryUpdatesLoop1( _:Map (INDEX |-> VAL => .Map), INDEX => INDEX +Int 1 )
        ...</k>
        <validators>... INDEX |-> (#Validator(_,_,_,_,
           ActEligibilityEpoch
@@ -1614,7 +1614,7 @@ def process_registry_updates(state: BeaconState) -> None:
              #fi,
           _,_,_)) ...</validators>
 
-  rule processRegistryUpdatesLoop1(.Map) => .K
+  rule processRegistryUpdatesLoop1(.Map, _) => .K
 
   syntax KItem ::= processActivationQueue()
                  | processActivationQueue( activationQueue: IntList , churnLimit: Int )

@@ -364,9 +364,9 @@ def chunkify(bytez):
           hash_tree_root_list(P7, MAX_DEPOSITS, %container, false)
           hash_tree_root_list(P8, MAX_VOLUNTARY_EXITS, %container, false) .BytesList, RemLast))
 
-  rule hash_tree_root(#BeaconBlock( P1, P2, P3, P4, P5 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#BeaconBlock( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3)
-          hash_tree_root(P4) hash_tree_root(P5) .BytesList, RemLast))
+          hash_tree_root(P4) .BytesList, RemLast))
 
   rule hash_tree_root(#AggregateAndProof( P1, P2, P3 ) #as VAL, %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2)

@@ -407,25 +407,21 @@ class VoluntaryExit(Container):
     slot: Slot
     parent_root: Root
     state_root: Root
-    body: BeaconBlockBody
-    signature: BLSSignature*/
+    body: BeaconBlockBody*/
   syntax BeaconBlock ::= #BeaconBlock(
                             blockSlot: Int,
                             parentRoot: Root,
                             stateRoot: Root,
-                            body: BeaconBlockBody,
-                            signature: BLSSignature
+                            body: BeaconBlockBody
                          )                                    [klabel(#BeaconBlock), symbol]
   syntax Int              ::= BeaconBlock "." "_slot"                     [function]
-  rule  #BeaconBlock(SLOT, _,_,_,_)._slot => SLOT
+  rule  #BeaconBlock(SLOT, _,_,_)._slot => SLOT
   syntax Root             ::= BeaconBlock "." "parentRoot"                [function]
-  rule  #BeaconBlock(_, PR, _,_,_).parentRoot => PR
+  rule  #BeaconBlock(_, PR, _,_).parentRoot => PR
   syntax Root             ::= BeaconBlock "." "stateRoot"                 [function]
-  rule  #BeaconBlock(_,_, SR, _,_).stateRoot => SR
+  rule  #BeaconBlock(_,_, SR, _).stateRoot => SR
   syntax BeaconBlockBody  ::= BeaconBlock "." "body"                      [function]
-  rule  #BeaconBlock(_,_,_, BODY, _).body => BODY
-  syntax BLSSignature     ::= BeaconBlock "." "signature"                 [function]
-  rule  #BeaconBlock(_,_,_,_, SIG).signature => SIG
+  rule  #BeaconBlock(_,_,_, BODY).body => BODY
 
 /*class AggregateAndProof(Container):
     index: ValidatorIndex

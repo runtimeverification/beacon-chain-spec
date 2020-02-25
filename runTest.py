@@ -138,6 +138,10 @@ eth1DataTerm = labelWithKeyPairs('#Eth1Data', [ ('deposit_root'  , hashToken)
                                               ]
                                 )
 
+eth1BlockTerm = labelWithKeyPairs('#Eth1Block', [ ('timestamp'  , intToken)
+                                                ]
+                                )
+
 historicalBatchTerm = labelWithKeyPairs('#HistoricalBatch', [ ('block_roots' , bytesListTerm)
                                                             , ('state_roots' , bytesListTerm)
                                                             ]
@@ -222,6 +226,7 @@ data_class_to_converter = {
     'DepositData': depositDataTerm,
     'DepositMessage': depositMessageTerm,
     'Eth1Data': eth1DataTerm,
+    'Eth1Block': eth1BlockTerm,
     'Fork': forkTerm,
     'HistoricalBatch': historicalBatchTerm,
     'IndexedAttestation': indexedAttestationTerm,

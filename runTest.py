@@ -76,6 +76,12 @@ depositDataTerm = labelWithKeyPairs('#DepositData' , [ ('pubkey'                
                                                      ]
                                    )
 
+depositMessageTerm = labelWithKeyPairs('#DepositMessage' , [ ('pubkey'                 , hashToken)
+                                                           , ('withdrawal_credentials' , hashToken)
+                                                           , ('amount'                 , intToken)
+                                                     ]
+                                   )
+
 beaconBlockHeaderTerm = labelWithKeyPairs('#BeaconBlockHeader', [ ('slot'        , intToken)
                                                                 , ('parent_root' , hashToken)
                                                                 , ('state_root'  , hashToken)
@@ -214,6 +220,7 @@ data_class_to_converter = {
     'Checkpoint': checkpointTerm,
     'Deposit': depositTerm,
     'DepositData': depositDataTerm,
+    'DepositMessage': depositMessageTerm,
     'Eth1Data': eth1DataTerm,
     'Fork': forkTerm,
     'HistoricalBatch': historicalBatchTerm,

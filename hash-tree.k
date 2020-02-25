@@ -318,45 +318,45 @@ def chunkify(bytez):
           hash_tree_root(P2) hash_tree_root(P3)
           .BytesList, RemLast))
 
-  rule hash_tree_root(#PendingAttestation( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#PendingAttestation( P1, P2, P3, P4 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bool, false)
           hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4, %uint64)
           .BytesList, RemLast))
 
-  rule hash_tree_root(#Eth1Data( P1, P2, P3 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#Eth1Data( P1, P2, P3 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2, %uint64) hash_tree_root(P3) .BytesList, RemLast))
 
-  rule hash_tree_root(#HistoricalBatch( P1, P2 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#HistoricalBatch( P1, P2 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, SLOTS_PER_HISTORICAL_ROOT, %bytes, true)
           hash_tree_root_list(P2, SLOTS_PER_HISTORICAL_ROOT, %bytes, true) .BytesList, RemLast))
 
-  rule hash_tree_root(#DepositData( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#DepositData( P1, P2, P3, P4 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4)
           .BytesList, RemLast))
 
-  rule hash_tree_root(#BeaconBlockHeader( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#BeaconBlockHeader( P1, P2, P3, P4 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
           .BytesList, RemLast))
 
-  rule hash_tree_root(#ProposerSlashing( P1, P2, P3 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#ProposerSlashing( P1, P2, P3 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) .BytesList, RemLast))
 
-  rule hash_tree_root(#AttesterSlashing( P1, P2 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#AttesterSlashing( P1, P2 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) .BytesList, RemLast))
 
-  rule hash_tree_root(#Attestation( P1, P2, P3 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#Attestation( P1, P2, P3 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bool, false) hash_tree_root(P2) hash_tree_root(P3)
           .BytesList, RemLast))
 
-  rule hash_tree_root(#Deposit( P1, P2 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#Deposit( P1, P2 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, DEPOSIT_CONTRACT_TREE_DEPTH +Int 1, %bytes, true)
           hash_tree_root(P2) .BytesList, RemLast))
 
-  rule hash_tree_root(#VoluntaryExit( P1, P2 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#VoluntaryExit( P1, P2 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64)
           .BytesList, RemLast))
 
-  rule hash_tree_root(#BeaconBlockBody( P1, P2, P3, P4, P5, P6, P7, P8 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#BeaconBlockBody( P1, P2, P3, P4, P5, P6, P7, P8 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3)
           hash_tree_root_list(P4, MAX_PROPOSER_SLASHINGS, %container, false)
           hash_tree_root_list(P5, MAX_ATTESTER_SLASHINGS, %container, false)
@@ -364,11 +364,11 @@ def chunkify(bytez):
           hash_tree_root_list(P7, MAX_DEPOSITS, %container, false)
           hash_tree_root_list(P8, MAX_VOLUNTARY_EXITS, %container, false) .BytesList, RemLast))
 
-  rule hash_tree_root(#BeaconBlock( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#BeaconBlock( P1, P2, P3, P4 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3)
           hash_tree_root(P4) .BytesList, RemLast))
 
-  rule hash_tree_root(#AggregateAndProof( P1, P2, P3 ) #as VAL, %container, RemLast)
+  rule hash_tree_root(#AggregateAndProof( P1, P2, P3 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2)
           hash_tree_root(P3)
           .BytesList, RemLast))
@@ -431,8 +431,8 @@ def chunkify(bytez):
   rule chunkifyContainerList(V:DepositData L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
-  // rule chunkifyContainerList(V:VoluntaryExit L, MinLen)
-  //   => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
+  rule chunkifyContainerList(V:SignedVoluntaryExit L, MinLen)
+    => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
   rule chunkifyContainerList(V:Validator L, MinLen)
     => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)

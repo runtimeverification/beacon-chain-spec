@@ -81,3 +81,4 @@ The main model files and testing scripts, which are located in the directory of 
 Getting Help
 ------------
 Feel free to report GitHub issues or to contact us at: contact@runtimeverification.com
+ 

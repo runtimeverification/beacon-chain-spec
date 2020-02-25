@@ -215,6 +215,12 @@ class Eth1Data(Container):
   syntax Bytes32 ::= Eth1Data "." "block_hash" [function]
   rule #Eth1Data(_, _, BHASH).block_hash => BHASH
 
+/*
+class Eth1Block(Container):
+    timestamp: uint64
+    # All other eth1 block fields
+*/
+  syntax Eth1Block ::= #Eth1Block( Int ) [klabel(#Eth1Block), symbol]
   /*
 class HistoricalBatch(Container):
     block_roots: Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
@@ -483,7 +489,7 @@ class SignedAggregateAndProof(Container):
                      | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
                      | BeaconBlockHeader | ProposerSlashing | AttesterSlashing | Attestation | Deposit
                      | VoluntaryExit | BeaconBlockBody | BeaconBlock | AggregateAndProof | DepositMessage
-                     | SignedVoluntaryExit | SignedBeaconBlock | SignedBeaconBlockHeader
+                     | SignedVoluntaryExit | SignedBeaconBlock | SignedBeaconBlockHeader | Eth1Block
 
   //ValueList are not Value, because it needs separate implementation for hash_tree_root
   //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.

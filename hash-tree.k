@@ -326,6 +326,9 @@ def chunkify(bytez):
   rule hash_tree_root(#Eth1Data( P1, P2, P3 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2, %uint64) hash_tree_root(P3) .BytesList, RemLast))
 
+  rule hash_tree_root(#Eth1Block( P1 ), %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) .BytesList, RemLast))
+
   rule hash_tree_root(#HistoricalBatch( P1, P2 ), %container, RemLast)
     => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, SLOTS_PER_HISTORICAL_ROOT, %bytes, true)
           hash_tree_root_list(P2, SLOTS_PER_HISTORICAL_ROOT, %bytes, true) .BytesList, RemLast))

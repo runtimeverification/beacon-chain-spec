@@ -166,9 +166,9 @@ beaconBlockTerm = labelWithKeyPairs('#BeaconBlock' , [ ('slot'          , intTok
                                                      , ('body'          , beaconBlockBodyTerm)
                                                      ]
                                    )
-aggregateAndProofTerm = labelWithKeyPairs('#AggregateAndProof' , [ ('index'           , intToken)
-                                                                 , ('selection_proof' , hashToken)
+aggregateAndProofTerm = labelWithKeyPairs('#AggregateAndProof' , [ ('aggregator_index'           , intToken)
                                                                  , ('aggregate'       , attestationTerm)
+                                                                 , ('selection_proof' , hashToken)
                                                                  ]
                                          )
 

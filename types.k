@@ -424,21 +424,31 @@ class VoluntaryExit(Container):
   rule  #BeaconBlock(_,_,_, BODY).body => BODY
 
 /*class AggregateAndProof(Container):
-    index: ValidatorIndex
-    selection_proof: BLSSignature
-    aggregate: Attestation*/
+    aggregator_index: ValidatorIndex
+    aggregate: Attestation
+    selection_proof: BLSSignature*/
   syntax AggregateAndProof ::= #AggregateAndProof(
                                index: ValidatorIndex,
-                               selectionProof: BLSSignature,
-                               aggregate: Attestation
+                               aggregate: Attestation,
+                               selectionProof: BLSSignature
                                )                              [klabel(#AggregateAndProof), symbol]
 
-  syntax ValidatorIndex ::= AggregateAndProof "." "index"                 [function]
+  syntax ValidatorIndex ::= AggregateAndProof "." "aggregatorIndex"      [function]
   rule #AggregateAndProof(INDEX,_,_) => INDEX
-  syntax BLSSignature ::= AggregateAndProof "." "selectionProof"          [function]
-  rule #AggregateAndProof(_,SP,_) => SP
-  syntax Attestation ::= AggregateAndProof "." "aggregate"                [function]
-  rule #AggregateAndProof(_,_,AG) => AG
+  syntax Attestation ::= AggregateAndProof "." "aggregate"               [function]
+  rule #AggregateAndProof(_,AG,_) => AG
+  syntax BLSSignature ::= AggregateAndProof "." "selectionProof"         [function]
+  rule #AggregateAndProof(_,_,SP) => SP
+
+/*
+class SignedAggregateAndProof(Container):
+    message: AggregateAndProof
+    signature: BLSSignature
+*/
+  syntax SignedAggregateAndProof ::= #SignedAggregateAndProof(
+                                     message: AggregateAndProof,
+                                     signature: BLSSignature
+                                     )                              [klabel(#SignedAggregateAndProof), symbol]
 
 
   // The return type of get_attestation_deltas

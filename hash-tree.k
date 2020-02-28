@@ -392,6 +392,10 @@ def chunkify(bytez):
     => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2)
           .BytesList, RemLast))
 
+  rule hash_tree_root(#SigningRoot( P1, P2 ), %container, RemLast)
+    => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2)
+          .BytesList, RemLast))
+
 
   syntax Root ::= "hash_tree_root_list" "(" list: ValueList "," staticLen: Int "," elemType: ElementType "," fixedSize: Bool ")"
                                                                       [function]

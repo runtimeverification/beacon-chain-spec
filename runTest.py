@@ -187,6 +187,11 @@ signedBeaconBlockTerm = labelWithKeyPairs('#SignedBeaconBlock' , [ ('message'   
                                                                  ]
                                          )
 
+signingRootTerm = labelWithKeyPairs('#SigningRoot' , [ ('object_root' , hashToken)
+                                                   ,   ('domain'      , hashToken)
+                                                     ]
+                                   )
+
 test_type_to_term = {
     # operations
     'proposer_slashing': proposerSlashingTerm,
@@ -236,6 +241,7 @@ data_class_to_converter = {
     'VoluntaryExit': voluntaryExitTerm,
     'SignedVoluntaryExit': signedVoluntaryExitTerm,
     'AggregateAndProof' : aggregateAndProofTerm,
+    'SigningRoot' : signingRootTerm,
 }
 
 init_config_cells = { 'GENESIS_TIME_CELL'                  : (['genesis_time']                       , intToken)

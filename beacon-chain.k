@@ -4,10 +4,12 @@
  */
 
 requires "hash-tree.k"
+requires "uint64.k"
 
 module BEACON-CHAIN
   imports DOMAINS
   imports HASH-TREE
+  imports UINT64
 
   // Hacks around pyk/json front-end limitations
   //====================================================
@@ -1290,10 +1292,13 @@ def get_base_reward(state: BeaconState, index: ValidatorIndex) -> Gwei:
 */
   syntax Int ::= "get_base_reward" "(" Int ")" [function]
   rule get_base_reward(INDEX)
-       => getValidator(INDEX).effectiveBalance *Int BASE_REWARD_FACTOR
-          /Int integer_squareroot(get_total_active_balance())
-          /Int BASE_REWARDS_PER_EPOCH
-
+       => ei(500, 3 *Int 10 ^Int 6,
+       ui(MIN_DEPOSIT_AMOUNT, MAX_EFFECTIVE_BALANCE, getValidator(INDEX).effectiveBalance) *UInt64  ci(BASE_REWARD_FACTOR)
+          /UInt64 ui(integer_squareroot(MAX_EFFECTIVE_BALANCE),
+                     integer_squareroot(TOTAL_ETHER_SUPPLY),
+                     integer_squareroot(get_total_active_balance()))
+          /UInt64 ci(BASE_REWARDS_PER_EPOCH)
+       )
 /*
 def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence[Gwei]]:
     previous_epoch = get_previous_epoch(state)

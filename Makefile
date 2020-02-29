@@ -120,7 +120,7 @@ MAIN_DEFN_FILE := beacon-chain
 
 # Generate definitions from source files
 
-k_files := $(MAIN_DEFN_FILE).k beacon-chain.k hash-tree.k types.k config.k constants-minimal.k
+k_files := $(MAIN_DEFN_FILE).k beacon-chain.k hash-tree.k types.k config.k constants-mainnet.k uint64.k
 
 llvm_dir   := $(DEFN_DIR)/llvm
 llvm_files := $(patsubst %,$(llvm_dir)/%,$(k_files))

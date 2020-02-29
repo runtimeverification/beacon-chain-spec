@@ -158,5 +158,10 @@ module CONSTANTS
   syntax Int ::= "SECONDS_PER_ETH1_BLOCK"
   rule SECONDS_PER_ETH1_BLOCK => 14                           [macro]
 
-  //TODO: Some phase 1 stuff here
+  // for bounds checking
+  syntax Int ::= "TOTAL_ETHER_SUPPLY"
+  rule TOTAL_ETHER_SUPPLY => 10 ^Int 6 *Int 10 ^Int 9         [macro]
+
+
+//TODO: Some phase 1 stuff here
 endmodule

@@ -29,6 +29,10 @@ Start by choosing any section below or in the sidebar.
 
   * "is_active_validator"
 
+  * "is_eligible_for_activation_queue"
+
+  * "is_eligible_for_activation"
+
   * "is_slashable_validator"
 
   * "is_slashable_attestation_data"
@@ -159,8 +163,6 @@ Start by choosing any section below or in the sidebar.
 
   * "item_length"
 
-  * "signing_root"
-
 * Configuration
 
   * "BeaconState"
@@ -185,9 +187,19 @@ Start by choosing any section below or in the sidebar.
 
   * "HistoricalBatch"
 
+  * "DepositMessage"
+
   * "DepositData"
 
   * "BeaconBlockHeader"
+
+  * "SigningRoot"
+
+  * "SignedVoluntaryExit"
+
+  * "SignedBeaconBlock"
+
+  * "SignedBeaconBlockHeader"
 
   * "ProposerSlashing"
 
@@ -204,6 +216,8 @@ Start by choosing any section below or in the sidebar.
   * "BeaconBlock"
 
   * "AggregateAndProof"
+
+  * "SignedAggregateAndProof"
 
   * "as_bytes"
 

@@ -45,14 +45,14 @@ K semantics:
 
 Python reference:
 
-   def hash(data: bytes) -> Hash is SHA256.
+   def hash(data: bytes) -> Root is SHA256.
 
 
 K semantics:
 
 
-     syntax Hash ::= hash( Bytes )                                       [function]
-     rule hash(BYTES) => {toBinary(Sha256(BYTES))}:>Hash
+     syntax Root ::= hash( Bytes )                                       [function]
+     rule hash(BYTES) => {toBinary(Sha256(BYTES))}:>Root
 
      syntax Bytes ::= toBinary( Bytes )                                  [function]
      rule toBinary(S) => chrChar(String2Base(substrString(S, 0, 2), 16)) +Bytes toBinary(substrString(S, 2, lengthString(S)))
@@ -62,7 +62,7 @@ K semantics:
      // Aux functions
      //====================================================
 
-     syntax Hash ::= hashConcat(Bytes, Bytes)                            [function]
+     syntax Root ::= hashConcat(Bytes, Bytes)                            [function]
      rule hashConcat(H1, H2) => hash(H1 +Bytes H2)
 
      // SSZ library functions
@@ -158,7 +158,7 @@ K semantics:
 
      rule chunkifyAux("") => .BytesList
 
-     syntax Hash ::= zerohashes ( Int )                                  [function]
+     syntax Root ::= zerohashes ( Int )                                  [function]
      rule [[ zerohashes(I) => HASH ]]
        <zerohashes-cache> I |-> HASH ...</zerohashes-cache>
 
@@ -218,7 +218,7 @@ Python reference:
 K semantics:
 
 
-     syntax Hash ::= "merkleize_chunks" "(" BytesList "," Int ")"        [function]
+     syntax Root ::= "merkleize_chunks" "(" BytesList "," Int ")"        [function]
      rule merkleize_chunks(.BytesList, 0) => zerohashes(0)
 
      rule merkleize_chunks(CHUNKS, LIMIT)
@@ -241,7 +241,7 @@ Python reference:
 K semantics:
 
 
-     syntax Hash ::= merkleizeChunksLoop1(count:     Int,
+     syntax Root ::= merkleizeChunksLoop1(count:     Int,
                                           depth:     Int,
                                           maxDepth:  Int,
                                           chunks:    BytesList,
@@ -280,16 +280,16 @@ Python reference:
 K semantics:
 
 
-     syntax Hash ::= merkleizeChunksLoop2(Int, // j
+     syntax Root ::= merkleizeChunksLoop2(Int, // j
                                           Int, // max_depth
                                           Map  //tmp
                                          )                               [function]
-     rule merkleizeChunksLoop2( J => J +Int 1, MaxDEPTH, TMP => TMP[J +Int 1 <- hashConcat({TMP[J]}:>Hash, zerohashes(J))] )
+     rule merkleizeChunksLoop2( J => J +Int 1, MaxDEPTH, TMP => TMP[J +Int 1 <- hashConcat({TMP[J]}:>Root, zerohashes(J))] )
        requires J <Int MaxDEPTH
 
      //end of merkleize_chunks
      //return tmp[max_depth]
-     rule merkleizeChunksLoop2( J, MaxDEPTH, TMP ) => {TMP[MaxDEPTH]}:>Hash
+     rule merkleizeChunksLoop2( J, MaxDEPTH, TMP ) => {TMP[MaxDEPTH]}:>Root
        requires J >=Int MaxDEPTH
 
 
@@ -314,7 +314,7 @@ Python reference:
 K semantics:
 
 
-     syntax Map ::= merkleMerge( Hash, // h
+     syntax Map ::= merkleMerge( Root, // h
                                  Int,  // i
                                  Int,  // count
                                  Int,  // depth
@@ -322,7 +322,7 @@ K semantics:
                                  )                                       [function]
      rule merkleMerge(H, I, COUNT, DEPTH, TMP) => merkleMergeLoop(H, I, COUNT, DEPTH, TMP, 0)
 
-     syntax Map ::= merkleMergeLoop( Hash, // h
+     syntax Map ::= merkleMergeLoop( Root, // h
                                      Int,  // i
                                      Int,  // count
                                      Int,  // depth
@@ -394,11 +394,11 @@ Python reference:
 K semantics:
 
 
-     syntax Hash ::= "hash_tree_root" "(" BytesOrContainer ")"           [function, klabel(hash_tree_root), symbol]
+     syntax Root ::= "hash_tree_root" "(" BytesOrContainer ")"           [function, klabel(hash_tree_root), symbol]
      rule hash_tree_root(VAL:Container) => hash_tree_root(VAL, %container, false)
      rule hash_tree_root(BYTES:Bytes) => hash_tree_root(BYTES, %bytes)
 
-     syntax Hash ::= "hash_tree_root" "(" BasicValueOrBytes "," ElementType ")" [function]
+     syntax Root ::= "hash_tree_root" "(" BasicValueOrBytes "," ElementType ")" [function]
 
      //hash_tree_root branch 2:
      // elif isinstance(obj, BasicValue):
@@ -415,7 +415,7 @@ K semantics:
      //leaves = [hash_tree_root(value) for value in obj]
      //version for containers. Has the option to remove last element, used by signing_root().
      //-----------------------------------------------
-     syntax Hash ::= "hash_tree_root" "(" Container "," ElementType "," removeLast: Bool ")"      [function]
+     syntax Root ::= "hash_tree_root" "(" Container "," ElementType "," removeLast: Bool ")"      [function]
 
      rule hash_tree_root(#Fork( P1, P2, P3 ) #as VAL, %container, RemLast)
        => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) .BytesList, RemLast))
@@ -437,45 +437,51 @@ K semantics:
              hash_tree_root(P2) hash_tree_root(P3)
              .BytesList, RemLast))
 
-     rule hash_tree_root(#PendingAttestation( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
+     rule hash_tree_root(#PendingAttestation( P1, P2, P3, P4 ), %container, RemLast)
        => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bool, false)
              hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4, %uint64)
              .BytesList, RemLast))
 
-     rule hash_tree_root(#Eth1Data( P1, P2, P3 ) #as VAL, %container, RemLast)
+     rule hash_tree_root(#Eth1Data( P1, P2, P3 ), %container, RemLast)
        => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2, %uint64) hash_tree_root(P3) .BytesList, RemLast))
 
-     rule hash_tree_root(#HistoricalBatch( P1, P2 ) #as VAL, %container, RemLast)
+     rule hash_tree_root(#Eth1Block( P1 ), %container, RemLast)
+       => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) .BytesList, RemLast))
+
+     rule hash_tree_root(#HistoricalBatch( P1, P2 ), %container, RemLast)
        => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, SLOTS_PER_HISTORICAL_ROOT, %bytes, true)
              hash_tree_root_list(P2, SLOTS_PER_HISTORICAL_ROOT, %bytes, true) .BytesList, RemLast))
 
-     rule hash_tree_root(#DepositData( P1, P2, P3, P4 ) #as VAL, %container, RemLast)
+     rule hash_tree_root(#DepositData( P1, P2, P3, P4 ), %container, RemLast)
        => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) hash_tree_root(P4)
              .BytesList, RemLast))
 
-     rule hash_tree_root(#BeaconBlockHeader( P1, P2, P3, P4, P5 ) #as VAL, %container, RemLast)
-       => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
-             hash_tree_root(P5) .BytesList, RemLast))
+     rule hash_tree_root(#DepositMessage( P1, P2, P3 ), %container, RemLast)
+       => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3, %uint64) .BytesList, RemLast))
 
-     rule hash_tree_root(#ProposerSlashing( P1, P2, P3 ) #as VAL, %container, RemLast)
+     rule hash_tree_root(#BeaconBlockHeader( P1, P2, P3, P4 ), %container, RemLast)
+       => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) hash_tree_root(P4)
+             .BytesList, RemLast))
+
+     rule hash_tree_root(#ProposerSlashing( P1, P2, P3 ), %container, RemLast)
        => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3) .BytesList, RemLast))
 
-     rule hash_tree_root(#AttesterSlashing( P1, P2 ) #as VAL, %container, RemLast)
+     rule hash_tree_root(#AttesterSlashing( P1, P2 ), %container, RemLast)
        => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) .BytesList, RemLast))
 
-     rule hash_tree_root(#Attestation( P1, P2, P3 ) #as VAL, %container, RemLast)
+     rule hash_tree_root(#Attestation( P1, P2, P3 ), %container, RemLast)
        => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, MAX_VALIDATORS_PER_COMMITTEE, %bool, false) hash_tree_root(P2) hash_tree_root(P3)
              .BytesList, RemLast))
 
-     rule hash_tree_root(#Deposit( P1, P2 ) #as VAL, %container, RemLast)
+     rule hash_tree_root(#Deposit( P1, P2 ), %container, RemLast)
        => hash_tree_root_part2_v2(removeLast(hash_tree_root_list(P1, DEPOSIT_CONTRACT_TREE_DEPTH +Int 1, %bytes, true)
              hash_tree_root(P2) .BytesList, RemLast))
 
-     rule hash_tree_root(#VoluntaryExit( P1, P2, P3 ) #as VAL, %container, RemLast)
-       => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64) hash_tree_root(P3)
+     rule hash_tree_root(#VoluntaryExit( P1, P2 ), %container, RemLast)
+       => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2, %uint64)
              .BytesList, RemLast))
 
-     rule hash_tree_root(#BeaconBlockBody( P1, P2, P3, P4, P5, P6, P7, P8 ) #as VAL, %container, RemLast)
+     rule hash_tree_root(#BeaconBlockBody( P1, P2, P3, P4, P5, P6, P7, P8 ), %container, RemLast)
        => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2) hash_tree_root(P3)
              hash_tree_root_list(P4, MAX_PROPOSER_SLASHINGS, %container, false)
              hash_tree_root_list(P5, MAX_ATTESTER_SLASHINGS, %container, false)
@@ -483,17 +489,34 @@ K semantics:
              hash_tree_root_list(P7, MAX_DEPOSITS, %container, false)
              hash_tree_root_list(P8, MAX_VOLUNTARY_EXITS, %container, false) .BytesList, RemLast))
 
-     rule hash_tree_root(#BeaconBlock( P1, P2, P3, P4, P5 ) #as VAL, %container, RemLast)
+     rule hash_tree_root(#BeaconBlock( P1, P2, P3, P4 ), %container, RemLast)
        => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2) hash_tree_root(P3)
-             hash_tree_root(P4) hash_tree_root(P5) .BytesList, RemLast))
+             hash_tree_root(P4) .BytesList, RemLast))
 
-     rule hash_tree_root(#AggregateAndProof( P1, P2, P3 ) #as VAL, %container, RemLast)
+     rule hash_tree_root(#AggregateAndProof( P1, P2, P3 ), %container, RemLast)
        => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1, %uint64) hash_tree_root(P2)
              hash_tree_root(P3)
              .BytesList, RemLast))
 
+     rule hash_tree_root(#SignedVoluntaryExit( P1, P2 ), %container, RemLast)
+       => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2)
+             .BytesList, RemLast))
 
-     syntax Hash ::= "hash_tree_root_list" "(" list: ValueList "," staticLen: Int "," elemType: ElementType "," fixedSize: Bool ")"
+
+     rule hash_tree_root(#SignedBeaconBlock( P1, P2 ), %container, RemLast)
+       => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2)
+             .BytesList, RemLast))
+
+     rule hash_tree_root(#SignedBeaconBlockHeader( P1, P2 ), %container, RemLast)
+       => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2)
+             .BytesList, RemLast))
+
+     rule hash_tree_root(#SigningRoot( P1, P2 ), %container, RemLast)
+       => hash_tree_root_part2_v2(removeLast(hash_tree_root(P1) hash_tree_root(P2)
+             .BytesList, RemLast))
+
+
+     syntax Root ::= "hash_tree_root_list" "(" list: ValueList "," staticLen: Int "," elemType: ElementType "," fixedSize: Bool ")"
                                                                          [function]
 
      //hash_tree_root branch 1.1, case list of basic values
@@ -537,7 +560,7 @@ K semantics:
      rule chunkifyContainerList(V:DepositData L, MinLen)
        => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
-     rule chunkifyContainerList(V:VoluntaryExit L, MinLen)
+     rule chunkifyContainerList(V:SignedVoluntaryExit L, MinLen)
        => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
      rule chunkifyContainerList(V:Validator L, MinLen)
@@ -549,7 +572,7 @@ K semantics:
      rule chunkifyContainerList(V:PendingAttestation L, MinLen)
        => hash_tree_root(V) chunkifyContainerList(L, MinLen -Int 1)
 
-     rule chunkifyContainerList(LIST, MinLen) => hash_tree_root(defaultHash()) chunkifyContainerList(LIST, MinLen -Int 1)
+     rule chunkifyContainerList(LIST, MinLen) => hash_tree_root(defaultRoot()) chunkifyContainerList(LIST, MinLen -Int 1)
        requires len(LIST) ==Int 0 andBool MinLen >Int 0
 
      rule chunkifyContainerList(LIST, MinLen) => .BytesList
@@ -566,7 +589,7 @@ Python reference:
 K semantics:
 
 
-     syntax Hash ::= "hash_tree_root_part2_v1" "(" leaves: BytesList "," staticLen: Int "," elemType: ElementType ","
+     syntax Root ::= "hash_tree_root_part2_v1" "(" leaves: BytesList "," staticLen: Int "," elemType: ElementType ","
                                                    dynamicLen: Int ")"   [function]
      rule hash_tree_root_part2_v1(LEAVES, StaticLEN, ElemType, DynamicLen)
        => mix_in_length(merkleize_chunks(LEAVES, chunk_count(StaticLEN, ElemType)), DynamicLen)
@@ -582,7 +605,7 @@ Python reference:
 K semantics:
 
 
-     syntax Hash ::= "hash_tree_root_part2_v2" "(" BytesList ")"         [function]
+     syntax Root ::= "hash_tree_root_part2_v2" "(" BytesList ")"         [function]
      rule hash_tree_root_part2_v2(LEAVES) => merkleize_chunks(LEAVES, len(LEAVES))
 
 
@@ -600,7 +623,7 @@ Python reference:
 K semantics:
 
 
-     syntax Hash ::= "mix_in_length" "(" Hash "," Int ")"                [function]
+     syntax Root ::= "mix_in_length" "(" Root "," Int ")"                [function]
      rule mix_in_length(ROOT, LEN) => hashConcat(ROOT, to_bytes(LEN, 32))
 
 
@@ -670,7 +693,7 @@ K semantics:
 
      // hash_tree_root() - BeaconState, stored in <state> in configuration
      //====================================================
-     syntax Hash ::= "hash_tree_root_state" "(" ")"                      [function, klabel(hash_tree_root_state), symbol]
+     syntax Root ::= "hash_tree_root_state" "(" ")"                      [function, klabel(hash_tree_root_state), symbol]
      rule [[ hash_tree_root_state()
           => hash_tree_root_part2_v2(
                hash_tree_root(GenesisTime, %uint64)
@@ -714,29 +737,6 @@ K semantics:
        <previous-justified-checkpoint> PreviousJustifiedCheckpoint </previous-justified-checkpoint>
        <current-justified-checkpoint> CurrentJustifiedCheckpoint </current-justified-checkpoint>
        <finalized-checkpoint> FinalizedCheckpoint </finalized-checkpoint>
-
-     // signing_root() - Same as hash_tree_root(), but ignoring last field, when it is BLSSignature.
-     //====================================================
-
-
-
-"signing_root"
-==============
-
-Python reference:
-
-   def signing_root(obj: Container):
-       # ignore last field
-       fields = [field for field in obj][:-1]
-       leaves = [hash_tree_root(f) for f in fields]
-       return merkleize_chunks(chunkify(b''.join(leaves)))
-
-
-K semantics:
-
-
-     syntax Hash ::= "signing_root" "(" val: Container ")"               [function, klabel(signing_root), symbol]
-     rule signing_root(VAL) => hash_tree_root(VAL, %container, true)
 
      // Utility functions
      //====================================================

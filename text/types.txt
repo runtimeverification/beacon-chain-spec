@@ -17,13 +17,13 @@ Types
 
      syntax Bytes8  ::= String | Domain
 
-     syntax Bytes32 ::= String | Hash
+     syntax Bytes32 ::= String | Root
      syntax Bytes32 ::= defaultBytes32()                                 [function]
      rule defaultBytes32() => {"\x00" *Bytes 32}:>String
 
-     syntax Hash    ::= String
-     syntax Hash ::= defaultHash()                                       [function]
-     rule defaultHash() => {defaultBytes32()}:>String
+     syntax Root    ::= String
+     syntax Root    ::= defaultRoot()                                       [function]
+     rule defaultRoot() => {defaultBytes32()}:>String
 
      syntax Bytes48 ::= String | BLSPubkey
 
@@ -64,13 +64,13 @@ Types
      syntax AttestationList ::= List{Attestation, ""}
      syntax DepositList ::= List{Deposit, ""}
      syntax DepositDataList ::= List{DepositData, ""}
-     syntax VoluntaryExitList ::= List{VoluntaryExit, ""}
+     syntax SignedVoluntaryExitList ::= List{SignedVoluntaryExit, ""}
      syntax ValidatorList ::= List{Validator, ""}
      syntax Eth1DataList ::= List{Eth1Data, ""}
      syntax PendingAttestationList ::= List{PendingAttestation, ""}
 
      syntax ContainerList ::= ProposerSlashingList | AttesterSlashingList | AttestationList | DepositList | DepositDataList
-          | VoluntaryExitList | ValidatorList
+          | SignedVoluntaryExitList | ValidatorList
           | Eth1DataList | PendingAttestationList
 
      syntax BytesList ::= List{Bytes, ""}
@@ -116,21 +116,21 @@ Python reference:
 
    class Checkpoint(Container):
        epoch: Epoch
-       root: Hash
+       root: Root
      
 
 K semantics:
 
 
-     syntax Checkpoint ::= #Checkpoint( Int, Hash ) [klabel(#Checkpoint), symbol]
+     syntax Checkpoint ::= #Checkpoint( Int, Root ) [klabel(#Checkpoint), symbol]
 
      syntax Int ::= Checkpoint "." "epoch"                               [function]
      rule #Checkpoint(EPOCH,_).epoch => EPOCH
-     syntax Hash ::= Checkpoint "." "root"                               [function]
+     syntax Root ::= Checkpoint "." "root"                               [function]
      rule #Checkpoint(_,ROOT).root => ROOT
 
      syntax Checkpoint ::= defaultCheckpoint()                           [function]
-     rule defaultCheckpoint() => #Checkpoint(0, defaultHash())
+     rule defaultCheckpoint() => #Checkpoint(0, defaultRoot())
 
      
 
@@ -142,7 +142,7 @@ Python reference:
 
    class Validator(Container):
        pubkey: BLSPubkey
-       withdrawal_credentials: Hash  # Commitment to pubkey for withdrawals
+       withdrawal_credentials: Bytes32  # Commitment to pubkey for withdrawals
        effective_balance: Gwei  # Balance at stake
        slashed: boolean
        # Status epochs
@@ -156,7 +156,7 @@ K semantics:
 
 
      syntax Validator ::= #Validator( pubkey: BLSPubkey,
-                                      withdrawalCredentials: Hash,
+                                      withdrawalCredentials: Bytes32,
                                       effectiveBalance: Int,
                                       slashed: Bool,
                                       activationEligibilityEpoch: Int,
@@ -167,7 +167,7 @@ K semantics:
 
      syntax BLSPubkey ::= Validator "." "pubkey"                         [function]
      rule #Validator(PK, _,_,_,_,_,_,_).pubkey => PK
-     syntax Hash      ::= Validator "." "withdrawalCredentials"          [function]
+     syntax Bytes32   ::= Validator "." "withdrawalCredentials"          [function]
      rule #Validator(_, HASH, _,_,_,_,_,_).withdrawalCredentials => HASH
      syntax Int      ::= Validator "." "effectiveBalance"                [function]
      rule #Validator(_,_, EffBal, _,_,_,_,_).effectiveBalance => EffBal
@@ -194,7 +194,7 @@ Python reference:
        slot: Slot
        index: CommitteeIndex
        # LMD GHOST vote
-       beacon_block_root: Hash
+       beacon_block_root: Root
        # FFG vote
        source: Checkpoint
        target: Checkpoint
@@ -203,13 +203,13 @@ Python reference:
 K semantics:
 
 
-     syntax AttestationData ::= #AttestationData(Int, Int, Hash, Checkpoint, Checkpoint ) [klabel(#AttestationData), symbol]
+     syntax AttestationData ::= #AttestationData(Int, Int, Root, Checkpoint, Checkpoint ) [klabel(#AttestationData), symbol]
 
      syntax Int ::= AttestationData "." "_slot"                          [function]
      rule #AttestationData(SLOT,_,_,_,_)._slot => SLOT
      syntax Int ::= AttestationData "." "index"                          [function]
      rule #AttestationData(_,INDEX,_,_,_).index => INDEX
-     syntax Hash ::= AttestationData "." "beaconBlockRoot"               [function]
+     syntax Root ::= AttestationData "." "beaconBlockRoot"               [function]
      rule #AttestationData(_,_,ROOT,_,_).beaconBlockRoot => ROOT
      syntax Checkpoint ::= AttestationData "." "source"                  [function]
      rule #AttestationData(_,_,_,CP,_).source => CP
@@ -275,23 +275,37 @@ Python reference:
 
 
    class Eth1Data(Container):
-       deposit_root: Hash
+       deposit_root: Root
        deposit_count: uint64
-       block_hash: Hash
+       block_hash: Bytes32
      
 
 K semantics:
 
 
-     syntax Eth1Data ::= #Eth1Data( Hash, Int, Hash ) [klabel(#Eth1Data), symbol]
+     syntax Eth1Data ::= #Eth1Data( Root, Int, Bytes32 ) [klabel(#Eth1Data), symbol]
 
-     syntax Hash ::= Eth1Data "." "deposit_root" [function]
+     syntax Root ::= Eth1Data "." "deposit_root" [function]
      rule #Eth1Data(DROOT, _, _).deposit_root => DROOT
      syntax Int ::= Eth1Data "." "deposit_count" [function]
      rule #Eth1Data(_, DCOUNT, _).deposit_count => DCOUNT
-     syntax Hash ::= Eth1Data "." "block_hash" [function]
+     syntax Bytes32 ::= Eth1Data "." "block_hash" [function]
      rule #Eth1Data(_, _, BHASH).block_hash => BHASH
 
+
+
+Python reference:
+
+
+   class Eth1Block(Container):
+       timestamp: uint64
+       # All other eth1 block fields
+
+
+K semantics:
+
+
+     syntax Eth1Block ::= #Eth1Block( Int ) [klabel(#Eth1Block), symbol]
      
 
 
@@ -301,15 +315,40 @@ K semantics:
 Python reference:
 
    class HistoricalBatch(Container):
-       block_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-       state_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
+       block_roots: Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
+       state_roots: Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
      
 
 K semantics:
 
 
      syntax HistoricalBatch ::= #HistoricalBatch( BytesList, BytesList ) [klabel(#HistoricalBatch), symbol]
+    
 
+
+"DepositMessage"
+================
+
+Python reference:
+
+   class DepositMessage(Container):
+       pubkey: BLSPubkey
+       withdrawal_credentials: Bytes32
+       amount: Gwei
+     
+
+K semantics:
+
+
+     syntax DepositMessage ::= #DepositMessage( BLSPubkey, Bytes32, Int ) [klabel(#DepositMessage), symbol]
+
+     syntax BLSPubkey  ::= DepositMessage "." "pubkey"                      [function]
+     rule #DepositMessage( PUBKEY, _,_).pubkey => PUBKEY
+     syntax Bytes32    ::= DepositMessage "." "withdrawal_credentials"      [function]
+     rule #DepositMessage( _, WC, _).withdrawal_credentials => WC
+     syntax Int        ::= DepositMessage "." "amount"                      [function]
+     rule #DepositMessage( _,_, AMOUNT).amount => AMOUNT
+     
      
 
 
@@ -320,7 +359,7 @@ Python reference:
 
    class DepositData(Container):
        pubkey: BLSPubkey
-       withdrawal_credentials: Hash
+       withdrawal_credentials: Bytes32
        amount: Gwei
        signature: BLSSignature
      
@@ -328,11 +367,11 @@ Python reference:
 K semantics:
 
 
-     syntax DepositData ::= #DepositData( BLSPubkey, Hash, Int, BLSSignature ) [klabel(#DepositData), symbol]
+     syntax DepositData ::= #DepositData( BLSPubkey, Bytes32, Int, BLSSignature ) [klabel(#DepositData), symbol]
 
      syntax BLSPubkey  ::= DepositData "." "pubkey"                      [function]
      rule #DepositData( PUBKEY, _,_,_ ).pubkey => PUBKEY
-     syntax Hash       ::= DepositData "." "withdrawal_credentials"      [function]
+     syntax Bytes32    ::= DepositData "." "withdrawal_credentials"      [function]
      rule #DepositData( _, WC, _,_ ).withdrawal_credentials => WC
      syntax Int        ::= DepositData "." "amount"                      [function]
      rule #DepositData( _,_, AMOUNT, _ ).amount => AMOUNT
@@ -347,26 +386,110 @@ Python reference:
 
    class BeaconBlockHeader(Container):
        slot: Slot
-       parent_root: Hash
-       state_root: Hash
-       body_root: Hash
-       signature: BLSSignature
+       parent_root: Root
+       state_root: Root
+       body_root: Root
      
 
 K semantics:
 
 
-     syntax BeaconBlockHeader ::= #BeaconBlockHeader( Int, Hash, Hash, Hash, BLSSignature ) [klabel(#BeaconBlockHeader), symbol]
+     syntax BeaconBlockHeader ::= #BeaconBlockHeader( Int, Root, Root, Root ) [klabel(#BeaconBlockHeader), symbol]
 
      //Cannot use "slot", conflicts with cell <slot>
      syntax Int  ::= BeaconBlockHeader "." "_slot"                       [function]
-     rule #BeaconBlockHeader(SLOT, _,_,_,_)._slot => SLOT
-     syntax Hash ::= BeaconBlockHeader "." "parent_root"                 [function]
-     rule #BeaconBlockHeader(_,ParentRoot, _,_,_).parent_root => ParentRoot
-     syntax Hash ::= BeaconBlockHeader "." "state_root"                  [function]
-     rule #BeaconBlockHeader(_,_,StateRoot, _,_).state_root => StateRoot
-     syntax Hash ::= BeaconBlockHeader "." "body_root"                   [function]
-     rule #BeaconBlockHeader(_,_,_,BodyRoot, _).body_root => BodyRoot
+     rule #BeaconBlockHeader(SLOT, _,_,_)._slot => SLOT
+     syntax Root ::= BeaconBlockHeader "." "parent_root"                 [function]
+     rule #BeaconBlockHeader(_,ParentRoot, _,_).parent_root => ParentRoot
+     syntax Root ::= BeaconBlockHeader "." "state_root"                  [function]
+     rule #BeaconBlockHeader(_,_,StateRoot, _).state_root => StateRoot
+     syntax Root ::= BeaconBlockHeader "." "body_root"                   [function]
+     rule #BeaconBlockHeader(_,_,_,BodyRoot).body_root => BodyRoot
+
+
+
+"SigningRoot"
+=============
+
+Python reference:
+
+   class SigningRoot(Container):
+       object_root: Root
+       domain: Domain
+
+
+K semantics:
+
+
+     syntax SigningRoot ::= #SigningRoot ( Root, Domain ) [klabel(#SigningRoot), symbol]
+
+     syntax Root  ::= SigningRoot "." "object_root"                      [function]
+     rule #SigningRoot(ROOT,_).object_root => ROOT
+     syntax Domain ::= SigningRoot "." "domain"                          [function]
+     rule #SigningRoot(_,DOMAIN).domain => DOMAIN
+
+
+
+
+"SignedVoluntaryExit"
+=====================
+
+Python reference:
+
+   class SignedVoluntaryExit(Container):
+       message: VoluntaryExit
+       signature: BLSSignature
+
+
+K semantics:
+
+
+     syntax SignedVoluntaryExit ::= #SignedVoluntaryExit ( VoluntaryExit, BLSSignature ) [klabel(#SignedVoluntaryExit), symbol]
+
+     syntax VoluntaryExit  ::= SignedVoluntaryExit "." "message"                   [function]
+     rule #SignedVoluntaryExit(EXIT,_).message => EXIT
+
+
+
+
+"SignedBeaconBlock"
+===================
+
+Python reference:
+
+   class SignedBeaconBlock(Container):
+       message: BeaconBlock
+       signature: BLSSignature
+
+
+K semantics:
+
+
+     syntax SignedBeaconBlock ::= #SignedBeaconBlock ( BeaconBlock, BLSSignature ) [klabel(#SignedBeaconBlock), symbol]
+
+     syntax BeaconBlock  ::= SignedBeaconBlock "." "message"                      [function]
+     rule #SignedBeaconBlock(BLOCK,_).message => BLOCK
+
+
+
+
+"SignedBeaconBlockHeader"
+=========================
+
+Python reference:
+
+   class SignedBeaconBlockHeader(Container):
+       message: BeaconBlockHeader
+       signature: BLSSignature
+
+
+K semantics:
+
+
+     syntax SignedBeaconBlockHeader ::= #SignedBeaconBlockHeader ( BeaconBlockHeader, BLSSignature ) [klabel(#SignedBeaconBlockHeader), symbol]
+
+     syntax BeaconBlockHeader  ::= SignedBeaconBlockHeader "." "message"           [function]
+     rule #SignedBeaconBlockHeader(BLOCKH,_).message => BLOCKH
 
 
 
@@ -378,15 +501,15 @@ Python reference:
 
    class ProposerSlashing(Container):
        proposer_index: ValidatorIndex
-       header_1: BeaconBlockHeader
-       header_2: BeaconBlockHeader
+       signed_header_1: SignedBeaconBlockHeader
+       signed_header_2: SignedBeaconBlockHeader
 
 
 K semantics:
 
 
    syntax ProposerSlashing ::= #ProposerSlashing( proposerIndex: ValidatorIndex,
-                                                  header1: BeaconBlockHeader, header2: BeaconBlockHeader ) [klabel(#ProposerSlashing), symbol]
+                                                  signedHeader1: SignedBeaconBlockHeader, signedHeader2: SignedBeaconBlockHeader ) [klabel(#ProposerSlashing), symbol]
 
      
 
@@ -439,7 +562,7 @@ K semantics:
 Python reference:
 
    class Deposit(Container):
-       proof: Vector[Hash, DEPOSIT_CONTRACT_TREE_DEPTH + 1]  # Merkle path to deposit data list root
+       proof: Vector[Bytes32, DEPOSIT_CONTRACT_TREE_DEPTH + 1]  # Merkle path to deposit data list root
        data: DepositData
      
 
@@ -450,7 +573,7 @@ K semantics:
 
      syntax BytesList ::= Deposit "." "proof"                           [function]
      rule #Deposit(PROOF, _).proof => PROOF
-     syntax DepositData ::= Deposit "." "data"                           [function]
+     syntax DepositData ::= Deposit "." "data"                          [function]
      rule #Deposit(_, DATA).data => DATA
 
 
@@ -465,13 +588,12 @@ Python reference:
    class VoluntaryExit(Container):
        epoch: Epoch  # Earliest epoch when voluntary exit can be processed
        validator_index: ValidatorIndex
-       signature: BLSSignature
      
 
 K semantics:
 
 
-     syntax VoluntaryExit ::= #VoluntaryExit( Int, ValidatorIndex, BLSSignature ) [klabel(#VoluntaryExit), symbol]
+     syntax VoluntaryExit ::= #VoluntaryExit( Int, ValidatorIndex ) [klabel(#VoluntaryExit), symbol]
 
 
 
@@ -490,7 +612,7 @@ Python reference:
        attester_slashings: List[AttesterSlashing, MAX_ATTESTER_SLASHINGS]
        attestations: List[Attestation, MAX_ATTESTATIONS]
        deposits: List[Deposit, MAX_DEPOSITS]
-       voluntary_exits: List[VoluntaryExit, MAX_VOLUNTARY_EXITS]
+       voluntary_exits: List[SignedVoluntaryExit, MAX_VOLUNTARY_EXITS]
 
 
 K semantics:
@@ -504,28 +626,28 @@ K semantics:
                                    attesterSlashings: AttesterSlashingList,
                                    attestations: AttestationList,
                                    deposits: DepositList,
-                                   voluntaryExits: VoluntaryExitList
+                                   voluntaryExits: SignedVoluntaryExitList
                                 )                                [klabel(#BeaconBlockBody), symbol]
-     syntax BLSSignature         ::= BeaconBlockBody "." "randaoReveal"      [function]
+     syntax BLSSignature            ::= BeaconBlockBody "." "randaoReveal"      [function]
      rule  #BeaconBlockBody(RR,_,_,_,_,_,_,_).randaoReveal => RR
-     syntax Eth1Data             ::= BeaconBlockBody "." "eth1Data"          [function]
+     syntax Eth1Data                ::= BeaconBlockBody "." "eth1Data"          [function]
      rule  #BeaconBlockBody(_,E1D,_,_,_,_,_,_).eth1Data => E1D
-     syntax ProposerSlashingList ::= BeaconBlockBody "." "proposerSlashings" [function]
+     syntax ProposerSlashingList    ::= BeaconBlockBody "." "proposerSlashings" [function]
      rule  #BeaconBlockBody(_,_,_,PS,_,_,_,_).proposerSlashings => PS
-     syntax AttesterSlashingList ::= BeaconBlockBody "." "attesterSlashings" [function]
+     syntax AttesterSlashingList    ::= BeaconBlockBody "." "attesterSlashings" [function]
      rule  #BeaconBlockBody(_,_,_,_, AS,_,_,_).attesterSlashings => AS
-     syntax AttestationList      ::= BeaconBlockBody "." "attestations"      [function]
+     syntax AttestationList         ::= BeaconBlockBody "." "attestations"      [function]
      rule  #BeaconBlockBody(_,_,_,_,_, ATT,_,_).attestations => ATT
-     syntax DepositList          ::= BeaconBlockBody "." "deposits"          [function]
+     syntax DepositList             ::= BeaconBlockBody "." "deposits"          [function]
      rule  #BeaconBlockBody(_,_,_,_,_,_, DEP,_).deposits => DEP
-     syntax VoluntaryExitList    ::= BeaconBlockBody "." "voluntaryExits"    [function]
+     syntax SignedVoluntaryExitList ::= BeaconBlockBody "." "voluntaryExits"    [function]
      rule  #BeaconBlockBody(_,_,_,_,_,_,_, VEX).voluntaryExits => VEX
 
      syntax BeaconBlockBody ::= defaultBeaconBlockBody()                 [function]
      rule defaultBeaconBlockBody() => #BeaconBlockBody(
-                                   defaultBLSSignature(), #Eth1Data(defaultHash(), 0, defaultHash()), defaultBytes32(),
+                                   defaultBLSSignature(), #Eth1Data(defaultRoot(), 0, defaultRoot()), defaultBytes32(),
                                    .ProposerSlashingList, .AttesterSlashingList, .AttestationList,
-                                   .DepositList, .VoluntaryExitList
+                                   .DepositList, .SignedVoluntaryExitList
                                 )
 
 
@@ -538,31 +660,27 @@ Python reference:
 
    class BeaconBlock(Container):
        slot: Slot
-       parent_root: Hash
-       state_root: Hash
+       parent_root: Root
+       state_root: Root
        body: BeaconBlockBody
-       signature: BLSSignature
 
 K semantics:
 
 
      syntax BeaconBlock ::= #BeaconBlock(
                                blockSlot: Int,
-                               parentRoot: Hash,
-                               stateRoot: Hash,
-                               body: BeaconBlockBody,
-                               signature: BLSSignature
+                               parentRoot: Root,
+                               stateRoot: Root,
+                               body: BeaconBlockBody
                             )                                    [klabel(#BeaconBlock), symbol]
      syntax Int              ::= BeaconBlock "." "_slot"                     [function]
-     rule  #BeaconBlock(SLOT, _,_,_,_)._slot => SLOT
-     syntax Hash             ::= BeaconBlock "." "parentRoot"                [function]
-     rule  #BeaconBlock(_, PR, _,_,_).parentRoot => PR
-     syntax Hash             ::= BeaconBlock "." "stateRoot"                 [function]
-     rule  #BeaconBlock(_,_, SR, _,_).stateRoot => SR
+     rule  #BeaconBlock(SLOT, _,_,_)._slot => SLOT
+     syntax Root             ::= BeaconBlock "." "parentRoot"                [function]
+     rule  #BeaconBlock(_, PR, _,_).parentRoot => PR
+     syntax Root             ::= BeaconBlock "." "stateRoot"                 [function]
+     rule  #BeaconBlock(_,_, SR, _).stateRoot => SR
      syntax BeaconBlockBody  ::= BeaconBlock "." "body"                      [function]
-     rule  #BeaconBlock(_,_,_, BODY, _).body => BODY
-     syntax BLSSignature     ::= BeaconBlock "." "signature"                 [function]
-     rule  #BeaconBlock(_,_,_,_, SIG).signature => SIG
+     rule  #BeaconBlock(_,_,_, BODY).body => BODY
 
 
 
@@ -573,25 +691,46 @@ K semantics:
 Python reference:
 
    class AggregateAndProof(Container):
-       index: ValidatorIndex
-       selection_proof: BLSSignature
+       aggregator_index: ValidatorIndex
        aggregate: Attestation
+       selection_proof: BLSSignature
 
 K semantics:
 
 
      syntax AggregateAndProof ::= #AggregateAndProof(
                                   index: ValidatorIndex,
-                                  selectionProof: BLSSignature,
-                                  aggregate: Attestation
+                                  aggregate: Attestation,
+                                  selectionProof: BLSSignature
                                   )                              [klabel(#AggregateAndProof), symbol]
 
-     syntax ValidatorIndex ::= AggregateAndProof "." "index"                 [function]
+     syntax ValidatorIndex ::= AggregateAndProof "." "aggregatorIndex"      [function]
      rule #AggregateAndProof(INDEX,_,_) => INDEX
-     syntax BLSSignature ::= AggregateAndProof "." "selectionProof"          [function]
-     rule #AggregateAndProof(_,SP,_) => SP
-     syntax Attestation ::= AggregateAndProof "." "aggregate"                [function]
-     rule #AggregateAndProof(_,_,AG) => AG
+     syntax Attestation ::= AggregateAndProof "." "aggregate"               [function]
+     rule #AggregateAndProof(_,AG,_) => AG
+     syntax BLSSignature ::= AggregateAndProof "." "selectionProof"         [function]
+     rule #AggregateAndProof(_,_,SP) => SP
+
+
+
+
+"SignedAggregateAndProof"
+=========================
+
+Python reference:
+
+   class SignedAggregateAndProof(Container):
+       message: AggregateAndProof
+       signature: BLSSignature
+
+
+K semantics:
+
+
+     syntax SignedAggregateAndProof ::= #SignedAggregateAndProof(
+                                        message: AggregateAndProof,
+                                        signature: BLSSignature
+                                        )                              [klabel(#SignedAggregateAndProof), symbol]
 
 
      // The return type of get_attestation_deltas
@@ -612,11 +751,21 @@ K semantics:
      syntax Int ::= intOf(OptionInt) [function]
      rule intOf(#Some(I)) => I
 
+     // An argument type of compute_domain
+     syntax OptionVersion ::= #NoneVers() | #SomeVers(Version)
 
-     syntax Container ::= Fork | Checkpoint | Validator | AttestationData
+     syntax Bool ::= isNone(OptionVersion) [function]
+     rule isNone(#NoneVers()) => true
+     rule isNone(#SomeVers(_)) => false
+
+     syntax Version ::= versOf(OptionVersion) [function]
+     rule versOf(#SomeVers(I)) => I
+
+     syntax Container ::= Fork | Checkpoint | Validator | AttestationData | SigningRoot
                         | IndexedAttestation | PendingAttestation | Eth1Data | HistoricalBatch | DepositData
                         | BeaconBlockHeader | ProposerSlashing | AttesterSlashing | Attestation | Deposit
-                        | VoluntaryExit | BeaconBlockBody | BeaconBlock | AggregateAndProof
+                        | VoluntaryExit | BeaconBlockBody | BeaconBlock | AggregateAndProof | DepositMessage
+                        | SignedVoluntaryExit | SignedBeaconBlock | SignedBeaconBlockHeader | Eth1Block
 
      //ValueList are not Value, because it needs separate implementation for hash_tree_root
      //In ETH-2 specs, Bytes is of type Elements & Series, not BasicValue. All Bytes usages are fixed size, e.g. BytesN.
@@ -730,9 +879,19 @@ K semantics:
      rule sortIntList(I IL) => #fun(MIN => MIN sortIntList(listExcept(I IL, MIN)))(minIndex(IL, I))
      rule sortIntList(.IntList) => .IntList
 
+     syntax IntList ::= sortUniqueIntList(IntList)                       [function]
+     rule sortUniqueIntList(I IL) => #fun(MIN => MIN sortUniqueIntList(listExcept(I IL, MIN)))(strictlyMinIndex(IL, I))
+     rule sortUniqueIntList(.IntList) => .IntList
+
+
      syntax Int ::= minIndex(IntList, Int)                               [function]
      rule minIndex(I IL => IL, M => #if I <Int M #then I #else M #fi)
      rule minIndex(.IntList, M) => M
+
+     syntax Int ::= strictlyMinIndex(IntList, Int)                       [function]
+     rule strictlyMinIndex(I IL, M) => I requires I <Int M
+     rule strictlyMinIndex(I IL, M) => M requires M <Int I
+     rule strictlyMinIndex(.IntList, M) => M
 
      // Note: If listExcept(IL, I) removes every occurrence of I in IL, then difference here will do the same
      syntax IntList ::= listDiff(IntList, IntList)                       [function]
@@ -768,7 +927,7 @@ K semantics:
      rule sumMapIntValues(MAP:Map (_ |-> VALUE:Int => .Map), S => S +Int VALUE)
      rule sumMapIntValues(.Map, S) => S
 
-     syntax Int ::= getByte(Hash, Int) [function]
+     syntax Int ::= getByte(Root, Int) [function]
      rule getByte(BYTES:String, I) => ordChar(substrString(BYTES, I, I +Int 1))
 
      //IntList concatenation
@@ -832,8 +991,8 @@ K semantics:
      rule len(.DepositList) => 0
      rule len(_ LIST:DepositDataList) => 1 +Int len(LIST)
      rule len(.DepositDataList) => 0
-     rule len(_ LIST:VoluntaryExitList) => 1 +Int len(LIST)
-     rule len(.VoluntaryExitList) => 0
+     rule len(_ LIST:SignedVoluntaryExitList) => 1 +Int len(LIST)
+     rule len(.SignedVoluntaryExitList) => 0
      rule len(_ LIST:ValidatorList) => 1 +Int len(LIST)
      rule len(.ValidatorList) => 0
      rule len(_ LIST:Eth1DataList) => 1 +Int len(LIST)

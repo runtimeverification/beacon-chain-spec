@@ -51,7 +51,7 @@ K semantics:
 
 
      rule <k> init => initZeroHashes(1, 64) ...</k> //max pre-computed zerohash is 64 - ehough for all cases
-          <zerohashes-cache> .Map => (0 |-> defaultHash()) </zerohashes-cache>
+          <zerohashes-cache> .Map => (0 |-> defaultRoot()) </zerohashes-cache>
 
      rule <k> initZeroHashes(I => I +Int 1, N) ...</k>
           <zerohashes-cache> (.Map => (I |-> hashConcat(zerohashes(I -Int 1), zerohashes(I -Int 1)))) ...</zerohashes-cache>
@@ -148,6 +148,62 @@ K semantics:
 
 
 
+"is_eligible_for_activation_queue"
+==================================
+
+Python reference:
+
+   def is_eligible_for_activation_queue(validator: Validator) -> bool:
+       """
+       Check if ``validator`` is eligible to be placed into the activation queue.
+       """
+       return (
+           validator.activation_eligibility_epoch == FAR_FUTURE_EPOCH
+           and validator.effective_balance == MAX_EFFECTIVE_BALANCE
+       )
+
+
+K semantics:
+
+
+     syntax Bool ::= "is_eligible_for_activation_queue" "(" Validator ")" [function]
+     rule is_eligible_for_activation_queue ( VAL )
+       => VAL.activationEligibilityEpoch ==Int FAR_FUTURE_EPOCH
+       andBool VAL.effectiveBalance ==Int MAX_EFFECTIVE_BALANCE
+
+
+
+
+"is_eligible_for_activation"
+============================
+
+Python reference:
+
+   def is_eligible_for_activation(state: BeaconState, validator: Validator) -> bool:
+       """
+       Check if ``validator`` is eligible for activation.
+       """
+       return (
+           # Placement in queue is finalized
+           validator.activation_eligibility_epoch <= state.finalized_checkpoint.epoch
+           # Has not yet been activated
+           and validator.activation_epoch == FAR_FUTURE_EPOCH
+       )
+
+
+K semantics:
+
+
+
+     syntax Bool ::= "is_eligible_for_activation" "(" Validator ")" [function]
+     rule [[ is_eligible_for_activation ( VAL )
+       => VAL.activationEligibilityEpoch <=Int CHECKPOINT.epoch
+       andBool VAL.activationEpoch ==K FAR_FUTURE_EPOCH ]]
+       <finalized-checkpoint> CHECKPOINT </finalized-checkpoint>
+
+
+
+
 "is_slashable_validator"
 ========================
 
@@ -221,18 +277,14 @@ Python reference:
        # Verify max number of indices
        if not len(indices) <= MAX_VALIDATORS_PER_COMMITTEE:
            return False
-       # Verify indices are sorted
-       if not indices == sorted(indices):
+       # Verify indices are sorted and unique
+       if not indices == sorted(set(indices)):
            return False
        # Verify aggregate signature
-       if not bls_verify( 
-           pubkey=bls_aggregate_pubkeys([state.validators[i].pubkey for i in indices]), 
-           message_hash=hash_tree_root(indexed_attestation.data), 
-           signature=indexed_attestation.signature,
-           domain=get_domain(state, DOMAIN_BEACON_ATTESTER, indexed_attestation.data.target.epoch),
-       ):
-           return False
-       return True
+       pubkeys = [state.validators[i].pubkey for i in indices]
+       domain = get_domain(state, DOMAIN_BEACON_ATTESTER, indexed_attestation.data.target.epoch)
+       signing_root = compute_signing_root(indexed_attestation.data, domain)
+       return bls.FastAggregateVerify(pubkeys, signing_root, indexed_attestation.signature)
 
 
 K semantics:
@@ -241,7 +293,7 @@ K semantics:
      syntax Bool ::= "is_valid_indexed_attestation" "(" IndexedAttestation ")" [function]
      rule is_valid_indexed_attestation(IAtt)
        => len(IAtt.attesting_indices) <=Int MAX_VALIDATORS_PER_COMMITTEE
-       andBool IAtt.attesting_indices ==K sortIntList(IAtt.attesting_indices)
+       andBool IAtt.attesting_indices ==K sortUniqueIntList(IAtt.attesting_indices)
        //we do not check for BLS signature
 
 
@@ -252,7 +304,7 @@ K semantics:
 
 Python reference:
 
-   def is_valid_merkle_branch(leaf: Hash, branch: Sequence[Hash], depth: uint64, index: uint64, root: Hash) -> bool:
+   def is_valid_merkle_branch(leaf: Bytes32, branch: Sequence[Bytes32], depth: uint64, index: uint64, root: Root) -> bool:
        """
        Check if ``leaf`` at ``index`` verifies against the Merkle ``root`` and ``branch``.
        """
@@ -268,16 +320,16 @@ Python reference:
 K semantics:
 
 
-     syntax Bool ::= "is_valid_merkle_branch" "(" Hash "," BytesList "," Int "," Int "," Hash ")" [function]
+     syntax Bool ::= "is_valid_merkle_branch" "(" Bytes32 "," BytesList "," Int "," Int "," Root ")" [function]
      rule is_valid_merkle_branch(Leaf, Branch, Depth, Index, Root)
           => is_valid_merkle_branch_aux(Branch, Depth, Index, Root, 0, Leaf)
 
-     syntax Bool ::= "is_valid_merkle_branch_aux" "(" BytesList "," Int "," Int "," Hash "," Int "," Hash ")" [function]
+     syntax Bool ::= "is_valid_merkle_branch_aux" "(" BytesList "," Int "," Int "," Root "," Int "," Root ")" [function]
      rule is_valid_merkle_branch_aux(Branch, Depth, Index, _,
                                      I => I +Int 1,
                                      Value => #if Index /Int (2 ^Int I) %Int 2 ==Int 1
-                                               #then {hash(Branch[I] +Bytes Value)}:>Hash
-                                               #else {hash(Value +Bytes Branch[I])}:>Hash
+                                               #then {hash(Branch[I] +Bytes Value)}:>Root
+                                               #else {hash(Value +Bytes Branch[I])}:>Root
                                               #fi
                                     )
        requires I <Int Depth
@@ -296,7 +348,7 @@ K semantics:
 
 Python reference:
 
-   def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Hash) -> ValidatorIndex:
+   def compute_shuffled_index(index: ValidatorIndex, index_count: uint64, seed: Bytes32) -> ValidatorIndex:
        """
        Return the shuffled validator index corresponding to ``seed`` (and ``index_count``).
        """
@@ -319,11 +371,11 @@ Python reference:
 K semantics:
 
 
-     syntax Int ::= "compute_shuffled_index" "(" Int "," Int "," Hash ")" [function]
+     syntax Int ::= "compute_shuffled_index" "(" Int "," Int "," Bytes32 ")" [function]
      rule compute_shuffled_index(INDEX, COUNT, SEED) => compute_shuffled_index_loop(INDEX, COUNT, SEED, 0, SHUFFLE_ROUND_COUNT)
        requires INDEX <Int COUNT
 
-     syntax Int ::= "compute_shuffled_index_loop" "(" Int "," Int "," Hash "," Int "," Int ")" [function]
+     syntax Int ::= "compute_shuffled_index_loop" "(" Int "," Int "," Bytes32 "," Int "," Int ")" [function]
      rule compute_shuffled_index_loop(
             INDEX => #if computeBit(maxInt(INDEX, computeFlip(computePivot(SEED, CurrRound, COUNT), INDEX, COUNT)),
                                     SEED, CurrRound)
@@ -342,7 +394,7 @@ K semantics:
 
    //        byte = source[(position % 256) // 8]
    //        bit = (byte >> (position % 8)) % 2
-     syntax Bool ::= computeBit(Int /* position */, Hash /* seed */, Int /* current round */ ) [function]
+     syntax Bool ::= computeBit(Int /* position */, Root /* seed */, Int /* current round */ ) [function]
      rule computeBit(Position, Seed, CurrRound)
        => (ordChar( substrString({computeSource(Position, Seed, CurrRound)}:>String,
                          (Position %Int 256) /Int 8,
@@ -350,7 +402,7 @@ K semantics:
           ) /Int 2 ^Int (Position %Int 8))  // shifting right by (position % 8)
           %Int 2 ==Int 1
 
-     syntax Hash ::= computeSource(Int /* position */, Hash /* seed */, Int /* current round */) [function]
+     syntax Root ::= computeSource(Int /* position */, Root /* seed */, Int /* current round */) [function]
      rule computeSource(Position, Seed, CurrRound)
        => hash(({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1)) +Bytes to_bytes(Position /Int 256, 4))
 
@@ -358,7 +410,7 @@ K semantics:
      rule computeFlip(Pivot, Index, Count) => (Pivot +Int Count -Int Index) %Int Count
 
      //pivot = bytes_to_int(hash(seed + int_to_bytes(current_round, length=1))[0:8]) % index_count
-     syntax Int ::= computePivot(Hash /* seed */, Int /* current round */, Int /* index count */ ) [function]
+     syntax Int ::= computePivot(Root /* seed */, Int /* current round */, Int /* index count */ ) [function]
        rule computePivot(Seed, CurrRound, Count)
          => bytes_to_int(substrString({hash({Seed}:>Bytes +Bytes to_bytes(CurrRound, 1))}:>String, 0, 8)) %Int Count
 
@@ -370,7 +422,7 @@ K semantics:
 
 Python reference:
 
-   def compute_proposer_index(state: BeaconState, indices: Sequence[ValidatorIndex], seed: Hash) -> ValidatorIndex:
+   def compute_proposer_index(statE: BeaconState, indices: Sequence[ValidatorIndex], seed: Root) -> ValidatorIndex:
        """
        Return from ``indices`` a random index sampled by effective balance.
        """
@@ -389,11 +441,11 @@ Python reference:
 K semantics:
 
 
-     syntax ValidatorIndex ::= "compute_proposer_index" "(" IntList "," Hash ")" [function]
+     syntax ValidatorIndex ::= "compute_proposer_index" "(" IntList "," Root ")" [function]
      rule compute_proposer_index(INDICES, SEED) => computeProposerIndexLoop(INDICES, SEED, 0)
      requires INDICES =/=K .IntList
 
-     syntax ValidatorIndex ::= computeProposerIndexLoop(IntList, Hash, Int) [function]
+     syntax ValidatorIndex ::= computeProposerIndexLoop(IntList, Root, Int) [function]
      rule computeProposerIndexLoop(INDICES, SEED, I)
             => #fun(CandidateIndex
             => #fun(RandomByte
@@ -404,7 +456,7 @@ K semantics:
                )(getByte( hashConcat(SEED, to_bytes(I /Int 32, 8)), I %Int 32))
                )(INDICES[compute_shuffled_index(I %Int len(INDICES), len(INDICES), SEED)])
 
-     syntax ValidatorIndex ::= computeProposerIndexLoopAux(IntList, Hash, Int, Int, Int, ValidatorIndex) [function]
+     syntax ValidatorIndex ::= computeProposerIndexLoopAux(IntList, Root, Int, Int, Int, ValidatorIndex) [function]
 
      rule computeProposerIndexLoopAux(INDICES, SEED, I, EffectiveBalance, RandomByte, CandidateIndex) =>
           computeProposerIndexLoop(INDICES, SEED, I +Int 1)
@@ -425,7 +477,7 @@ K semantics:
 Python reference:
 
    def compute_committee(indices: Sequence[ValidatorIndex],
-                         seed: Hash,
+                         seed: Bytes32,
                          index: uint64,
                          count: uint64) -> Sequence[ValidatorIndex]:
        """
@@ -439,7 +491,7 @@ Python reference:
 K semantics:
 
 
-     syntax IntList ::= "compute_committee" "(" IntList "," Hash "," Int "," Int ")" [function]
+     syntax IntList ::= "compute_committee" "(" IntList "," Bytes32 "," Int "," Int ")" [function]
      rule compute_committee(INDICES, SEED, INDEX, COUNT)
        => computeCommitteeLoop(
            (len(INDICES) *Int INDEX) /Int COUNT,
@@ -449,7 +501,7 @@ K semantics:
            .IntList
        )
 
-     syntax IntList ::= computeCommitteeLoop( Int, Int, Hash, IntList, IntList )     [function]
+     syntax IntList ::= computeCommitteeLoop( Int, Int, Bytes32, IntList, IntList )     [function]
      rule computeCommitteeLoop(I => I +Int 1, END, SEED, INDICES,
                                RESULT => RESULT +append INDICES[compute_shuffled_index(I, len(INDICES), SEED)] )
        requires I <Int END
@@ -527,18 +579,24 @@ K semantics:
 
 Python reference:
 
-   def compute_domain(domain_type: DomainType, fork_version: Version=Version()) -> Domain:
+   def compute_domain(domain_type: DomainType, fork_version: Optional[Version]=None) -> Domain:
        """
        Return the domain for the ``domain_type`` and ``fork_version``.
        """
+       if fork_version is None:
+           fork_version = GENESIS_FORK_VERSION
        return Domain(domain_type + fork_version)
 
 
 K semantics:
 
 
-     syntax Domain ::= "compute_domain" "(" DomainType "," Version ")"    [function]
-     rule compute_domain(Domain_Type, Fork_Version) => {Domain_Type +Bytes Fork_Version}:>Domain
+     syntax Domain ::= "compute_domain" "(" DomainType "," OptionVersion ")"     [function]
+     rule compute_domain(DTYPE, OVERSION)
+       => compute_domain_aux(DTYPE, #if isNone(OVERSION) #then GENESIS_FORK_VERSION #else versOf(OVERSION) #fi)
+
+     syntax Domain ::= "compute_domain_aux" "(" DomainType "," Version ")"    [function]
+     rule compute_domain_aux(Domain_Type, Fork_Version) => {Domain_Type +Bytes Fork_Version}:>Domain
 
      // Helper functions -- Beacon state accessors
      //====================================================
@@ -598,7 +656,7 @@ K semantics:
 
 Python reference:
 
-   def get_block_root(state: BeaconState, epoch: Epoch) -> Hash:
+   def get_block_root(state: BeaconState, epoch: Epoch) -> Root:
        """
        Return the block root at the start of a recent ``epoch``.
        """
@@ -608,7 +666,7 @@ Python reference:
 K semantics:
 
 
-     syntax Hash ::= "get_block_root" "(" Int ")" [function]
+     syntax Root ::= "get_block_root" "(" Int ")" [function]
      rule get_block_root(EP) => get_block_root_at_slot(compute_start_slot_at_epoch(EP))
 
 
@@ -619,7 +677,7 @@ K semantics:
 
 Python reference:
 
-   def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Hash:
+   def get_block_root_at_slot(state: BeaconState, slot: Slot) -> Root:
        """
        Return the block root at a recent ``slot``.
        """
@@ -630,8 +688,8 @@ Python reference:
 K semantics:
 
 
-     syntax Hash ::= "get_block_root_at_slot" "(" Int ")" [function]
-     rule [[ get_block_root_at_slot(SLOT) => {BLOCKROOTS[ SLOT %Int SLOTS_PER_HISTORICAL_ROOT ]}:>Hash ]]
+     syntax Root ::= "get_block_root_at_slot" "(" Int ")" [function]
+     rule [[ get_block_root_at_slot(SLOT) => {BLOCKROOTS[ SLOT %Int SLOTS_PER_HISTORICAL_ROOT ]}:>Root ]]
        <slot> StateSLOT </slot>
        <block-roots> BLOCKROOTS </block-roots>
        requires SLOT <Int StateSLOT andBool StateSLOT <=Int (SLOT +Int SLOTS_PER_HISTORICAL_ROOT)
@@ -644,7 +702,7 @@ K semantics:
 
 Python reference:
 
-   def get_randao_mix(state: BeaconState, epoch: Epoch) -> Hash:
+   def get_randao_mix(state: BeaconState, epoch: Epoch) -> Bytes32:
        """
        Return the randao mix at a recent ``epoch``.
        """
@@ -654,8 +712,8 @@ Python reference:
 K semantics:
 
 
-     syntax Hash ::= "get_randao_mix" "(" Int ")" [function]
-     rule [[ get_randao_mix( EPOCH ) => {RMS[ EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR ]}:>Hash ]]
+     syntax Bytes32 ::= "get_randao_mix" "(" Int ")" [function]
+     rule [[ get_randao_mix( EPOCH ) => {RMS[ EPOCH %Int EPOCHS_PER_HISTORICAL_VECTOR ]}:>Bytes32 ]]
        <randao-mixes> RMS </randao-mixes>
 
 
@@ -719,7 +777,7 @@ K semantics:
 
 Python reference:
 
-   def get_seed(state: BeaconState, epoch: Epoch, domain_type: DomainType) -> Hash:
+   def get_seed(state: BeaconState, epoch: Epoch, domain_type: DomainType) -> Root:
        """
        Return the seed at ``epoch``.
        """
@@ -730,7 +788,7 @@ Python reference:
 K semantics:
 
 
-     syntax Hash ::= "get_seed" "(" Int "," DomainType ")" [function]
+     syntax Root ::= "get_seed" "(" Int "," DomainType ")" [function]
      rule get_seed(Epoch, DOMAINTYPE)
        => hash( (DOMAINTYPE
                 +Bytes to_bytes(Epoch, 8))
@@ -887,11 +945,11 @@ K semantics:
 
 Python reference:
 
-   def get_domain(state: BeaconState, domain_type: DomainType, message_epoch: Epoch=None) -> Domain:
+   def get_domain(state: BeaconState, domain_type: DomainType, epoch: Epoch=None) -> Domain:
        """
        Return the signature domain (fork version concatenated with domain type) of a message.
        """
-       epoch = get_current_epoch(state) if message_epoch is None else message_epoch
+       epoch = get_current_epoch(state) if epoch is None else epoch
        fork_version = state.fork.previous_version if epoch < state.fork.epoch else state.fork.current_version
        return compute_domain(domain_type, fork_version)
 
@@ -905,7 +963,7 @@ K semantics:
 
      syntax Domain ::= "get_domain_aux" "(" DomainType "," Int ")" [function]
      rule [[ get_domain_aux(DTYPE, EPOCH)
-       => compute_domain(DTYPE, #if EPOCH <Int FEPOCH #then FPREV #else FCURR #fi) ]]
+       => compute_domain(DTYPE, #if EPOCH <Int FEPOCH #then #SomeVers(FPREV) #else #SomeVers(FCURR) #fi) ]]
      <fork> #Fork(FPREV,FCURR,FEPOCH) </fork>
 
 
@@ -1176,11 +1234,17 @@ K semantics:
 Python reference:
 
 
-   def initialize_beacon_state_from_eth1(eth1_block_hash: Hash,
+   def initialize_beacon_state_from_eth1(eth1_block_hash: Bytes32,
                                          eth1_timestamp: uint64,
                                          deposits: Sequence[Deposit]) -> BeaconState:
+       fork = Fork(
+           previous_version=GENESIS_FORK_VERSION,
+           current_version=GENESIS_FORK_VERSION,
+           epoch=GENESIS_EPOCH,
+       )
        state = BeaconState(
-           genesis_time=eth1_timestamp - eth1_timestamp % SECONDS_PER_DAY + 2 * SECONDS_PER_DAY,
+           genesis_time=eth1_timestamp - eth1_timestamp % MIN_GENESIS_DELAY + 2 * MIN_GENESIS_DELAY,
+           fork=fork,
            eth1_data=Eth1Data(block_hash=eth1_block_hash, deposit_count=len(deposits)),
            latest_block_header=BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody())),
            randao_mixes=[eth1_block_hash] * EPOCHS_PER_HISTORICAL_VECTOR,  # Seed RANDAO with Eth1 entropy
@@ -1207,27 +1271,27 @@ Python reference:
 K semantics:
 
 
-     syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Hash "," Int "," DepositList ")" [klabel(initialize_beacon_state_from_eth1), symbol]
+     syntax KItem ::= "initialize_beacon_state_from_eth1" "(" Root "," Int "," DepositList ")" [klabel(initialize_beacon_state_from_eth1), symbol]
      rule <k> initialize_beacon_state_from_eth1(E1BH, E1TS, Deposits)
               => stateInit
               ~> processEth1Deposits(Deposits, getDataList(Deposits), 0)
               ~> processEth1Activations
           ... </k>
-          <genesis-time> _ => E1TS -Int E1TS %Int SECONDS_PER_DAY +Int 2 *Int SECONDS_PER_DAY </genesis-time>
-          <eth1-data> _ => #Eth1Data(defaultHash(), len(Deposits), E1BH) </eth1-data>
+          <genesis-time> _ => E1TS -Int E1TS %Int MIN_GENESIS_DELAY +Int 2 *Int MIN_GENESIS_DELAY </genesis-time>
+          <eth1-data> _ => #Eth1Data(defaultRoot(), len(Deposits), E1BH) </eth1-data>
           <randao-mixes> _ => fillInVector(E1BH, EPOCHS_PER_HISTORICAL_VECTOR) </randao-mixes>
           <latest-block-header>
                  //BeaconBlockHeader(body_root=hash_tree_root(BeaconBlockBody()))
-            _ => #BeaconBlockHeader(0, defaultHash(), defaultHash(), hash_tree_root(defaultBeaconBlockBody()), defaultBLSSignature())
+            _ => #BeaconBlockHeader(0, defaultRoot(), defaultRoot(), hash_tree_root(defaultBeaconBlockBody()))
           </latest-block-header>
 
      //Full state initialization, when generating genesis state
      syntax KItem ::= "stateInit"
 
      rule <k> stateInit => .K ...</k>
-          <fork> _ => #Fork({defaultBytes4()}:>Version, {defaultBytes4()}:>Version, 0) </fork>
-          <block-roots>  _ => fillInMap(defaultHash(), SLOTS_PER_HISTORICAL_ROOT) </block-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-          <state-roots>  _ => fillInMap(defaultHash(), SLOTS_PER_HISTORICAL_ROOT) </state-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
+          <fork> _ => #Fork(GENESIS_FORK_VERSION, GENESIS_FORK_VERSION, GENESIS_EPOCH) </fork>
+          <block-roots>  _ => fillInMap(defaultRoot(), SLOTS_PER_HISTORICAL_ROOT) </block-roots> //Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
+          <state-roots>  _ => fillInMap(defaultRoot(), SLOTS_PER_HISTORICAL_ROOT) </state-roots> //Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
           <slashings>    _ => fillInMap(0, EPOCHS_PER_SLASHINGS_VECTOR) </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
           <justification-bits> _ => false  false  false  false  .BitList </justification-bits> //Bitvector[JUSTIFICATION_BITS_LENGTH]
           <previous-justified-checkpoint> _ => defaultCheckpoint() </previous-justified-checkpoint>
@@ -1259,7 +1323,7 @@ K semantics:
 
      rule processEth1Deposits(.DepositList, _,_) => .K
 
-     syntax Eth1Data ::= setDepositRoot(Eth1Data, Hash) [function]
+     syntax Eth1Data ::= setDepositRoot(Eth1Data, Root) [function]
      rule setDepositRoot(#Eth1Data(DROOT, COUNT, BHASH), NewDROOT) => #Eth1Data(NewDROOT, COUNT, BHASH)
 
      syntax DepositDataList ::= getDataList(DepositList) [function]
@@ -1342,13 +1406,17 @@ K semantics:
 
 Python reference:
 
-   def state_transition(state: BeaconState, block: BeaconBlock, validate_state_root: bool=False) -> BeaconState:
+   def state_transition(state: BeaconState, signed_block: SignedBeaconBlock, validate_result: bool=True) -> BeaconState:
+       block = signed_block.message
        # Process slots (including those with no blocks) since block
        process_slots(state, block.slot)
+       # Verify signature
+       if validate_result:
+           assert verify_block_signature(state, signed_block)
        # Process block
        process_block(state, block)
-       # Validate state root (`validate_state_root == True` in production)
-       if validate_state_root:
+       # Verify state root
+       if validate_result:
            assert block.state_root == hash_tree_root(state)
        # Return post-state
        return state
@@ -1357,11 +1425,13 @@ Python reference:
 K semantics:
 
 
-     syntax KItem ::= "state_transition" "(" block: BeaconBlock "," validateStateRoot: Bool ")"  [klabel(state_transition), symbol]
-     rule state_transition(BLOCK, VSR) => process_slots(BLOCK._slot) ~> process_block(BLOCK) ~> validateStateRoot(BLOCK, VSR)
+     syntax KItem ::= "state_transition" "(" signedBlock: SignedBeaconBlock "," validateResult: Bool ")"  [klabel(state_transition), symbol]
+     rule state_transition(SIGNEDBLOCK, VSR) => process_slots(SIGNEDBLOCK.message._slot) ~> process_block(SIGNEDBLOCK.message) ~> validateStateRoot(SIGNEDBLOCK.message, VSR)
      syntax KItem ::= validateStateRoot ( BeaconBlock, Bool )
        rule validateStateRoot(BLOCK, VSR) => .K
          requires (notBool VSR) orBool (BLOCK.stateRoot ==K hash_tree_root_state())
+
+   // *   - bls_verify is not implemented (as discussed). Signature verification is not done.
 
 
 
@@ -1423,7 +1493,7 @@ Python reference:
        if state.latest_block_header.state_root == Bytes32():
            state.latest_block_header.state_root = previous_state_root
        # Cache block root
-       previous_block_root = signing_root(state.latest_block_header)
+       previous_block_root = hash_tree_root(state.latest_block_header)
        state.block_roots[state.slot % SLOTS_PER_HISTORICAL_ROOT] = previous_block_root
 
 
@@ -1436,19 +1506,19 @@ K semantics:
           ...</k>
           <slot> SLOT </slot>
 
-     syntax KItem ::= "processSlotAux" "(" previousStateRoot: Hash "," stateRootsIndex: Int ")"
+     syntax KItem ::= "processSlotAux" "(" previousStateRoot: Root "," stateRootsIndex: Int ")"
      rule <k> processSlotAux(PreviousStateRoot, SLOT) => cacheBlockRoot(SLOT) ...</k>
           <state-roots> SLOT |-> (_ => PreviousStateRoot) ...</state-roots>
           <latest-block-header> #BeaconBlockHeader(_,_, BHStateRoot
                                                         => #if BHStateRoot ==K defaultBytes32()
                                                              #then PreviousStateRoot
                                                              #else BHStateRoot
-                                                           #fi , _,_) </latest-block-header>
+                                                           #fi ,_ ) </latest-block-header>
 
      syntax KItem ::= "cacheBlockRoot" "(" Int ")"
      rule <k> cacheBlockRoot(SLOT) => .K ...</k>
           <latest-block-header> LatestBlockHEADER </latest-block-header>
-          <block-roots> SLOT |-> (_ => signing_root(LatestBlockHEADER)) ...</block-roots>
+          <block-roots> SLOT |-> (_ => hash_tree_root(LatestBlockHEADER)) ...</block-roots>
 
 
      // State transition function -- Epoch processing
@@ -1846,9 +1916,7 @@ Python reference:
            proposer_reward = Gwei(get_base_reward(state, index) // PROPOSER_REWARD_QUOTIENT)
            rewards[attestation.proposer_index] += proposer_reward
            max_attester_reward = get_base_reward(state, index) - proposer_reward
-           rewards[index] += Gwei(
-               max_attester_reward // attestation.inclusion_delay
-           )
+           rewards[index] += Gwei(max_attester_reward // attestation.inclusion_delay)
 
        # Inactivity penalty
        finality_delay = previous_epoch - state.finalized_checkpoint.epoch
@@ -1857,9 +1925,8 @@ Python reference:
            for index in eligible_validator_indices:
                penalties[index] += Gwei(BASE_REWARDS_PER_EPOCH * get_base_reward(state, index))
                if index not in matching_target_attesting_indices:
-                   penalties[index] += Gwei(
-                       state.validators[index].effective_balance * finality_delay // INACTIVITY_PENALTY_QUOTIENT
-                   )
+                   effective_balance = state.validators[index].effective_balance
+                   penalties[index] += Gwei(effective_balance * finality_delay // INACTIVITY_PENALTY_QUOTIENT)
 
        return rewards, penalties
 
@@ -2131,26 +2198,22 @@ Python reference:
    def process_registry_updates(state: BeaconState) -> None:
        # Process activation eligibility and ejections
        for index, validator in enumerate(state.validators):
-           if (
-               validator.activation_eligibility_epoch == FAR_FUTURE_EPOCH
-               and validator.effective_balance == MAX_EFFECTIVE_BALANCE
-           ):
-               validator.activation_eligibility_epoch = get_current_epoch(state)
+           if is_eligible_for_activation_queue(validator):
+               validator.activation_eligibility_epoch = get_current_epoch(state) + 1
 
            if is_active_validator(validator, get_current_epoch(state)) and validator.effective_balance <= EJECTION_BALANCE:
                initiate_validator_exit(state, ValidatorIndex(index))
 
-       # Queue validators eligible for activation and not dequeued for activation prior to finalized epoch
+       # Queue validators eligible for activation and not yet dequeued for activation
        activation_queue = sorted([
            index for index, validator in enumerate(state.validators)
-           if validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH
-           and validator.activation_epoch >= compute_activation_exit_epoch(state.finalized_checkpoint.epoch)
-       ], key=lambda index: state.validators[index].activation_eligibility_epoch)
-       # Dequeued validators for activation up to churn limit (without resetting activation epoch)
+           if is_eligible_for_activation(state, validator)
+           # Order by the sequence of activation_eligibility_epoch setting and then index
+       ], key=lambda index: (state.validators[index].activation_eligibility_epoch, index))
+       # Dequeued validators for activation up to churn limit
        for index in activation_queue[:get_validator_churn_limit(state)]:
            validator = state.validators[index]
-           if validator.activation_epoch == FAR_FUTURE_EPOCH:
-               validator.activation_epoch = compute_activation_exit_epoch(get_current_epoch(state))
+           validator.activation_epoch = compute_activation_exit_epoch(get_current_epoch(state))
 
 
 K semantics:
@@ -2158,37 +2221,36 @@ K semantics:
 
      syntax KItem ::= "process_registry_updates" "(" ")" [klabel(process_registry_updates), symbol]
      rule <k> process_registry_updates()
-              => processRegistryUpdatesLoop1(VALIDATORS)
+              => processRegistryUpdatesLoop1(VALIDATORS, 0)
               ~> processActivationQueue()
             ...
           </k>
           <validators> VALIDATORS </validators>
 
-     //we will process validators in any order, not strictly increasing index like in python
-     syntax KItem ::= "processRegistryUpdatesLoop1" "(" Map ")" //validators
+     //we will process validators by index like in python
+     syntax KItem ::= "processRegistryUpdatesLoop1" "(" Map /* validators*/"," Int /*index*/ ")"
      rule <k> (. => #if is_active_validator(VAL, get_current_epoch())
                          andBool VAL.effectiveBalance <=Int EJECTION_BALANCE
                        #then initiate_validator_exit(INDEX)
                        #else .K
                     #fi
               )
-              ~> processRegistryUpdatesLoop1(_:Map (INDEX |-> VAL => .Map) )
+              ~> processRegistryUpdatesLoop1( _:Map (INDEX |-> VAL => .Map), INDEX => INDEX +Int 1 )
           ...</k>
           <validators>... INDEX |-> (#Validator(_,_,_,_,
              ActEligibilityEpoch
-             => #if ActEligibilityEpoch ==Int FAR_FUTURE_EPOCH
-                    andBool VAL.effectiveBalance >=Int MAX_EFFECTIVE_BALANCE
-                   #then get_current_epoch()
+             => #if is_eligible_for_activation_queue(VAL)
+                   #then get_current_epoch() +Int 1
                    #else ActEligibilityEpoch
                 #fi,
-             _,_,_) #as VAL) ...</validators>
+             _,_,_)) ...</validators>
 
-     rule processRegistryUpdatesLoop1(.Map) => .K
+     rule processRegistryUpdatesLoop1(.Map, _) => .K
 
      syntax KItem ::= processActivationQueue()
                     | processActivationQueue( activationQueue: IntList , churnLimit: Int )
 
-     //must be done here instead of main rule, basause it needs state updated by Loop1
+     //must be done here instead of main rule, because it needs state updated by Loop1
      rule <k> processActivationQueue() => processActivationQueue(
              sortActivationQueue(getActivationQueueUnsorted(0, VALIDATORS, .IntList)),
              get_validator_churn_limit() )
@@ -2201,11 +2263,6 @@ K semantics:
              ActEpoch => compute_activation_exit_epoch(get_current_epoch()), _,_)
              ...</validators>
        requires I >Int 0
-                andBool ActEpoch ==K FAR_FUTURE_EPOCH
-
-     rule processActivationQueue(INDEX:Int IL => IL, I => I -Int 1)
-       requires I >Int 0
-                andBool getValidator(INDEX).activationEpoch =/=K FAR_FUTURE_EPOCH
 
      rule processActivationQueue(.IntList, _) => .K
      rule processActivationQueue(       _, 0) => .K
@@ -2215,9 +2272,9 @@ K semantics:
 Python reference:
 
 
-     index for index, validator in enumerate(state.validator_registry) if
-           validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH and
-           validator.activation_epoch >= get_delayed_activation_exit_epoch(state.finalized_epoch) 
+           index for index, validator in enumerate(state.validators)
+           if is_eligible_for_activation(state, validator)
+     
 
 K semantics:
 
@@ -2225,13 +2282,11 @@ K semantics:
      syntax IntList ::= getActivationQueueUnsorted(i: Int, validators: Map, result: IntList ) [function]
      rule [[ getActivationQueueUnsorted(INDEX => INDEX +Int 1, _:Map (INDEX |-> VAL => .Map),  IL => IL +append INDEX) ]]
           <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
-       requires VAL.activationEligibilityEpoch =/=K FAR_FUTURE_EPOCH
-            andBool VAL.activationEpoch >=Int compute_activation_exit_epoch(FinalizedEpoch)
+       requires is_eligible_for_activation(VAL)
 
      rule [[ getActivationQueueUnsorted(INDEX => INDEX +Int 1, _:Map (INDEX |-> VAL => .Map),  IL /*unchanged*/ ) ]]
           <finalized-checkpoint> #Checkpoint(FinalizedEpoch, RootHash) </finalized-checkpoint>
-       requires notBool ( VAL.activationEligibilityEpoch =/=K FAR_FUTURE_EPOCH
-                      andBool VAL.activationEpoch >=Int compute_activation_exit_epoch(FinalizedEpoch) )
+       requires notBool is_eligible_for_activation(VAL)
 
      rule getActivationQueueUnsorted(_, .Map, IL ) => IL
 
@@ -2240,7 +2295,7 @@ K semantics:
 Python reference:
 
    activation_queue = sorted([ index for ...
-       ], key=lambda index: state.validator_registry[index].activation_eligibility_epoch)
+       ], key=lambda index: (state.validators[index].activation_eligibility_epoch, index))
 
 K semantics:
 
@@ -2254,8 +2309,11 @@ K semantics:
      syntax Int ::= indexForMinEligEpoch ( IntList )      [function, klabel(indexForMinEligEpoch)]
                   | indexForMinEligEpoch ( Int, IntList ) [function, klabel(indexForMinEligEpoch2)]
      rule indexForMinEligEpoch(I:Int IL) => indexForMinEligEpoch(I, IL)
-     rule indexForMinEligEpoch( MIN => #if getValidator(MIN).activationEligibilityEpoch <=Int getValidator(I).activationEligibilityEpoch
-                                         #then MIN #else I #fi,
+     rule indexForMinEligEpoch( MIN => #if getValidator(MIN).activationEligibilityEpoch ==Int getValidator(I).activationEligibilityEpoch
+                                       #then #if I <Int MIN #then I #else MIN #fi
+                                       #else #if getValidator(MIN).activationEligibilityEpoch <Int getValidator(I).activationEligibilityEpoch
+                                             #then MIN #else I #fi
+                                       #fi,
                                 (I:Int IL) => IL )
      rule indexForMinEligEpoch(MIN, .IntList) => MIN
 
@@ -2460,20 +2518,18 @@ Python reference:
        # Verify that the slots match
        assert block.slot == state.slot
        # Verify that the parent matches
-       assert block.parent_root == signing_root(state.latest_block_header)
-       # Save current block as the new latest block
+       assert block.parent_root == hash_tree_root(state.latest_block_header)
+       # Cache current block as the new latest block
        state.latest_block_header = BeaconBlockHeader(
            slot=block.slot,
            parent_root=block.parent_root,
-           # `state_root` is zeroed and overwritten in the next `process_slot` call
+           state_root=Bytes32(),  # Overwritten in the next process_slot call
            body_root=hash_tree_root(block.body),
-           # `signature` is zeroed
        )
+
        # Verify proposer is not slashed
        proposer = state.validators[get_beacon_proposer_index(state)]
        assert not proposer.slashed
-       # Verify proposer signature
-       assert bls_verify(proposer.pubkey, signing_root(block), block.signature, get_domain(state, DOMAIN_BEACON_PROPOSER))
 
 
 K semantics:
@@ -2485,13 +2541,12 @@ K semantics:
             OldBlockHEADER  => #BeaconBlockHeader(
                                   BLOCK._slot,                 // block.slot
                                   BLOCK.parentRoot,            // block.parent_root
-                                  defaultHash(),               // zeroed
-                                  hash_tree_root(BLOCK.body),  // hash_tree_root(block.body)
-                                  defaultBLSSignature()  )     // zeroed
+                                  defaultRoot(),               // zeroed
+                                  hash_tree_root(BLOCK.body))  // hash_tree_root(block.body)
           </latest-block-header>
           <slot> SLOT </slot>
        requires BLOCK._slot ==K SLOT
-        andBool BLOCK.parentRoot ==K signing_root(OldBlockHEADER)
+        andBool BLOCK.parentRoot ==K hash_tree_root(OldBlockHEADER)
         andBool notBool getValidator(get_beacon_proposer_index()).slashed
 
 
@@ -2594,7 +2649,7 @@ K semantics:
        requires len(BlockBODY.deposits) ==Int minInt(MAX_DEPOSITS, ETH1DATA.deposit_count -Int ETH1DINDEX)
 
      syntax KItem ::= "process_operations_aux" "(" ProposerSlashingList "," AttesterSlashingList "," AttestationList
-                                               "," DepositList "," VoluntaryExitList ")"
+                                               "," DepositList "," SignedVoluntaryExitList ")"
 
      rule (. => process_proposer_slashing(PropSlashing))
           ~> process_operations_aux(PropSlashing:ProposerSlashing L => L, _,_,_,_)
@@ -2606,9 +2661,9 @@ K semantics:
           ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, DEP:Deposit L => L, _)
      rule (. => process_voluntary_exit(VolEX))
           ~> process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, .DepositList,
-                                    VolEX:VoluntaryExit L => L)
+                                    VolEX:SignedVoluntaryExit L => L)
      rule process_operations_aux(.ProposerSlashingList, .AttesterSlashingList, .AttestationList, .DepositList,
-                                 .VoluntaryExitList ) => .K
+                                 .SignedVoluntaryExitList ) => .K
 
 
 
@@ -2619,17 +2674,18 @@ K semantics:
 Python reference:
 
    def process_proposer_slashing(state: BeaconState, proposer_slashing: ProposerSlashing) -> None:
+       # Verify header slots match
+       assert proposer_slashing.signed_header_1.message.slot == proposer_slashing.signed_header_2.message.slot
+       # Verify the headers are different
+       assert proposer_slashing.signed_header_1 != proposer_slashing.signed_header_2
+       # Verify the proposer is slashable
        proposer = state.validators[proposer_slashing.proposer_index]
-       # Verify slots match
-       assert proposer_slashing.header_1.slot == proposer_slashing.header_2.slot
-       # But the headers are different
-       assert proposer_slashing.header_1 != proposer_slashing.header_2
-       # Check proposer is slashable
        assert is_slashable_validator(proposer, get_current_epoch(state))
-       # Signatures are valid
-       for header in (proposer_slashing.header_1, proposer_slashing.header_2):
-           domain = get_domain(state, DOMAIN_BEACON_PROPOSER, compute_epoch_at_slot(header.slot))
-           assert bls_verify(proposer.pubkey, signing_root(header), header.signature, domain)
+       # Verify signatures
+       for signed_header in (proposer_slashing.signed_header_1, proposer_slashing.signed_header_2):
+           domain = get_domain(state, DOMAIN_BEACON_PROPOSER, compute_epoch_at_slot(signed_header.message.slot))
+           signing_root = compute_signing_root(signed_header.message, domain)
+           assert bls.Verify(proposer.pubkey, signing_root, signed_header.signature)
 
        slash_validator(state, proposer_slashing.proposer_index)
 
@@ -2639,7 +2695,7 @@ K semantics:
 
      syntax KItem ::= "process_proposer_slashing" "(" ProposerSlashing ")" [klabel(process_proposer_slashing), symbol]
      rule process_proposer_slashing(#ProposerSlashing(ProposerIndex, HEAD1, HEAD2)) => slash_validator(ProposerIndex, .ValidatorIndex)
-       requires HEAD1._slot ==Int HEAD2._slot
+       requires HEAD1.message._slot ==Int HEAD2.message._slot
         andBool HEAD1 =/=K HEAD2
         andBool is_slashable_validator(getValidator(ProposerIndex), get_current_epoch())
 
@@ -2706,6 +2762,7 @@ Python reference:
        data = attestation.data
        assert data.index < get_committee_count_at_slot(state, data.slot)
        assert data.target.epoch in (get_previous_epoch(state), get_current_epoch(state))
+       assert data.target.epoch == compute_epoch_at_slot(data.slot) 
        assert data.slot + MIN_ATTESTATION_INCLUSION_DELAY <= state.slot <= data.slot + SLOTS_PER_EPOCH
 
        committee = get_beacon_committee(state, data.slot, data.index)
@@ -2742,6 +2799,7 @@ K semantics:
           <slot> SLOT </slot>
        requires ATT._data.index <Int get_committee_count_at_slot(ATT._data._slot)
         andBool (ATT._data.target.epoch) in (SetItem(get_previous_epoch()) SetItem(get_current_epoch()))
+        andBool ATT._data.target.epoch ==K compute_epoch_at_slot(ATT._data._slot)
         andBool ATT._data._slot +Int MIN_ATTESTATION_INCLUSION_DELAY <=Int SLOT
         andBool SLOT <=Int ATT._data._slot +Int SLOTS_PER_EPOCH
         andBool len(ATT.aggregation_bits) ==K len(get_beacon_committee(ATT._data._slot, ATT._data.index))
@@ -2881,29 +2939,31 @@ K semantics:
 
 Python reference:
 
-   def process_voluntary_exit(state: BeaconState, exit: VoluntaryExit) -> None:
-       validator = state.validators[exit.validator_index]
+   def process_voluntary_exit(state: BeaconState, signed_voluntary_exit: SignedVoluntaryExit) -> None:
+       voluntary_exit = signed_voluntary_exit.message
+       validator = state.validators[voluntary_exit.validator_index]
        # Verify the validator is active
        assert is_active_validator(validator, get_current_epoch(state))
-       # Verify the validator has not yet exited
+       # Verify exit has not been initiated
        assert validator.exit_epoch == FAR_FUTURE_EPOCH
-       # Exits must specify an epoch requires they become valid; they are not valid before then
-       assert get_current_epoch(state) >= exit.epoch
+       # Exits must specify an epoch when they become valid; they are not valid before then
+       assert get_current_epoch(state) >= voluntary_exit.epoch
        # Verify the validator has been active long enough
        assert get_current_epoch(state) >= validator.activation_epoch + PERSISTENT_COMMITTEE_PERIOD
        # Verify signature
-       domain = get_domain(state, DOMAIN_VOLUNTARY_EXIT, exit.epoch)
-       assert bls_verify(validator.pubkey, signing_root(exit), exit.signature, domain)
+       domain = get_domain(state, DOMAIN_VOLUNTARY_EXIT, voluntary_exit.epoch)
+       signing_root = compute_signing_root(voluntary_exit, domain)
+       assert bls.Verify(validator.pubkey, signing_root, signed_voluntary_exit.signature)
        # Initiate exit
-       initiate_validator_exit(state, exit.validator_index)
+       initiate_validator_exit(state, voluntary_exit.validator_index)
 
 
 K semantics:
 
 
-     syntax KItem ::= "process_voluntary_exit" "(" VoluntaryExit ")" [klabel(process_voluntary_exit), symbol]
+     syntax KItem ::= "process_voluntary_exit" "(" SignedVoluntaryExit ")" [klabel(process_voluntary_exit), symbol]
 
-     rule process_voluntary_exit(#VoluntaryExit(ExitEPOCH, ValINDEX, _)) => initiate_validator_exit(ValINDEX)
+     rule process_voluntary_exit(#SignedVoluntaryExit(#VoluntaryExit(ExitEPOCH, ValINDEX), _)) => initiate_validator_exit(ValINDEX)
        requires is_active_validator(getValidator(ValINDEX), get_current_epoch())
         andBool getValidator(ValINDEX).exitEpoch ==Int FAR_FUTURE_EPOCH
         andBool get_current_epoch() >=Int ExitEPOCH

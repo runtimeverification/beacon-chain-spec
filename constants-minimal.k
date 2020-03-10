@@ -11,8 +11,6 @@ module CONSTANTS
   rule BASE_REWARDS_PER_EPOCH => 4                            [macro]
   syntax Int ::= "DEPOSIT_CONTRACT_TREE_DEPTH"
   rule DEPOSIT_CONTRACT_TREE_DEPTH => 2 ^Int 5                [macro]
-  syntax Int ::= "SECONDS_PER_DAY"
-  rule SECONDS_PER_DAY => 86400                               [macro]
   syntax Int ::= "JUSTIFICATION_BITS_LENGTH"
   rule JUSTIFICATION_BITS_LENGTH => 4                         [macro]
   syntax String ::= "ENDIANNESS"

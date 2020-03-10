@@ -10,9 +10,9 @@ class BeaconState(Container):
     fork: Fork
     # History
     latest_block_header: BeaconBlockHeader
-    block_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-    state_roots: Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-    historical_roots: List[Hash, HISTORICAL_ROOTS_LIMIT]
+    block_roots: Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
+    state_roots: Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
+    historical_roots: List[Root, HISTORICAL_ROOTS_LIMIT]
     # Eth1
     eth1_data: Eth1Data
     eth1_data_votes: List[Eth1Data, SLOTS_PER_ETH1_VOTING_PERIOD]
@@ -21,7 +21,7 @@ class BeaconState(Container):
     validators: List[Validator, VALIDATOR_REGISTRY_LIMIT]
     balances: List[Gwei, VALIDATOR_REGISTRY_LIMIT]
     # Shuffling
-    randao_mixes: Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
+    randao_mixes: Vector[Root, EPOCHS_PER_HISTORICAL_VECTOR]
     # Slashings
     slashings: Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]  # Per-epoch sums of slashed effective balances
     # Attestations
@@ -43,9 +43,9 @@ class BeaconState(Container):
         <fork> .Fork </fork>
         // History
         <latest-block-header> .BlockHeader </latest-block-header>
-        <block-roots> .Map </block-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-        <state-roots> .Map </state-roots> //Vector[Hash, SLOTS_PER_HISTORICAL_ROOT]
-        <historical-roots> .BytesList </historical-roots> //List[Hash, HISTORICAL_ROOTS_LIMIT]
+        <block-roots> .Map </block-roots> //Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
+        <state-roots> .Map </state-roots> //Vector[Root, SLOTS_PER_HISTORICAL_ROOT]
+        <historical-roots> .BytesList </historical-roots> //List[Root, HISTORICAL_ROOTS_LIMIT]
         // Eth1
         <eth1-data> .Eth1Data </eth1-data>
         <eth1-data-votes> .Eth1DataList </eth1-data-votes> //List[Eth1Data, SLOTS_PER_ETH1_VOTING_PERIOD]
@@ -54,7 +54,7 @@ class BeaconState(Container):
         <validators> .Map </validators> //List[Validator, VALIDATOR_REGISTRY_LIMIT]
         <balances> .Map </balances> //List[Gwei, VALIDATOR_REGISTRY_LIMIT]
         // Shuffling
-        <randao-mixes> .BytesList </randao-mixes> //Vector[Hash, EPOCHS_PER_HISTORICAL_VECTOR]
+        <randao-mixes> .BytesList </randao-mixes> //Vector[Bytes32, EPOCHS_PER_HISTORICAL_VECTOR]
         // Slashings
         <slashings> .Map </slashings> //Vector[Gwei, EPOCHS_PER_SLASHINGS_VECTOR]
         // Attestations

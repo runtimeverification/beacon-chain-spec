@@ -1292,8 +1292,8 @@ def get_base_reward(state: BeaconState, index: ValidatorIndex) -> Gwei:
 */
   syntax UInt64 ::= "get_base_reward" "(" Int ")" [function]
   rule get_base_reward(INDEX)
-       => ui(MIN_DEPOSIT_AMOUNT, MAX_EFFECTIVE_BALANCE, getValidator(INDEX).effectiveBalance) *UInt64  ci(BASE_REWARD_FACTOR)
-          /UInt64 ui(integer_squareroot(MAX_EFFECTIVE_BALANCE),
+       => ui(0, MAX_EFFECTIVE_BALANCE, getValidator(INDEX).effectiveBalance) *UInt64  ci(BASE_REWARD_FACTOR)
+          /UInt64 ui(integer_squareroot(EFFECTIVE_BALANCE_INCREMENT),
                      integer_squareroot(TOTAL_ETHER_SUPPLY),
                      integer_squareroot(get_total_active_balance()))
           /UInt64 ci(BASE_REWARDS_PER_EPOCH)
@@ -1364,7 +1364,9 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
         attesting_balance = get_total_balance(state, unslashed_attesting_indices)
         for index in eligible_validator_indices:
             if index in unslashed_attesting_indices:
-                rewards[index] += get_base_reward(state, index) * attesting_balance // total_balance
+                increment = EFFECTIVE_BALANCE_INCREMENT  # Factored out from balance totals to avoid uint64 overflow
+                reward_numerator = get_base_reward(state, index) * (attesting_balance // increment)
+                rewards[index] = reward_numerator // (total_balance // increment)
             else:
                 penalties[index] += get_base_reward(state, index)
 */
@@ -1405,15 +1407,15 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
                        AttestingBalance,
                        #mapMapPair(Rewards => #if contains(I, UnslashedIndices)
                                               #then Rewards[I <- ei(0, 2 ^Int 64 -Int 1, ci({Rewards[I]}:>Int) +UInt64 get_base_reward(I)
-                                                                  *UInt64 ( ui(MAX_EFFECTIVE_BALANCE, MAX_ATTESTING_BALANCE, AttestingBalance)
+                                                                  *UInt64 ( ui(0, TOTAL_ETHER_SUPPLY, AttestingBalance)
                                                                   /UInt64 ci(EFFECTIVE_BALANCE_INCREMENT))
-                                                                  /UInt64 ( ui(MAX_EFFECTIVE_BALANCE, TOTAL_ETHER_SUPPLY, TotalBalance)
+                                                                  /UInt64 ( ui(EFFECTIVE_BALANCE_INCREMENT, TOTAL_ETHER_SUPPLY, TotalBalance)
                                                                   /UInt64 ci(EFFECTIVE_BALANCE_INCREMENT)))
                                                                   ]
                                               #else Rewards
                                               #fi,
                                   Penalties => #if notBool contains(I, UnslashedIndices)
-                                               #then Penalties[I <- ({Penalties[I]}:>Int +Int ei(0, 2 ^Int 64 -Int 1, get_base_reward(I)))]
+                                               #then Penalties[I <- ei(0, 2 ^Int 64 -Int 1, (ci({Penalties[I]}:>Int) +UInt64 get_base_reward(I)))]
                                                #else Penalties
                                                #fi) )
 
@@ -1521,7 +1523,7 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   // penalties[index] += Gwei(BASE_REWARDS_PER_EPOCH * get_base_reward(state, index))
   syntax Map ::= updateBasePenalties(Map, Int) [function]
   rule updateBasePenalties(Penalties, INDEX)
-       => Penalties[INDEX <- {Penalties[INDEX]}:>Int +Int (BASE_REWARDS_PER_EPOCH *Int ei(0, 2 ^Int 64 -Int 1, get_base_reward(INDEX)))]
+       => Penalties[INDEX <- ei(0, 2 ^Int 64 -Int 1, ci({Penalties[INDEX]}:>Int) +UInt64 (ci(BASE_REWARDS_PER_EPOCH) *UInt64 get_base_reward(INDEX)))]
 
   syntax Int ::= numOfValidators() [function]
   rule [[ numOfValidators() => size(ValMap) ]]
@@ -1702,8 +1704,8 @@ def process_slashings(state: BeaconState) -> None:
        ... </k>
 
   syntax KItem ::= "processSlashingsLoop" "(" i: Int "," nrValidators: Int "," Int "," Int ")"
-  rule (. => decrease_balance(I, (getValidator(I).effectiveBalance /Int EFFECTIVE_BALANCE_INCREMENT *Int minInt(sumSlashings() *Int 3,
-                                  TotalBalance)) /Int TotalBalance *Int EFFECTIVE_BALANCE_INCREMENT))
+  rule (. => decrease_balance(I, ei(0, 2 ^Int 64 -Int 1, (ui(0, MAX_EFFECTIVE_BALANCE, getValidator(I).effectiveBalance) /UInt64 ci(EFFECTIVE_BALANCE_INCREMENT) *UInt64 ui(0, TotalBalance, minInt(sumSlashings() *Int 3,
+                                  TotalBalance)) /UInt64 ui(EFFECTIVE_BALANCE_INCREMENT, TOTAL_ETHER_SUPPLY, TotalBalance) *UInt64 ci(EFFECTIVE_BALANCE_INCREMENT)))))
        ~> processSlashingsLoop(I => I +Int 1, N, EP, TotalBalance)
     requires I <Int N
      andBool getValidator(I).slashed andBool EP +Int EPOCHS_PER_SLASHINGS_VECTOR /Int 2 ==K getValidator(I).withdrawableEpoch

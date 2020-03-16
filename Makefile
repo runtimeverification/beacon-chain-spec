@@ -120,10 +120,14 @@ MAIN_DEFN_FILE := beacon-chain
 
 # Generate definitions from source files
 
-k_files := $(MAIN_DEFN_FILE).k beacon-chain.k hash-tree.k types.k config.k constants-mainnet.k uint64.k
+k_files := $(MAIN_DEFN_FILE).k hash-tree.k types.k config.k constants-minimal.k uint64.k
 
-llvm_dir   := $(DEFN_DIR)/llvm
-llvm_files := $(patsubst %,$(llvm_dir)/%,$(k_files))
+bounds_files := $(MAIN_DEFN_FILE).k hash-tree.k types.k config.k constants-bounds-check.k uint64.k
+
+llvm_dir_minimal  := $(DEFN_DIR)/llvm-minimal
+llvm_dir_bounds   := $(DEFN_DIR)/llvm-bounds
+llvm_files        := $(patsubst %,$(llvm_dir_minimal)/%,$(k_files))
+llvm_bounds_files := $(patsubst %,$(llvm_dir_bounds)/%,$(bounds_files))
 
 haskell_dir   := $(DEFN_DIR)/haskell
 haskell_files := $(patsubst %,$(haskell_dir)/%,$(k_files))
@@ -132,8 +136,8 @@ defn: llvm-defn haskell-defn
 defn-llvm:    $(llvm_files)
 defn-haskell: $(haskell_files)
 
-$(llvm_dir)/%.k: %.k
-	@mkdir -p $(llvm_dir)
+$(llvm_dir_minimal)/%.k: %.k
+	@mkdir -p $(llvm_dir_minimal)
 	cp $< $@
 
 $(haskell_dir)/%.k: %.k
@@ -145,19 +149,35 @@ $(haskell_dir)/%.k: %.k
 KOMPILE_OPTS      ?=
 LLVM_KOMPILE_OPTS := $(KOMPILE_OPTS)
 
-llvm_kompiled    := $(llvm_dir)/$(MAIN_DEFN_FILE)-kompiled/interpreter
+llvm_kompiled    := $(llvm_dir_minimal)/$(MAIN_DEFN_FILE)-kompiled/interpreter
 haskell_kompiled := $(haskell_dir)/$(MAIN_DEFN_FILE)-kompiled/definition.kore
 
 build: build-llvm build-haskell
 build-llvm:    $(llvm_kompiled)
 build-haskell: $(haskell_kompiled)
 
-# LLVM Backend
+# LLVM Backend (configuration: minimal)
 
 $(llvm_kompiled): $(llvm_files) $(libff_out)
 	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm              \
-	                 --syntax-module $(SYNTAX_MODULE) $(llvm_dir)/$(MAIN_DEFN_FILE).k \
-	                 --directory $(llvm_dir) -I $(llvm_dir)                           \
+	                 --syntax-module $(SYNTAX_MODULE) $(llvm_dir_minimal)/$(MAIN_DEFN_FILE).k \
+	                 --directory $(llvm_dir_minimal) -I $(llvm_dir_minimal)                           \
+	                 --hook-namespaces KRYPTO                                         \
+	                 --emit-json                                                      \
+	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                   \
+	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp            \
+	                 $(addprefix -ccopt ,$(LINK_PROCPS))                              \
+	                 -ccopt -g                                                        \
+	                 -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                \
+	                 -ccopt -lsecp256k1                                               \
+	                 $(LLVM_KOMPILE_OPTS)
+
+# LLVM Backend (configuration: minimal)
+
+$(llvm_kompiled_bounds): $(llvm_bounds_files) $(libff_out)
+	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm              \
+	                 --syntax-module $(SYNTAX_MODULE) $(llvm_dir_bounds)/$(MAIN_DEFN_FILE).k \
+	                 --directory $(llvm_dir) -I $(llvm_dir_bounds)                           \
 	                 --hook-namespaces KRYPTO                                         \
 	                 --emit-json                                                      \
 	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                   \
@@ -198,9 +218,14 @@ all_tests = $(all_process_tests) $(ssz_tests)
 
 # Testing on LLVM Backend
 
-test: test-llvm
+test: test-llvm test-bounds
 
 test-llvm: test-python-config-llvm test-all-llvm
+
+test-bounds: test-python-config-llvm-bounds test-all-bounds
+
+test-python-config-llvm-bounds: $(llvm_kompiled_bounds)
+	python3 buildConfig.py -b llvm
 
 test-python-config-llvm: $(llvm_kompiled)
 	python3 buildConfig.py -b llvm
@@ -210,6 +235,18 @@ test-processing: $(all_process_tests:=.test)
 test-ssz: $(ssz_tests:=.test)
 
 test-all-llvm: $(all_tests:=.test)
+
+%.yaml.bounds-test: %.yaml $(llvm_kompiled_bounds)
+	python3 runTest.py parse -b llvm --test $*.yaml
+
+%.yaml.bounds-test-allow-diff: %.yaml $(llvm_kompiled_bounds)
+	python3 runTest.py parse -b llvm --test $*.yaml --allow-diff
+
+# Same as above, but invokes krun with --debug and does not halt when diff vs expected state is detected
+%.yaml.bounds-test-debug: %.yaml $(llvm_kompiled_bounds)
+	python3 runTest.py parse -b llvm --test $*.yaml --debug --allow-diff
+
+test-all-bounds: $(all_tests:=.bounds-test)
 
 %.yaml.test: %.yaml $(llvm_kompiled)
 	python3 runTest.py parse -b llvm --test $*.yaml

@@ -15,7 +15,6 @@ export PKG_CONFIG_PATH
 
 DEPS_DIR                := deps
 K_SUBMODULE             := $(abspath $(DEPS_DIR)/k)
-PANDOC_TANGLE_SUBMODULE := $(DEPS_DIR)/pandoc-tangle
 PLUGIN_SUBMODULE        := $(abspath $(DEPS_DIR)/plugin)
 
 K_RELEASE := $(K_SUBMODULE)/k-distribution/target/release/k
@@ -28,17 +27,12 @@ export PATH
 PYTHONPATH := $(K_LIB)
 export PYTHONPATH
 
-TANGLER  := $(PANDOC_TANGLE_SUBMODULE)/tangle.lua
-LUA_PATH := $(PANDOC_TANGLE_SUBMODULE)/?.lua;;
-export TANGLER
-export LUA_PATH
-
 TEST_DIR             := tests
 ETH2_TESTS_SUBMODULE := $(TEST_DIR)/eth2.0-spec-tests
 
 .PHONY: all clean                                      \
         libff libsecp256k1                             \
-        deps deps-k deps-tangle deps-plugin deps-tests \
+        deps deps-k deps-plugin deps-tests             \
         defn defn-llvm defn-haskell                    \
         build build-llvm build-haskell                 \
         test test-split test-python-config test-processing test-ssz
@@ -50,7 +44,7 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 clean-submodules:
-	rm -rf $(DEPS_DIR)/k/submodule.timestamp $(DEPS_DIR)/k/mvn.timestamp $(DEPS_DIR)/pandoc-tangle/submodule.timestamp tests/eth2.0-specs/submodule.timestamp
+	rm -rf $(DEPS_DIR)/k/submodule.timestamp $(DEPS_DIR)/k/mvn.timestamp tests/eth2.0-specs/submodule.timestamp
 	cd $(DEPS_DIR)/k         && mvn clean --quiet
 	cd $(DEPS_DIR)/secp256k1 && make distclean || true
 
@@ -100,9 +94,8 @@ $(libff_out): $(DEPS_DIR)/libff/CMakeLists.txt
 # Dependencies
 # ------------
 
-deps: deps-k deps-tangle deps-tests deps-plugin
+deps: deps-k deps-tests deps-plugin
 deps-k:      $(K_SUBMODULE)/mvn.timestamp
-deps-tangle: $(PANDOC_TANGLE_SUBMODULE)/submodule.timestamp
 deps-tests:  $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
 deps-plugin: $(PLUGIN_SUBMODULE)/make.timestamp
 

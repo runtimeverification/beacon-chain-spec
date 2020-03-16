@@ -1290,15 +1290,14 @@ def get_base_reward(state: BeaconState, index: ValidatorIndex) -> Gwei:
     effective_balance = state.validators[index].effective_balance
     return Gwei(effective_balance * BASE_REWARD_FACTOR // integer_squareroot(total_balance) // BASE_REWARDS_PER_EPOCH)
 */
-  syntax Int ::= "get_base_reward" "(" Int ")" [function]
+  syntax UInt64 ::= "get_base_reward" "(" Int ")" [function]
   rule get_base_reward(INDEX)
-       => ei(500, 3 *Int 10 ^Int 6,
-       ui(MIN_DEPOSIT_AMOUNT, MAX_EFFECTIVE_BALANCE, getValidator(INDEX).effectiveBalance) *UInt64  ci(BASE_REWARD_FACTOR)
+       => ui(MIN_DEPOSIT_AMOUNT, MAX_EFFECTIVE_BALANCE, getValidator(INDEX).effectiveBalance) *UInt64  ci(BASE_REWARD_FACTOR)
           /UInt64 ui(integer_squareroot(MAX_EFFECTIVE_BALANCE),
                      integer_squareroot(TOTAL_ETHER_SUPPLY),
                      integer_squareroot(get_total_active_balance()))
           /UInt64 ci(BASE_REWARDS_PER_EPOCH)
-       )
+
 /*
 def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence[Gwei]]:
     previous_epoch = get_previous_epoch(state)
@@ -1403,12 +1402,13 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
                        UnslashedIndices,
                        AttestingBalance,
                        #mapMapPair(Rewards => #if contains(I, UnslashedIndices)
-                                              #then Rewards[I <- ({Rewards[I]}:>Int +Int get_base_reward(I)
-                                                                  *Int AttestingBalance /Int TotalBalance)]
+                                              #then Rewards[I <- ei(0, 2 ^Int 64 -Int 1, ci({Rewards[I]}:>Int) +UInt64 get_base_reward(I)
+                                                                  *UInt64 ui(MAX_EFFECTIVE_BALANCE, MAX_ATTESTING_BALANCE, AttestingBalance)
+                                                                  /UInt64 ui(MAX_EFFECTIVE_BALANCE, TOTAL_ETHER_SUPPLY, TotalBalance))]
                                               #else Rewards
                                               #fi,
                                   Penalties => #if notBool contains(I, UnslashedIndices)
-                                               #then Penalties[I <- ({Penalties[I]}:>Int +Int get_base_reward(I))]
+                                               #then Penalties[I <- ({Penalties[I]}:>Int +Int ei(0, 2 ^Int 64 -Int 1, get_base_reward(I)))]
                                                #else Penalties
                                                #fi) )
 
@@ -1448,11 +1448,11 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
 
   // max_attester_reward = get_base_reward(state, index) - proposer_reward
   syntax Int ::= computeMaxAttReward(Int /*Proposer index*/ , Int /*proposer reward*/) [function]
-  rule computeMaxAttReward(INDEX, REWARD) => get_base_reward(INDEX) -Int REWARD
+  rule computeMaxAttReward(INDEX, REWARD) => ei(0, 2 ^Int 64 -Int 1, get_base_reward(INDEX)) -Int REWARD
 
   // proposer_reward = Gwei(get_base_reward(state, index) // PROPOSER_REWARD_QUOTIENT)
   syntax Int ::= computeProposerReward(Int /*proposer index*/) [function]
-  rule computeProposerReward(INDEX) => get_base_reward(INDEX) /Int PROPOSER_REWARD_QUOTIENT
+  rule computeProposerReward(INDEX) => ei(0, 2 ^Int 64 -Int 1, get_base_reward(INDEX)) /Int PROPOSER_REWARD_QUOTIENT
 
   /*
   attestation = min([
@@ -1516,7 +1516,7 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   // penalties[index] += Gwei(BASE_REWARDS_PER_EPOCH * get_base_reward(state, index))
   syntax Map ::= updateBasePenalties(Map, Int) [function]
   rule updateBasePenalties(Penalties, INDEX)
-       => Penalties[INDEX <- {Penalties[INDEX]}:>Int +Int (BASE_REWARDS_PER_EPOCH *Int get_base_reward(INDEX))]
+       => Penalties[INDEX <- {Penalties[INDEX]}:>Int +Int (BASE_REWARDS_PER_EPOCH *Int ei(0, 2 ^Int 64 -Int 1, get_base_reward(INDEX)))]
 
   syntax Int ::= numOfValidators() [function]
   rule [[ numOfValidators() => size(ValMap) ]]

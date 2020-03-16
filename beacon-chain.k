@@ -1318,7 +1318,9 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
         attesting_balance = get_total_balance(state, unslashed_attesting_indices)
         for index in eligible_validator_indices:
             if index in unslashed_attesting_indices:
-                rewards[index] += get_base_reward(state, index) * attesting_balance // total_balance
+                increment = EFFECTIVE_BALANCE_INCREMENT  # Factored out from balance totals to avoid uint64 overflow
+                reward_numerator = get_base_reward(state, index) * (attesting_balance // increment)
+                rewards[index] = reward_numerator // (total_balance // increment)
             else:
                 penalties[index] += get_base_reward(state, index)
 
@@ -1403,8 +1405,11 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
                        AttestingBalance,
                        #mapMapPair(Rewards => #if contains(I, UnslashedIndices)
                                               #then Rewards[I <- ei(0, 2 ^Int 64 -Int 1, ci({Rewards[I]}:>Int) +UInt64 get_base_reward(I)
-                                                                  *UInt64 ui(MAX_EFFECTIVE_BALANCE, MAX_ATTESTING_BALANCE, AttestingBalance)
-                                                                  /UInt64 ui(MAX_EFFECTIVE_BALANCE, TOTAL_ETHER_SUPPLY, TotalBalance))]
+                                                                  *UInt64 ( ui(MAX_EFFECTIVE_BALANCE, MAX_ATTESTING_BALANCE, AttestingBalance)
+                                                                  /UInt64 ci(EFFECTIVE_BALANCE_INCREMENT))
+                                                                  /UInt64 ( ui(MAX_EFFECTIVE_BALANCE, TOTAL_ETHER_SUPPLY, TotalBalance)
+                                                                  /UInt64 ci(EFFECTIVE_BALANCE_INCREMENT)))
+                                                                  ]
                                               #else Rewards
                                               #fi,
                                   Penalties => #if notBool contains(I, UnslashedIndices)

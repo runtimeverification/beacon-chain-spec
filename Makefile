@@ -172,7 +172,7 @@ $(llvm_kompiled): $(llvm_files) $(libff_out)
 	                 -ccopt -lsecp256k1                                               \
 	                 $(LLVM_KOMPILE_OPTS)
 
-# LLVM Backend (configuration: minimal)
+# LLVM Backend (configuration: bounds-check)
 
 $(llvm_kompiled_bounds): $(llvm_bounds_files) $(libff_out)
 	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm              \
@@ -222,7 +222,7 @@ test: test-llvm test-bounds
 
 test-llvm: test-python-config-llvm test-all-llvm
 
-test-bounds: test-python-config-llvm-bounds test-all-bounds
+test-bounds: test-python-config-llvm-bounds test-epoch-processing-bounds
 
 test-python-config-llvm-bounds: $(llvm_kompiled_bounds)
 	python3 buildConfig.py -b llvm
@@ -246,7 +246,7 @@ test-all-llvm: $(all_tests:=.test)
 %.yaml.bounds-test-debug: %.yaml $(llvm_kompiled_bounds)
 	python3 runTest.py parse -b llvm --test $*.yaml --debug --allow-diff
 
-test-all-bounds: $(all_tests:=.bounds-test)
+test-epoch-processing-bounds: tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/rewards_and_penalties/pyspec_tests/attestations_some_slashed/pre.yaml.bounds-test
 
 %.yaml.test: %.yaml $(llvm_kompiled)
 	python3 runTest.py parse -b llvm --test $*.yaml

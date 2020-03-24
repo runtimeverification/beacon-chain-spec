@@ -177,7 +177,7 @@ $(llvm_kompiled): $(llvm_files) $(libff_out)
 $(llvm_kompiled_bounds): $(llvm_bounds_files) $(libff_out)
 	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm              \
 	                 --syntax-module $(SYNTAX_MODULE) $(llvm_dir_bounds)/$(MAIN_DEFN_FILE).k \
-	                 --directory $(llvm_dir) -I $(llvm_dir_bounds)                           \
+	                 --directory $(llvm_dir_bounds) -I $(llvm_dir_bounds)                           \
 	                 --hook-namespaces KRYPTO                                         \
 	                 --emit-json                                                      \
 	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                   \

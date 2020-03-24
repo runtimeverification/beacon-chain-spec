@@ -150,6 +150,7 @@ KOMPILE_OPTS      ?=
 LLVM_KOMPILE_OPTS := $(KOMPILE_OPTS)
 
 llvm_kompiled    := $(llvm_dir_minimal)/$(MAIN_DEFN_FILE)-kompiled/interpreter
+llvm_kompiled_bounds    := $(llvm_dir_bounds)/$(MAIN_DEFN_FILE)-kompiled/interpreter
 haskell_kompiled := $(haskell_dir)/$(MAIN_DEFN_FILE)-kompiled/definition.kore
 
 build: build-llvm build-haskell
@@ -225,10 +226,10 @@ test-llvm: test-python-config-llvm test-all-llvm
 test-bounds: test-python-config-llvm-bounds test-epoch-processing-bounds
 
 test-python-config-llvm-bounds: $(llvm_kompiled_bounds)
-	python3 buildConfig.py -b llvm
+	python3 buildConfig.py -b llvm-bounds
 
 test-python-config-llvm: $(llvm_kompiled)
-	python3 buildConfig.py -b llvm
+	python3 buildConfig.py -b llvm-minimal
 
 test-processing: $(all_process_tests:=.test)
 
@@ -237,26 +238,26 @@ test-ssz: $(ssz_tests:=.test)
 test-all-llvm: $(all_tests:=.test)
 
 %.yaml.bounds-test: %.yaml $(llvm_kompiled_bounds)
-	python3 runTest.py parse -b llvm --test $*.yaml
+	python3 runTest.py parse -b llvm-bounds --test $*.yaml
 
 %.yaml.bounds-test-allow-diff: %.yaml $(llvm_kompiled_bounds)
-	python3 runTest.py parse -b llvm --test $*.yaml --allow-diff
+	python3 runTest.py parse -b llvm-bounds --test $*.yaml --allow-diff
 
 # Same as above, but invokes krun with --debug and does not halt when diff vs expected state is detected
 %.yaml.bounds-test-debug: %.yaml $(llvm_kompiled_bounds)
-	python3 runTest.py parse -b llvm --test $*.yaml --debug --allow-diff
+	python3 runTest.py parse -b llvm-bounds --test $*.yaml --debug --allow-diff
 
 test-epoch-processing-bounds: tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/rewards_and_penalties/pyspec_tests/attestations_some_slashed/pre.yaml.bounds-test
 
 %.yaml.test: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse -b llvm --test $*.yaml
+	python3 runTest.py parse -b llvm-minimal --test $*.yaml
 
 %.yaml.test-allow-diff: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse -b llvm --test $*.yaml --allow-diff
+	python3 runTest.py parse -b llvm-minimal --test $*.yaml --allow-diff
 
 # Same as above, but invokes krun with --debug and does not halt when diff vs expected state is detected
 %.yaml.test-debug: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse -b llvm --test $*.yaml --debug --allow-diff
+	python3 runTest.py parse -b llvm-minimal --test $*.yaml --debug --allow-diff
 
 # Testing on Haskell Backend
 

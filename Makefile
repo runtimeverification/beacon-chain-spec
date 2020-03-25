@@ -122,7 +122,7 @@ MAIN_DEFN_FILE := beacon-chain
 
 k_files := $(MAIN_DEFN_FILE).k hash-tree.k types.k config.k constants-minimal.k uint64.k
 
-bounds_files := $(MAIN_DEFN_FILE).k hash-tree.k types.k config.k constants-bounds-check.k uint64.k
+bounds_files := $(MAIN_DEFN_FILE).k hash-tree.k types.k config.k uint64.k constants-minimal.k
 
 llvm_dir_minimal  := $(DEFN_DIR)/llvm-minimal
 llvm_dir_bounds   := $(DEFN_DIR)/llvm-bounds
@@ -136,8 +136,16 @@ defn: llvm-defn haskell-defn
 defn-llvm:    $(llvm_files)
 defn-haskell: $(haskell_files)
 
-$(llvm_dir_minimal)/%.k: %.k
+$(llvm_dir_minimal)/%.k: $(k_files)
 	@mkdir -p $(llvm_dir_minimal)
+	cp $< $@
+
+$(llvm_dir_bounds)/constants-minimal.k: constants-bounds-check.k
+	@mkdir -p $(llvm_dir_bounds)
+	cp $< $@
+
+$(llvm_dir_bounds)/%.k: %.k
+	@mkdir -p $(llvm_dir_bounds)
 	cp $< $@
 
 $(haskell_dir)/%.k: %.k

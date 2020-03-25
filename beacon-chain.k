@@ -1292,11 +1292,11 @@ def get_base_reward(state: BeaconState, index: ValidatorIndex) -> Gwei:
 */
   syntax UInt64 ::= "get_base_reward" "(" Int ")" [function]
   rule get_base_reward(INDEX)
-       => ui(0, MAX_EFFECTIVE_BALANCE, getValidator(INDEX).effectiveBalance) *UInt64  ci(BASE_REWARD_FACTOR)
+       => ensureBounds(0, 3 *Int 10 ^Int 7, ui(0, MAX_EFFECTIVE_BALANCE, getValidator(INDEX).effectiveBalance) *UInt64  ci(BASE_REWARD_FACTOR)
           /UInt64 ui(integer_squareroot(EFFECTIVE_BALANCE_INCREMENT),
                      integer_squareroot(TOTAL_ETHER_SUPPLY),
                      integer_squareroot(get_total_active_balance()))
-          /UInt64 ci(BASE_REWARDS_PER_EPOCH)
+          /UInt64 ci(BASE_REWARDS_PER_EPOCH))
 
 /*
 def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence[Gwei]]:
@@ -1406,16 +1406,22 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
                        UnslashedIndices,
                        AttestingBalance,
                        #mapMapPair(Rewards => #if contains(I, UnslashedIndices)
-                                              #then Rewards[I <- ei(0, 2 ^Int 64 -Int 1, ci({Rewards[I]}:>Int) +UInt64 get_base_reward(I)
-                                                                  *UInt64 ( ui(0, TOTAL_ETHER_SUPPLY, AttestingBalance)
-                                                                  /UInt64 ci(EFFECTIVE_BALANCE_INCREMENT))
-                                                                  /UInt64 ( ui(EFFECTIVE_BALANCE_INCREMENT, TOTAL_ETHER_SUPPLY, TotalBalance)
-                                                                  /UInt64 ci(EFFECTIVE_BALANCE_INCREMENT)))
-                                                                  ]
+                                              #then Rewards[I <- ei(0, 2 ^Int 64 -Int 1, ui(0,
+                                                 //max bound of Rewards[i]
+                                                 MAX_ATTESTATIONS *Int MAX_SLOTS_PER_EPOCH *Int 3 *Int (3 *Int 10 ^Int 7),
+                                                 {Rewards[I]}:>Int) +UInt64 get_base_reward(I)
+                                                                     *UInt64 ( ui(0, TOTAL_ETHER_SUPPLY, AttestingBalance)
+                                                                     /UInt64 ci(EFFECTIVE_BALANCE_INCREMENT))
+                                                                     /UInt64 ( ui(EFFECTIVE_BALANCE_INCREMENT, TOTAL_ETHER_SUPPLY, TotalBalance)
+                                                                     /UInt64 ci(EFFECTIVE_BALANCE_INCREMENT)))
+                                                                     ]
                                               #else Rewards
                                               #fi,
                                   Penalties => #if notBool contains(I, UnslashedIndices)
-                                               #then Penalties[I <- ei(0, 2 ^Int 64 -Int 1, (ci({Penalties[I]}:>Int) +UInt64 get_base_reward(I)))]
+                                               #then Penalties[I <- ei(0, 2 ^Int 64 -Int 1, ui(0,
+                                                  //max bound of Rewards[i]
+                                                  MAX_ATTESTATIONS *Int MAX_SLOTS_PER_EPOCH *Int 3 *Int (3 *Int 10 ^Int 7),
+                                                  {Penalties[I]}:>Int) +UInt64 get_base_reward(I))]
                                                #else Penalties
                                                #fi) )
 
@@ -1523,7 +1529,8 @@ def get_attestation_deltas(state: BeaconState) -> Tuple[Sequence[Gwei], Sequence
   // penalties[index] += Gwei(BASE_REWARDS_PER_EPOCH * get_base_reward(state, index))
   syntax Map ::= updateBasePenalties(Map, Int) [function]
   rule updateBasePenalties(Penalties, INDEX)
-       => Penalties[INDEX <- ei(0, 2 ^Int 64 -Int 1, ci({Penalties[INDEX]}:>Int) +UInt64 (ci(BASE_REWARDS_PER_EPOCH) *UInt64 get_base_reward(INDEX)))]
+       => Penalties[INDEX <- ei(0, 2 ^Int 64 -Int 1, ui(0, MAX_ATTESTATIONS *Int MAX_SLOTS_PER_EPOCH *Int 3 *Int (3 *Int 10 ^Int 7),
+          {Penalties[INDEX]}:>Int) +UInt64 (ci(BASE_REWARDS_PER_EPOCH) *UInt64 get_base_reward(INDEX)))]
 
   syntax Int ::= numOfValidators() [function]
   rule [[ numOfValidators() => size(ValMap) ]]

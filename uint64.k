@@ -9,6 +9,9 @@ syntax UInt64 ::= #uint64(Int, Int, Int) // {min, max} bounds, value (64-bit)
 syntax UInt64 ::= ui(Int, Int, Int) [function]
 rule ui(L, U, V) => #uint64(L, U, V) requires 0 <=Int L andBool L <=Int V andBool V <=Int U andBool U <Int 2 ^Int 64
 
+syntax UInt64 ::= ensureBounds(Int, Int, UInt64) [function]
+rule ensureBounds(L, U, #uint64(L0, U0, V)) => #uint64(L0, U0, V) requires L <=Int L0 andBool U0 <=Int U
+
 // arithmetic
 syntax UInt64 ::= left: // no functional, no hook
                 UInt64 "*UInt64" UInt64 [function, left, klabel(_*UInt64_), smtlib(mulUInt64)]

@@ -70,6 +70,8 @@ module CONSTANTS
   rule MIN_ATTESTATION_INCLUSION_DELAY => 1                   [macro]
   syntax Int ::= "SLOTS_PER_EPOCH"
   rule SLOTS_PER_EPOCH => 8                                   [macro]
+  syntax Int ::= "MAX_SLOTS_PER_EPOCH"
+  rule MAX_SLOTS_PER_EPOCH => 8                               [macro]
   syntax Int ::= "MIN_SEED_LOOKAHEAD"
   rule MIN_SEED_LOOKAHEAD => 1                                [macro]
   syntax Int ::= "MAX_SEED_LOOKAHEAD"

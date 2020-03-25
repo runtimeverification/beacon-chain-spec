@@ -136,7 +136,7 @@ defn: llvm-defn haskell-defn
 defn-llvm:    $(llvm_files)
 defn-haskell: $(haskell_files)
 
-$(llvm_dir_minimal)/%.k: $(k_files)
+$(llvm_dir_minimal)/%.k: %.k
 	@mkdir -p $(llvm_dir_minimal)
 	cp $< $@
 

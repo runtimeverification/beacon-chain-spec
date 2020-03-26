@@ -15,7 +15,6 @@ export PKG_CONFIG_PATH
 
 DEPS_DIR                := deps
 K_SUBMODULE             := $(abspath $(DEPS_DIR)/k)
-PANDOC_TANGLE_SUBMODULE := $(DEPS_DIR)/pandoc-tangle
 PLUGIN_SUBMODULE        := $(abspath $(DEPS_DIR)/plugin)
 
 K_RELEASE := $(K_SUBMODULE)/k-distribution/target/release/k
@@ -28,17 +27,12 @@ export PATH
 PYTHONPATH := $(K_LIB)
 export PYTHONPATH
 
-TANGLER  := $(PANDOC_TANGLE_SUBMODULE)/tangle.lua
-LUA_PATH := $(PANDOC_TANGLE_SUBMODULE)/?.lua;;
-export TANGLER
-export LUA_PATH
-
 TEST_DIR             := tests
 ETH2_TESTS_SUBMODULE := $(TEST_DIR)/eth2.0-spec-tests
 
 .PHONY: all clean                                      \
         libff libsecp256k1                             \
-        deps deps-k deps-tangle deps-plugin deps-tests \
+        deps deps-k deps-plugin deps-tests             \
         defn defn-llvm defn-haskell                    \
         build build-llvm build-haskell                 \
         test test-split test-python-config test-processing test-ssz
@@ -50,7 +44,7 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 clean-submodules:
-	rm -rf $(DEPS_DIR)/k/submodule.timestamp $(DEPS_DIR)/k/mvn.timestamp $(DEPS_DIR)/pandoc-tangle/submodule.timestamp tests/eth2.0-specs/submodule.timestamp
+	rm -rf $(DEPS_DIR)/k/submodule.timestamp $(DEPS_DIR)/k/mvn.timestamp tests/eth2.0-specs/submodule.timestamp
 	cd $(DEPS_DIR)/k         && mvn clean --quiet
 	cd $(DEPS_DIR)/secp256k1 && make distclean || true
 
@@ -100,9 +94,8 @@ $(libff_out): $(DEPS_DIR)/libff/CMakeLists.txt
 # Dependencies
 # ------------
 
-deps: deps-k deps-tangle deps-tests deps-plugin
+deps: deps-k deps-tests deps-plugin
 deps-k:      $(K_SUBMODULE)/mvn.timestamp
-deps-tangle: $(PANDOC_TANGLE_SUBMODULE)/submodule.timestamp
 deps-tests:  $(ETH2_TESTS_SUBMODULE)/submodule.timestamp
 deps-plugin: $(PLUGIN_SUBMODULE)/make.timestamp
 
@@ -127,10 +120,14 @@ MAIN_DEFN_FILE := beacon-chain
 
 # Generate definitions from source files
 
-k_files := $(MAIN_DEFN_FILE).k beacon-chain.k hash-tree.k types.k config.k constants-minimal.k
+k_files := $(MAIN_DEFN_FILE).k hash-tree.k types.k config.k constants-minimal.k uint64.k
 
-llvm_dir   := $(DEFN_DIR)/llvm
-llvm_files := $(patsubst %,$(llvm_dir)/%,$(k_files))
+bounds_files := $(MAIN_DEFN_FILE).k hash-tree.k types.k config.k uint64.k constants-minimal.k
+
+llvm_dir_minimal  := $(DEFN_DIR)/llvm-minimal
+llvm_dir_bounds   := $(DEFN_DIR)/llvm-bounds
+llvm_files        := $(patsubst %,$(llvm_dir_minimal)/%,$(k_files))
+llvm_bounds_files := $(patsubst %,$(llvm_dir_bounds)/%,$(bounds_files))
 
 haskell_dir   := $(DEFN_DIR)/haskell
 haskell_files := $(patsubst %,$(haskell_dir)/%,$(k_files))
@@ -139,8 +136,16 @@ defn: llvm-defn haskell-defn
 defn-llvm:    $(llvm_files)
 defn-haskell: $(haskell_files)
 
-$(llvm_dir)/%.k: %.k
-	@mkdir -p $(llvm_dir)
+$(llvm_dir_minimal)/%.k: %.k
+	@mkdir -p $(llvm_dir_minimal)
+	cp $< $@
+
+$(llvm_dir_bounds)/constants-minimal.k: constants-bounds-check.k
+	@mkdir -p $(llvm_dir_bounds)
+	cp $< $@
+
+$(llvm_dir_bounds)/%.k: %.k
+	@mkdir -p $(llvm_dir_bounds)
 	cp $< $@
 
 $(haskell_dir)/%.k: %.k
@@ -152,19 +157,36 @@ $(haskell_dir)/%.k: %.k
 KOMPILE_OPTS      ?=
 LLVM_KOMPILE_OPTS := $(KOMPILE_OPTS)
 
-llvm_kompiled    := $(llvm_dir)/$(MAIN_DEFN_FILE)-kompiled/interpreter
+llvm_kompiled    := $(llvm_dir_minimal)/$(MAIN_DEFN_FILE)-kompiled/interpreter
+llvm_kompiled_bounds    := $(llvm_dir_bounds)/$(MAIN_DEFN_FILE)-kompiled/interpreter
 haskell_kompiled := $(haskell_dir)/$(MAIN_DEFN_FILE)-kompiled/definition.kore
 
 build: build-llvm build-haskell
 build-llvm:    $(llvm_kompiled)
 build-haskell: $(haskell_kompiled)
 
-# LLVM Backend
+# LLVM Backend (configuration: minimal)
 
 $(llvm_kompiled): $(llvm_files) $(libff_out)
 	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm              \
-	                 --syntax-module $(SYNTAX_MODULE) $(llvm_dir)/$(MAIN_DEFN_FILE).k \
-	                 --directory $(llvm_dir) -I $(llvm_dir)                           \
+	                 --syntax-module $(SYNTAX_MODULE) $(llvm_dir_minimal)/$(MAIN_DEFN_FILE).k \
+	                 --directory $(llvm_dir_minimal) -I $(llvm_dir_minimal)                           \
+	                 --hook-namespaces KRYPTO                                         \
+	                 --emit-json                                                      \
+	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                   \
+	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp            \
+	                 $(addprefix -ccopt ,$(LINK_PROCPS))                              \
+	                 -ccopt -g                                                        \
+	                 -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                \
+	                 -ccopt -lsecp256k1                                               \
+	                 $(LLVM_KOMPILE_OPTS)
+
+# LLVM Backend (configuration: bounds-check)
+
+$(llvm_kompiled_bounds): $(llvm_bounds_files) $(libff_out)
+	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm              \
+	                 --syntax-module $(SYNTAX_MODULE) $(llvm_dir_bounds)/$(MAIN_DEFN_FILE).k \
+	                 --directory $(llvm_dir_bounds) -I $(llvm_dir_bounds)                           \
 	                 --hook-namespaces KRYPTO                                         \
 	                 --emit-json                                                      \
 	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                   \
@@ -205,12 +227,17 @@ all_tests = $(all_process_tests) $(ssz_tests)
 
 # Testing on LLVM Backend
 
-test: test-llvm
+test: test-llvm test-bounds
 
 test-llvm: test-python-config-llvm test-all-llvm
 
+test-bounds: test-python-config-llvm-bounds test-epoch-processing-bounds
+
+test-python-config-llvm-bounds: $(llvm_kompiled_bounds)
+	python3 buildConfig.py -b llvm-bounds
+
 test-python-config-llvm: $(llvm_kompiled)
-	python3 buildConfig.py -b llvm
+	python3 buildConfig.py -b llvm-minimal
 
 test-processing: $(all_process_tests:=.test)
 
@@ -218,15 +245,27 @@ test-ssz: $(ssz_tests:=.test)
 
 test-all-llvm: $(all_tests:=.test)
 
+%.yaml.bounds-test: %.yaml $(llvm_kompiled_bounds)
+	python3 runTest.py parse -b llvm-bounds --test $*.yaml
+
+%.yaml.bounds-test-allow-diff: %.yaml $(llvm_kompiled_bounds)
+	python3 runTest.py parse -b llvm-bounds --test $*.yaml --allow-diff
+
+# Same as above, but invokes krun with --debug and does not halt when diff vs expected state is detected
+%.yaml.bounds-test-debug: %.yaml $(llvm_kompiled_bounds)
+	python3 runTest.py parse -b llvm-bounds --test $*.yaml --debug --allow-diff
+
+test-epoch-processing-bounds: tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/rewards_and_penalties/pyspec_tests/attestations_some_slashed/pre.yaml.bounds-test
+
 %.yaml.test: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse -b llvm --test $*.yaml
+	python3 runTest.py parse -b llvm-minimal --test $*.yaml
 
 %.yaml.test-allow-diff: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse -b llvm --test $*.yaml --allow-diff
+	python3 runTest.py parse -b llvm-minimal --test $*.yaml --allow-diff
 
 # Same as above, but invokes krun with --debug and does not halt when diff vs expected state is detected
 %.yaml.test-debug: %.yaml $(llvm_kompiled)
-	python3 runTest.py parse -b llvm --test $*.yaml --debug --allow-diff
+	python3 runTest.py parse -b llvm-minimal --test $*.yaml --debug --allow-diff
 
 # Testing on Haskell Backend
 

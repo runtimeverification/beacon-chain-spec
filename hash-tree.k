@@ -245,20 +245,6 @@ def chunkify(bytez):
   rule merkleMergeLoop(H => hashConcat({TMP[J]}:>Bytes, H), I, COUNT, DEPTH, TMP, J => J +Int 1)
     requires notBool (I &Int (1 <<Int J) ==Int 0)
 
-/* def is_bottom_layer_kind(typ: SSZType):
-    return (
-        isinstance(typ, BasicType) or
-        (issubclass(typ, Elements) and isinstance(typ.elem_type, BasicType))
-    )
-*/
-  syntax Bool ::= "is_bottom_layer_kind" "(" ValueOrList ")"          [function]
-  rule is_bottom_layer_kind(_:BasicValue) => true
-  rule is_bottom_layer_kind(_:Bytes) => true
-  rule is_bottom_layer_kind(_:IntList) => true
-  rule is_bottom_layer_kind(_:BitList) => true
-
-  rule is_bottom_layer_kind(_) => false                               [owise]
-
 /* def hash_tree_root(obj: SSZValue):
     if isinstance(obj, Series):
         if is_bottom_layer_kind(obj.type()):

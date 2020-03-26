@@ -43,13 +43,23 @@ module CONSTANTS
   // Configuration -- Gwei values
   //====================================================
   syntax Int ::= "MIN_DEPOSIT_AMOUNT"
-  rule MIN_DEPOSIT_AMOUNT => 1000000000                       [macro]
+  rule MIN_DEPOSIT_AMOUNT => 2 ^Int 0 *Int 10 ^Int 9          [macro]
+
   syntax Int ::= "MAX_EFFECTIVE_BALANCE"
-  rule MAX_EFFECTIVE_BALANCE => 32000000000                   [macro]
+  rule MAX_EFFECTIVE_BALANCE => 2 ^Int 5 *Int 10 ^Int 9       [macro]
+
+  // syntax Int ::= "MIN_DEPOSIT_AMOUNT"
+  // rule MIN_DEPOSIT_AMOUNT => 1000000000                       [macro]
+  // syntax Int ::= "MAX_EFFECTIVE_BALANCE"
+  // rule MAX_EFFECTIVE_BALANCE => 32000000000                   [macro]
   syntax Int ::= "EJECTION_BALANCE"
-  rule EJECTION_BALANCE => 16000000000                        [macro]
+  rule EJECTION_BALANCE => 2 ^Int 4 *Int 10 ^Int 9            [macro]
+  // syntax Int ::= "EJECTION_BALANCE"
+  // rule EJECTION_BALANCE => 16000000000                        [macro]
   syntax Int ::= "EFFECTIVE_BALANCE_INCREMENT"
-  rule EFFECTIVE_BALANCE_INCREMENT => 1000000000              [macro]
+  rule EFFECTIVE_BALANCE_INCREMENT => 2 ^Int 0 *Int 10 ^Int 9 [macro]
+  // syntax Int ::= "EFFECTIVE_BALANCE_INCREMENT"
+  // rule EFFECTIVE_BALANCE_INCREMENT => 1000000000              [macro]
 
   // Configuration -- Initial values
   //====================================================
@@ -71,7 +81,7 @@ module CONSTANTS
   syntax Int ::= "SLOTS_PER_EPOCH"
   rule SLOTS_PER_EPOCH => 8                                   [macro]
   syntax Int ::= "MAX_SLOTS_PER_EPOCH"
-  rule MAX_SLOTS_PER_EPOCH => 8                               [macro]
+  rule MAX_SLOTS_PER_EPOCH => 32                              [macro]
   syntax Int ::= "MIN_SEED_LOOKAHEAD"
   rule MIN_SEED_LOOKAHEAD => 1                                [macro]
   syntax Int ::= "MAX_SEED_LOOKAHEAD"
@@ -109,7 +119,9 @@ module CONSTANTS
   // Configuration -- Rewards and penalties
   //====================================================
   syntax Int ::= "BASE_REWARD_FACTOR"
-  rule BASE_REWARD_FACTOR => 64                               [macro]
+  rule BASE_REWARD_FACTOR => 2 ^Int 6                         [macro]
+  // syntax Int ::= "BASE_REWARD_FACTOR"
+  // rule BASE_REWARD_FACTOR => 64                               [macro]
   syntax Int ::= "WHISTLEBLOWER_REWARD_QUOTIENT"
   rule WHISTLEBLOWER_REWARD_QUOTIENT => 512                   [macro]
   syntax Int ::= "PROPOSER_REWARD_QUOTIENT"
@@ -160,10 +172,8 @@ module CONSTANTS
   syntax Int ::= "SECONDS_PER_ETH1_BLOCK"
   rule SECONDS_PER_ETH1_BLOCK => 14                           [macro]
 
-  // for bounds checking
+  // added for bounds checking
   syntax Int ::= "TOTAL_ETHER_SUPPLY"
-  rule TOTAL_ETHER_SUPPLY => 10 ^Int 6 *Int 10 ^Int 9         [macro]
+  rule TOTAL_ETHER_SUPPLY => 10 ^Int 10 *Int 10 ^Int 9         [macro]
 
-
-//TODO: Some phase 1 stuff here
 endmodule

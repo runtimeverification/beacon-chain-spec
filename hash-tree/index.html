@@ -91,7 +91,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#hash"><code class="docutils literal notranslate"><span class="pre">hash</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#serialize-basic"><code class="docutils literal notranslate"><span class="pre">serialize_basic</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#merkleize-chunks"><code class="docutils literal notranslate"><span class="pre">merkleize_chunks</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#is-bottom-layer-kind"><code class="docutils literal notranslate"><span class="pre">is_bottom_layer_kind</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#hash-tree-root"><code class="docutils literal notranslate"><span class="pre">hash_tree_root</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#mix-in-length"><code class="docutils literal notranslate"><span class="pre">mix_in_length</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#chunk-count"><code class="docutils literal notranslate"><span class="pre">chunk_count</span></code></a></li>
@@ -472,28 +471,6 @@ Input `String` is interpreted as byte array, e.g. it is NOT hex-encoded.
 
 <span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">merkleMergeLoop</span><span class="p">(</span><span class="nv">H</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nv">hashConcat</span><span class="p">({</span><span class="nv">TMP</span><span class="p">[</span><span class="nv">J</span><span class="p">]}:&gt;</span><span class="nv">Bytes</span><span class="p">,</span><span class="w"> </span><span class="nv">H</span><span class="p">),</span><span class="w"> </span><span class="nv">I</span><span class="p">,</span><span class="w"> </span><span class="nv">COUNT</span><span class="p">,</span><span class="w"> </span><span class="nv">DEPTH</span><span class="p">,</span><span class="w"> </span><span class="nv">TMP</span><span class="p">,</span><span class="w"> </span><span class="nv">J</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nv">J</span><span class="w"> </span><span class="err">+</span><span class="nv">Int</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"></span>
 <span class="w">    </span><span class="nv">requires</span><span class="w"> </span><span class="nv">notBool</span><span class="w"> </span><span class="p">(</span><span class="nv">I</span><span class="w"> </span><span class="err">&amp;</span><span class="nv">Int</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="err">&lt;&lt;</span><span class="nv">Int</span><span class="w"> </span><span class="nv">J</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="nv">Int</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"></span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="is-bottom-layer-kind">
-<span id="is-bottom-layer-kind"></span><h2><code class="docutils literal notranslate"><span class="pre">is_bottom_layer_kind</span></code><a class="headerlink" href="#is-bottom-layer-kind" title="Permalink to this headline">¶</a></h2>
-<p>Python reference:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">is_bottom_layer_kind</span><span class="p">(</span><span class="n">typ</span><span class="p">:</span> <span class="n">SSZType</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">(</span>
-        <span class="nb">isinstance</span><span class="p">(</span><span class="n">typ</span><span class="p">,</span> <span class="n">BasicType</span><span class="p">)</span> <span class="ow">or</span>
-        <span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">typ</span><span class="p">,</span> <span class="n">Elements</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">typ</span><span class="o">.</span><span class="n">elem_type</span><span class="p">,</span> <span class="n">BasicType</span><span class="p">))</span>
-    <span class="p">)</span>
-
-</pre></div>
-</div>
-<p>K semantics:</p>
-<div class="highlight-k notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="kd">syntax</span><span class="w"> </span><span class="nv">Bool</span><span class="w"> </span><span class="p">::=</span><span class="w"> </span><span class="s">&quot;is_bottom_layer_kind&quot;</span><span class="w"> </span><span class="s">&quot;(&quot;</span><span class="w"> </span><span class="nv">ValueOrList</span><span class="w"> </span><span class="s">&quot;)&quot;</span><span class="w">          </span><span class="p">[</span><span class="nv">function</span><span class="p">]</span><span class="w"></span>
-<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">is_bottom_layer_kind</span><span class="p">(</span><span class="nv">_</span><span class="p">:</span><span class="nv">BasicValue</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nv">true</span><span class="w"></span>
-<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">is_bottom_layer_kind</span><span class="p">(</span><span class="nv">_</span><span class="p">:</span><span class="nv">Bytes</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nv">true</span><span class="w"></span>
-<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">is_bottom_layer_kind</span><span class="p">(</span><span class="nv">_</span><span class="p">:</span><span class="nv">IntList</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nv">true</span><span class="w"></span>
-<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">is_bottom_layer_kind</span><span class="p">(</span><span class="nv">_</span><span class="p">:</span><span class="nv">BitList</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nv">true</span><span class="w"></span>
-
-<span class="w">  </span><span class="kd">rule</span><span class="w"> </span><span class="nv">is_bottom_layer_kind</span><span class="p">(</span><span class="nv">_</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nv">false</span><span class="w">                               </span><span class="p">[</span><span class="nv">owise</span><span class="p">]</span><span class="w"></span>
 </pre></div>
 </div>
 </div>

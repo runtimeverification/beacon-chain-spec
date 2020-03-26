@@ -343,32 +343,6 @@ K semantics:
 
 
 
-"is_bottom_layer_kind"
-======================
-
-Python reference:
-
-   def is_bottom_layer_kind(typ: SSZType):
-       return (
-           isinstance(typ, BasicType) or
-           (issubclass(typ, Elements) and isinstance(typ.elem_type, BasicType))
-       )
-
-
-K semantics:
-
-
-     syntax Bool ::= "is_bottom_layer_kind" "(" ValueOrList ")"          [function]
-     rule is_bottom_layer_kind(_:BasicValue) => true
-     rule is_bottom_layer_kind(_:Bytes) => true
-     rule is_bottom_layer_kind(_:IntList) => true
-     rule is_bottom_layer_kind(_:BitList) => true
-
-     rule is_bottom_layer_kind(_) => false                               [owise]
-
-
-
-
 "hash_tree_root"
 ================
 

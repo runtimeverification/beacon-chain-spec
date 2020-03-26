@@ -869,13 +869,6 @@ K semantics:
     requires A =/=Int 0
   rule bit_length(0) => 0
 
-  syntax Int ::= sum( IntList ) [function]
-  rule sum( IL ) => sumAux(IL, 0)
-
-  syntax Int ::= sumAux( IntList, Int ) [function]
-  rule sumAux(I:Int IL => IL, S => S +Int I)
-  rule sumAux(.IntList, S) => S
-
   syntax Int ::= maxAux ( IntList )       [function, klabel(maxAux)]
                | maxAux ( IntList , Int ) [function, klabel(maxAux2)]
   rule maxAux( I:Int IL ) => maxAux(IL, I)
@@ -899,11 +892,6 @@ K semantics:
   rule strictlyMinIndex(I IL, M) => I requires I <Int M
   rule strictlyMinIndex(I IL, M) => M requires M <Int I
   rule strictlyMinIndex(.IntList, M) => M
-
-  // Note: If listExcept(IL, I) removes every occurrence of I in IL, then difference here will do the same
-  syntax IntList ::= listDiff(IntList, IntList)                       [function]
-  rule listDiff(IL => listExcept(IL, I), I IL2 => IL2)
-  rule listDiff(IL, .IntList) => IL
 
   syntax Bool ::= contains( Int, IntList )                            [function]
   rule contains(A, A IL ) => true

@@ -153,8 +153,6 @@ Start by choosing any section below or in the sidebar.
 
   * "merkleize_chunks"
 
-  * "is_bottom_layer_kind"
-
   * "hash_tree_root"
 
   * "mix_in_length"

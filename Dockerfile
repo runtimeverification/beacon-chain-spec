@@ -6,6 +6,7 @@ RUN    sudo apt-get update                      \
     && sudo apt-get install --yes               \
                             cmake               \
                             git-lfs             \
+                            libprocps-dev       \
                             libssl-dev          \
                             pandoc              \
                             pkg-config          \

@@ -1,18 +1,18 @@
 ARG K_COMMIT
 FROM runtimeverificationinc/kframework-k:ubuntu-bionic-${K_COMMIT}
 
-RUN    apt-get update                   \
-    && apt-get upgrade --yes            \
-    && apt-get install --yes            \
-                    git-lfs             \
-                    pandoc              \
-                    python3             \
-                    python3-pip         \
-                    python-pip          \
-                    python-pygments     \
-                    python-recommonmark \
-                    python-setuptools   \
-                    python-sphinx
+RUN    sudo apt-get update                      \
+    && sudo apt-get upgrade --yes               \
+    && sudo apt-get install --yes               \
+                            git-lfs             \
+                            pandoc              \
+                            python3             \
+                            python3-pip         \
+                            python-pip          \
+                            python-pygments     \
+                            python-recommonmark \
+                            python-setuptools   \
+                            python-sphinx
 
 RUN    pip3 install -U PyYAML       \
     && pip install sphinx_rtd_theme

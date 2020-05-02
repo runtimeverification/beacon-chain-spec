@@ -8,6 +8,7 @@ RUN    sudo apt-get update                      \
                             git-lfs             \
                             libssl-dev          \
                             pandoc              \
+                            pkg-config          \
                             python3             \
                             python3-pip         \
                             python-pip          \

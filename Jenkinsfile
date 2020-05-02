@@ -1,7 +1,5 @@
 pipeline {
-  options {
-    ansiColor('xterm')
-  }
+  options { ansiColor('xterm') }
   agent {
     dockerfile {
       label 'docker'
@@ -11,33 +9,11 @@ pipeline {
   stages {
     stage('Init title') {
       when { changeRequest() }
-      steps {
-        script {
-          currentBuild.displayName = "PR ${env.CHANGE_ID}: ${env.CHANGE_TITLE}"
-        }
-      }
+      steps { script { currentBuild.displayName = "PR ${env.CHANGE_ID}: ${env.CHANGE_TITLE}" } }
     }
-    stage('Dependencies') {
-      steps {
-        sh '''
-          make test-split
-        '''
-      }
-    }
-    stage('Build') {
-      steps {
-        sh '''
-          make KOMPILE_OPTS="--coverage" build -j2
-        '''
-      }
-    }
-    stage('Test') {
-      steps {
-        sh '''
-          make test -j8
-        '''
-      }
-    }
+    stage('Build')       { steps { sh 'make KOMPILE_OPTS=--coverage build -j2' } }
+    stage('Split Tests') { steps { sh 'make test-split'                        } }
+    stage('Test')        { steps { sh 'make test -j8'                          } }
     stage('Publish to Jenkins') {
       steps {
         sh '''

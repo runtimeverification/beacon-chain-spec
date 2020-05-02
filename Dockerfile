@@ -1,30 +1,36 @@
 ARG K_COMMIT
 FROM runtimeverificationinc/kframework-k:ubuntu-bionic-${K_COMMIT}
 
-RUN    sudo apt-get update                      \
-    && sudo apt-get upgrade --yes               \
-    && sudo apt-get install --yes               \
-                            cmake               \
-                            git-lfs             \
-                            libcrypto++-dev     \
-                            libprocps-dev       \
-                            libsecp256k1-dev    \
-                            libssl-dev          \
-                            pandoc              \
-                            pkg-config          \
-                            python3             \
-                            python3-pip         \
-                            python-pip          \
-                            python-pygments     \
-                            python-recommonmark \
-                            python-setuptools   \
-                            python-sphinx
-
-USER user:user
-WORKDIR /home/user
+RUN    apt-get update                      \
+    && apt-get upgrade --yes               \
+    && apt-get install --yes               \
+                       cmake               \
+                       git-lfs             \
+                       libcrypto++-dev     \
+                       libprocps-dev       \
+                       libsecp256k1-dev    \
+                       libssl-dev          \
+                       pandoc              \
+                       pkg-config          \
+                       python3             \
+                       python3-pip         \
+                       python-pip          \
+                       python-pygments     \
+                       python-recommonmark \
+                       python-setuptools   \
+                       python-sphinx
 
 RUN    pip3 install -U PyYAML       \
     && pip install sphinx_rtd_theme
+
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+RUN    echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers    \
+    && groupadd -g $GROUP_ID user                             \
+    && useradd -m -u $USER_ID -s /bin/sh -g user -G sudo user
+
+USER user:user
+WORKDIR /home/user
 
 ADD --chown=user:user deps/k-editor-support/pygments /home/user/.pygments
 RUN cd ~/.pygments && python /usr/lib/python3/dist-packages/easy_install.py --user .

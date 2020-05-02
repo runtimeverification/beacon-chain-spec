@@ -17,8 +17,8 @@ pipeline {
     stage('Publish to Jenkins') {
       steps {
         sh '''
-          deps/k/k-distribution/target/release/k/bin/kcovr .build/defn/llvm-minimal/beacon-chain-kompiled \
-            -- .build/defn/llvm-minimal/*.k      \
+          kcovr .build/defn/llvm-minimal/beacon-chain-kompiled \
+            -- .build/defn/llvm-minimal/*.k                    \
             > coverage.xml
         '''
         cobertura coberturaReportFile: 'coverage.xml'

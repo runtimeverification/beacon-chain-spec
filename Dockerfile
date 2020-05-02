@@ -20,7 +20,7 @@ RUN    apt-get update                      \
                        python-setuptools   \
                        python-sphinx
 
-RUN    pip3 install -U PyYAML       \
+RUN    pip3 install --upgrade PyYAML \
     && pip install sphinx_rtd_theme
 
 ARG USER_ID=1000

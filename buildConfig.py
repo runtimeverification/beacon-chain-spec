@@ -71,13 +71,13 @@ def beacon_chain_symbols(backend):
     return pyk.buildSymbolTable(BEACON_CHAIN_definition)
 
 def kast(inputFile, backend, *kastArgs):
-    return pyk.kast('.build/defn/%s' % backend, inputFile, kastArgs = list(kastArgs), kRelease = 'deps/k/k-distribution/target/release/k')
+    return pyk.kast('.build/defn/%s' % backend, inputFile, kastArgs = list(kastArgs))
 
 def krun(inputFile, backend, *krunArgs):
-    return pyk.krun('.build/defn/%s' % backend, inputFile, krunArgs = list(krunArgs), kRelease = 'deps/k/k-distribution/target/release/k')
+    return pyk.krun('.build/defn/%s' % backend, inputFile, krunArgs = list(krunArgs))
 
 def krunJson(inputJson, backend, *krunArgs):
-    return pyk.krunJSON('.build/defn/%s' % backend, inputJson, krunArgs = list(krunArgs), kRelease = 'deps/k/k-distribution/target/release/k')
+    return pyk.krunJSON('.build/defn/%s' % backend, inputJson, krunArgs = list(krunArgs))
 
 def get_init_config(backend):
     init_term = { 'format': 'KAST', 'version': 1, 'term': KConstant('noop') }

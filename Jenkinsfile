@@ -2,7 +2,12 @@ pipeline {
   options {
     ansiColor('xterm')
   }
-  agent { dockerfile { } }
+  agent {
+    dockerfile {
+      label 'docker'
+      additionalBuildArgs '--build-arg K_COMMIT=$(cd deps/k && git rev-parse --short=7 HEAD)'
+    }
+  }
   stages {
     stage('Init title') {
       when { changeRequest() }
@@ -15,7 +20,6 @@ pipeline {
     stage('Dependencies') {
       steps {
         sh '''
-          make deps
           make test-split
         '''
       }

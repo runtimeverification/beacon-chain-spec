@@ -60,3 +60,13 @@ RUN cd /home/user \
 
 ENV LD_LIBRARY_PATH=/usr/local/lib
 ENV PATH=/home/user/.local/bin:/home/user/.cargo/bin:$PATH
+
+RUN    git config --global user.email 'admin@runtimeverification.com' \
+    && git config --global user.name  'RV Jenkins'                    \
+    && mkdir -p ~/.ssh                                                \
+    && echo 'host github.com'                       > ~/.ssh/config   \
+    && echo '    hostname github.com'              >> ~/.ssh/config   \
+    && echo '    user git'                         >> ~/.ssh/config   \
+    && echo '    identityagent SSH_AUTH_SOCK'      >> ~/.ssh/config   \
+    && echo '    stricthostkeychecking accept-new' >> ~/.ssh/config   \
+    && chmod go-rwx -R ~/.ssh

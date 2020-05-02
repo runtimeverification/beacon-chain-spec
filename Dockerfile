@@ -20,9 +20,6 @@ RUN    pip3 install -U PyYAML       \
 ADD --chown=user:user deps/k-editor-support/pygments /home/user/.pygments
 RUN cd ~/.pygments && python /usr/lib/python3/dist-packages/easy_install.py --user .
 
-ENV LD_LIBRARY_PATH=/usr/local/lib
-ENV PATH=/home/user/.local/bin:/home/user/.cargo/bin:$PATH
-
 RUN    git config --global user.email 'admin@runtimeverification.com' \
     && git config --global user.name  'RV Jenkins'                    \
     && mkdir -p ~/.ssh                                                \

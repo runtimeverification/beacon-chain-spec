@@ -6,6 +6,7 @@ RUN    sudo apt-get update                      \
     && sudo apt-get install --yes               \
                             cmake               \
                             git-lfs             \
+                            libssl-dev          \
                             pandoc              \
                             python3             \
                             python3-pip         \

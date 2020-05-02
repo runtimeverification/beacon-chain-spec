@@ -8,6 +8,7 @@ RUN    sudo apt-get update                      \
                             git-lfs             \
                             libcrypto++-dev     \
                             libprocps-dev       \
+                            libsecp256k1-dev    \
                             libssl-dev          \
                             pandoc              \
                             pkg-config          \

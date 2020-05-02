@@ -18,7 +18,7 @@ RUN    pip3 install -U PyYAML       \
     && pip install sphinx_rtd_theme
 
 ADD --chown=user:user deps/k-editor-support/pygments /home/user/.pygments
-RUN cd ~/.pygments && easy_install --user .
+RUN cd ~/.pygments && python /usr/lib/python3/dist-packages/easy_install.py --user .
 
 ENV LD_LIBRARY_PATH=/usr/local/lib
 ENV PATH=/home/user/.local/bin:/home/user/.cargo/bin:$PATH

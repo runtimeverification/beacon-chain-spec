@@ -17,7 +17,7 @@ RUN    sudo apt-get update                      \
 RUN    pip3 install -U PyYAML       \
     && pip install sphinx_rtd_theme
 
-ADD --chown=user:user deps/k-editor-support/pygments ~/.pygments
+ADD --chown=user:user deps/k-editor-support/pygments /home/user/.pygments
 RUN cd ~/.pygments && easy_install --user .
 
 ENV LD_LIBRARY_PATH=/usr/local/lib

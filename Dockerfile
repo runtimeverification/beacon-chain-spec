@@ -18,7 +18,7 @@ RUN    pip3 install -U PyYAML       \
     && pip install sphinx_rtd_theme
 
 RUN mkdir ~/.k-editor-support
-ADD --chown user:user deps/k-editor-support/pygments ~/.k-editor-support/
+ADD --chown=user:user deps/k-editor-support/pygments ~/.k-editor-support/
 RUN    cd ~/.k-editor-support/pygments                                \
     && python /usr/lib/python3/dist-packages/easy_install.py --user .
 

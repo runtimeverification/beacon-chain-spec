@@ -24,7 +24,7 @@ K_LIB     := $(K_RELEASE)/lib
 PATH := $(K_BIN):$(PATH)
 export PATH
 
-PYTHONPATH := $(K_LIB)
+PYTHONPATH := $(K_LIB):/usr/lib/kframework/lib
 export PYTHONPATH
 
 TEST_DIR             := tests

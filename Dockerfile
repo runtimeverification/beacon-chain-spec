@@ -4,45 +4,18 @@ FROM runtimeverificationinc/kframework-k:ubuntu-bionic-${K_COMMIT}
 RUN    apt-get update                   \
     && apt-get upgrade --yes            \
     && apt-get install --yes            \
-                    autoconf            \
-                    bison               \
-                    clang-8             \
-                    cmake               \
-                    curl                \
-                    flex                \
-                    gcc                 \
                     git-lfs             \
-                    libboost-test-dev   \
-                    libcrypto++-dev     \
-                    libffi-dev          \
-                    libjemalloc-dev     \
-                    libmpfr-dev         \
-                    libprocps-dev       \
-                    libsecp256k1-dev    \
-                    libssl-dev          \
-                    libtool             \
-                    libyaml-dev         \
-                    libz3-dev           \
-                    lld-8               \
-                    llvm-8-tools        \
-                    make                \
-                    maven               \
-                    opam                \
-                    openjdk-11-jdk      \
                     pandoc              \
-                    pkg-config          \
                     python3             \
                     python3-pip         \
                     python-pip          \
                     python-pygments     \
                     python-recommonmark \
                     python-setuptools   \
-                    python-sphinx       \
-                    z3                  \
-                    zlib1g-dev
+                    python-sphinx
 
-RUN pip3 install -U PyYAML
-RUN pip install sphinx_rtd_theme
+RUN    pip3 install -U PyYAML       \
+    && pip install sphinx_rtd_theme
 
 RUN    cd /home/user                                                      \
     && git clone --depth=1 https://github.com/kframework/k-editor-support \

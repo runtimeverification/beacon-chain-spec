@@ -30,11 +30,11 @@ export PYTHONPATH
 TEST_DIR             := tests
 ETH2_TESTS_SUBMODULE := $(TEST_DIR)/eth2.0-spec-tests
 
-.PHONY: all clean                                      \
-        libff libsecp256k1                             \
-        deps deps-k deps-plugin deps-tests             \
-        defn defn-llvm defn-haskell                    \
-        build build-llvm build-haskell                 \
+.PHONY: all clean                                        \
+        libff libsecp256k1                               \
+        deps deps-k deps-plugin deps-tests               \
+        defn defn-llvm defn-haskell                      \
+        build build-llvm build-llvm-bounds build-haskell \
         test test-split test-python-config test-processing test-ssz
 .SECONDARY:
 
@@ -161,9 +161,10 @@ llvm_kompiled    := $(llvm_dir_minimal)/$(MAIN_DEFN_FILE)-kompiled/interpreter
 llvm_kompiled_bounds    := $(llvm_dir_bounds)/$(MAIN_DEFN_FILE)-kompiled/interpreter
 haskell_kompiled := $(haskell_dir)/$(MAIN_DEFN_FILE)-kompiled/definition.kore
 
-build: build-llvm build-haskell
-build-llvm:    $(llvm_kompiled)
-build-haskell: $(haskell_kompiled)
+build: build-llvm build-haskell build-llvm-bounds
+build-llvm:        $(llvm_kompiled)
+build-llvm-bounds: $(llvm_kompiled_bounds)
+build-haskell:     $(haskell_kompiled)
 
 # LLVM Backend (configuration: minimal)
 

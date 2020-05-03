@@ -23,15 +23,15 @@ RUN    apt-get update                      \
 RUN    pip3 install --upgrade PyYAML \
     && pip install sphinx_rtd_theme
 
+ADD deps/k-editor-support/pygments /pygments
+RUN cd /pygments && easy_install . && cd .. && rm -rf /pygments
+
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 RUN groupadd -g $GROUP_ID user && useradd -m -u $USER_ID -s /bin/sh -g user user
 
 USER user:user
 WORKDIR /home/user
-
-ADD --chown=user:user deps/k-editor-support/pygments /home/user/.pygments
-RUN cd ~/.pygments && python3 /usr/lib/python3/dist-packages/easy_install.py --user .
 
 RUN    git config --global user.email 'admin@runtimeverification.com' \
     && git config --global user.name  'RV Jenkins'                    \

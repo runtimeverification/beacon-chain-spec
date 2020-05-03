@@ -31,7 +31,7 @@ USER user:user
 WORKDIR /home/user
 
 ADD --chown=user:user deps/k-editor-support/pygments /home/user/.pygments
-RUN cd ~/.pygments && python /usr/lib/python3/dist-packages/easy_install.py --user .
+RUN cd ~/.pygments && python3 /usr/lib/python3/dist-packages/easy_install.py --user .
 
 RUN    git config --global user.email 'admin@runtimeverification.com' \
     && git config --global user.name  'RV Jenkins'                    \

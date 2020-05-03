@@ -24,7 +24,7 @@ RUN    pip3 install --upgrade PyYAML \
     && pip install sphinx_rtd_theme
 
 ADD deps/k-editor-support/pygments /pygments
-RUN cd /pygments && easy_install . && cd .. && rm -rf /pygments
+RUN cd /pygments && python /usr/lib/python2.7/dist-packages/easy_install.py . && cd .. && rm -rf /pygments
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000

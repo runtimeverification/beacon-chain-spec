@@ -24,17 +24,17 @@ K_LIB     := $(K_RELEASE)/lib
 PATH := $(K_BIN):$(PATH)
 export PATH
 
-PYTHONPATH := $(K_LIB)
+PYTHONPATH := $(K_LIB):/usr/lib/kframework/lib
 export PYTHONPATH
 
 TEST_DIR             := tests
 ETH2_TESTS_SUBMODULE := $(TEST_DIR)/eth2.0-spec-tests
 
-.PHONY: all clean                                      \
-        libff libsecp256k1                             \
-        deps deps-k deps-plugin deps-tests             \
-        defn defn-llvm defn-haskell                    \
-        build build-llvm build-haskell                 \
+.PHONY: all clean                                        \
+        libff libsecp256k1                               \
+        deps deps-k deps-plugin deps-tests               \
+        defn defn-llvm defn-haskell                      \
+        build build-llvm build-llvm-bounds build-haskell \
         test test-split test-python-config test-processing test-ssz
 .SECONDARY:
 
@@ -161,50 +161,51 @@ llvm_kompiled    := $(llvm_dir_minimal)/$(MAIN_DEFN_FILE)-kompiled/interpreter
 llvm_kompiled_bounds    := $(llvm_dir_bounds)/$(MAIN_DEFN_FILE)-kompiled/interpreter
 haskell_kompiled := $(haskell_dir)/$(MAIN_DEFN_FILE)-kompiled/definition.kore
 
-build: build-llvm build-haskell
-build-llvm:    $(llvm_kompiled)
-build-haskell: $(haskell_kompiled)
+build: build-llvm build-haskell build-llvm-bounds
+build-llvm:        $(llvm_kompiled)
+build-llvm-bounds: $(llvm_kompiled_bounds)
+build-haskell:     $(haskell_kompiled)
 
 # LLVM Backend (configuration: minimal)
 
 $(llvm_kompiled): $(llvm_files) $(libff_out)
-	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm              \
-	                 --syntax-module $(SYNTAX_MODULE) $(llvm_dir_minimal)/$(MAIN_DEFN_FILE).k \
-	                 --directory $(llvm_dir_minimal) -I $(llvm_dir_minimal)                           \
-	                 --hook-namespaces KRYPTO                                         \
-	                 --emit-json                                                      \
-	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                   \
-	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp            \
-	                 $(addprefix -ccopt ,$(LINK_PROCPS))                              \
-	                 -ccopt -g                                                        \
-	                 -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                \
-	                 -ccopt -lsecp256k1                                               \
-	                 $(LLVM_KOMPILE_OPTS)
+	kompile --debug --main-module $(MAIN_MODULE) --backend llvm                      \
+	        --syntax-module $(SYNTAX_MODULE) $(llvm_dir_minimal)/$(MAIN_DEFN_FILE).k \
+	        --directory $(llvm_dir_minimal) -I $(llvm_dir_minimal)                   \
+	        --hook-namespaces KRYPTO                                                 \
+	        --emit-json                                                              \
+	        -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                           \
+	        -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp                    \
+	        $(addprefix -ccopt ,$(LINK_PROCPS))                                      \
+	        -ccopt -g                                                                \
+	        -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                        \
+	        -ccopt -lsecp256k1                                                       \
+	        $(LLVM_KOMPILE_OPTS)
 
 # LLVM Backend (configuration: bounds-check)
 
 $(llvm_kompiled_bounds): $(llvm_bounds_files) $(libff_out)
-	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend llvm              \
-	                 --syntax-module $(SYNTAX_MODULE) $(llvm_dir_bounds)/$(MAIN_DEFN_FILE).k \
-	                 --directory $(llvm_dir_bounds) -I $(llvm_dir_bounds)                           \
-	                 --hook-namespaces KRYPTO                                         \
-	                 --emit-json                                                      \
-	                 -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                   \
-	                 -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp            \
-	                 $(addprefix -ccopt ,$(LINK_PROCPS))                              \
-	                 -ccopt -g                                                        \
-	                 -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                \
-	                 -ccopt -lsecp256k1                                               \
-	                 $(LLVM_KOMPILE_OPTS)
+	kompile --debug --main-module $(MAIN_MODULE) --backend llvm                     \
+	        --syntax-module $(SYNTAX_MODULE) $(llvm_dir_bounds)/$(MAIN_DEFN_FILE).k \
+	        --directory $(llvm_dir_bounds) -I $(llvm_dir_bounds)                    \
+	        --hook-namespaces KRYPTO                                                \
+	        --emit-json                                                             \
+	        -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                          \
+	        -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp                   \
+	        $(addprefix -ccopt ,$(LINK_PROCPS))                                     \
+	        -ccopt -g                                                               \
+	        -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                       \
+	        -ccopt -lsecp256k1                                                      \
+	        $(LLVM_KOMPILE_OPTS)
 
 # Haskell Backend
 
 $(haskell_kompiled): $(haskell_files)
-	$(K_BIN)/kompile --debug --main-module $(MAIN_MODULE) --backend haskell              \
-	                 --syntax-module $(SYNTAX_MODULE) $(haskell_dir)/$(MAIN_DEFN_FILE).k \
-	                 --directory $(haskell_dir) -I $(haskell_dir)                        \
-	                 --hook-namespaces KRYPTO                                            \
-	                 --emit-json
+	kompile --debug --main-module $(MAIN_MODULE) --backend haskell              \
+	        --syntax-module $(SYNTAX_MODULE) $(haskell_dir)/$(MAIN_DEFN_FILE).k \
+	        --directory $(haskell_dir) -I $(haskell_dir)                        \
+	        --hook-namespaces KRYPTO                                            \
+	        --emit-json
 
 # Testing
 # -------
@@ -219,7 +220,7 @@ operations_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/operat
 epoch_processing_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/epoch_processing/*/*/*/pre.yaml)
 sanity_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/sanity/*/*/*/pre.yaml)
 genesis_tests:=$(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/genesis/initialization/*/*/state.yaml) \
-			   $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/genesis/validity/*/*/genesis.yaml)
+               $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/genesis/validity/*/*/genesis.yaml)
 
 ssz_tests = $(wildcard tests/eth2.0-spec-tests/tests/minimal/phase0/ssz_static/*/*/case_0/value.yaml)
 all_process_tests:= $(operations_tests) $(epoch_processing_tests) $(sanity_tests) $(genesis_tests)

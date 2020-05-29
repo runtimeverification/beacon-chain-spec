@@ -4,8 +4,9 @@
 BUILD_DIR   := .build
 DEFN_DIR    := $(BUILD_DIR)/defn
 BUILD_LOCAL := $(CURDIR)/$(BUILD_DIR)/local
+LOCAL_LIB   := $(BUILD_LOCAL)/lib
 
-LIBRARY_PATH    := $(BUILD_LOCAL)/lib
+LIBRARY_PATH    := $(LOCAL_LIB)
 INCLUDE_PATH    := $(BUILD_LOCAL)/include
 PKG_CONFIG_PATH := $(LIBRARY_PATH)/pkgconfig
 
@@ -13,13 +14,18 @@ export LIBRARY_PATH
 export INCLUDE_PATH
 export PKG_CONFIG_PATH
 
-DEPS_DIR                := deps
-K_SUBMODULE             := $(abspath $(DEPS_DIR)/k)
-PLUGIN_SUBMODULE        := $(abspath $(DEPS_DIR)/plugin)
+DEPS_DIR         := deps
+K_SUBMODULE      := $(abspath $(DEPS_DIR)/k)
+PLUGIN_SUBMODULE := $(abspath $(DEPS_DIR)/plugin)
 
-K_RELEASE := $(K_SUBMODULE)/k-distribution/target/release/k
-K_BIN     := $(K_RELEASE)/bin
-K_LIB     := $(K_RELEASE)/lib
+ifneq (,$(wildcard $(K_SUBMODULE)/k-distribution/target/release/k/bin/*))
+    K_RELEASE ?= $(abspath $(K_SUBMODULE)/k-distribution/target/release/k)
+else
+    K_RELEASE ?= $(dir $(shell which kompile))..
+endif
+K_BIN := $(K_RELEASE)/bin
+K_LIB := $(K_RELEASE)/lib/kframework
+export K_RELEASE
 
 PATH := $(K_BIN):$(PATH)
 export PATH
@@ -51,8 +57,8 @@ clean-submodules:
 # Non-K Dependencies
 # ------------------
 
-libsecp256k1_out:=$(LIBRARY_PATH)/pkgconfig/libsecp256k1.pc
-libff_out:=$(LIBRARY_PATH)/libff.a
+libsecp256k1_out:=$(LOCAL_LIB)/pkgconfig/libsecp256k1.pc
+libff_out:=$(LOCAL_LIB)/libff.a
 
 libsecp256k1: $(libsecp256k1_out)
 libff: $(libff_out)
@@ -70,11 +76,9 @@ $(libsecp256k1_out): $(DEPS_DIR)/secp256k1/autogen.sh
 UNAME_S := $(shell uname -s)
 
 ifeq ($(UNAME_S),Linux)
-  LIBFF_CMAKE_FLAGS=
-  LINK_PROCPS=-lprocps
+    LIBFF_CMAKE_FLAGS=
 else
-  LIBFF_CMAKE_FLAGS=-DWITH_PROCPS=OFF
-  LINK_PROCPS=
+    LIBFF_CMAKE_FLAGS=-DWITH_PROCPS=OFF
 endif
 
 LIBFF_CC ?=clang-8
@@ -154,12 +158,20 @@ $(haskell_dir)/%.k: %.k
 
 # Building
 
-KOMPILE_OPTS      ?=
-LLVM_KOMPILE_OPTS := $(KOMPILE_OPTS)
+KOMPILE_OPTS ?=
 
-llvm_kompiled    := $(llvm_dir_minimal)/$(MAIN_DEFN_FILE)-kompiled/interpreter
-llvm_kompiled_bounds    := $(llvm_dir_bounds)/$(MAIN_DEFN_FILE)-kompiled/interpreter
-haskell_kompiled := $(haskell_dir)/$(MAIN_DEFN_FILE)-kompiled/definition.kore
+LLVM_KOMPILE_OPTS := -I$(K_RELEASE)/include/kllvm -I$(INCLUDE_PATH) -L$(LOCAL_LIB) \
+                     -lff -lcryptopp -lsecp256k1                                   \
+                     $(PLUGIN_SUBMODULE)/plugin-c/crypto.cpp                       \
+                     -g
+
+ifeq ($(UNAME_S),Linux)
+    LLVM_KOMPILE_OPTS += -lprocps
+endif
+
+llvm_kompiled        := $(llvm_dir_minimal)/$(MAIN_DEFN_FILE)-kompiled/interpreter
+llvm_kompiled_bounds := $(llvm_dir_bounds)/$(MAIN_DEFN_FILE)-kompiled/interpreter
+haskell_kompiled     := $(haskell_dir)/$(MAIN_DEFN_FILE)-kompiled/definition.kore
 
 build: build-llvm build-haskell build-llvm-bounds
 build-llvm:        $(llvm_kompiled)
@@ -174,13 +186,7 @@ $(llvm_kompiled): $(llvm_files) $(libff_out)
 	        --directory $(llvm_dir_minimal) -I $(llvm_dir_minimal)                   \
 	        --hook-namespaces KRYPTO                                                 \
 	        --emit-json                                                              \
-	        -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                           \
-	        -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp                    \
-	        $(addprefix -ccopt ,$(LINK_PROCPS))                                      \
-	        -ccopt -g                                                                \
-	        -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                        \
-	        -ccopt -lsecp256k1                                                       \
-	        $(LLVM_KOMPILE_OPTS)
+	        $(KOMPILE_OPTS) $(addprefix -ccopt ,$(LLVM_KOMPILE_OPTS))
 
 # LLVM Backend (configuration: bounds-check)
 
@@ -190,13 +196,7 @@ $(llvm_kompiled_bounds): $(llvm_bounds_files) $(libff_out)
 	        --directory $(llvm_dir_bounds) -I $(llvm_dir_bounds)                    \
 	        --hook-namespaces KRYPTO                                                \
 	        --emit-json                                                             \
-	        -ccopt ${PLUGIN_SUBMODULE}/plugin-c/crypto.cpp                          \
-	        -ccopt -L/usr/local/lib -ccopt -lff -ccopt -lcryptopp                   \
-	        $(addprefix -ccopt ,$(LINK_PROCPS))                                     \
-	        -ccopt -g                                                               \
-	        -ccopt -L$(LIBRARY_PATH) -ccopt -I$(INCLUDE_PATH)                       \
-	        -ccopt -lsecp256k1                                                      \
-	        $(LLVM_KOMPILE_OPTS)
+	        $(KOMPILE_OPTS) $(addprefix -ccopt ,$(LLVM_KOMPILE_OPTS))
 
 # Haskell Backend
 
